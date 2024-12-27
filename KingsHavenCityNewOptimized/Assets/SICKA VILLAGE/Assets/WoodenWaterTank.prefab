@@ -1,0 +1,161 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &8393850466335897621
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7285294432848738229}
+  m_Layer: 0
+  m_Name: WoodenWaterTank
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7285294432848738229
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8393850466335897621}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -54.026295, y: -93.04934, z: -142.00691}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 5328356571350676545}
+  - {fileID: 5356905002089646665}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &5328356571393700682
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 7285294432848738229}
+    m_Modifications:
+    - target: {fileID: 1030981386, guid: abc00000000017436611329328925722, type: 3}
+      propertyPath: m_Name
+      value: SM_WoodenWatertank_Tank
+      objectReference: {fileID: 0}
+    - target: {fileID: 1030981387, guid: abc00000000017436611329328925722, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1030981387, guid: abc00000000017436611329328925722, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1030981387, guid: abc00000000017436611329328925722, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1030981387, guid: abc00000000017436611329328925722, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -6.0595512
+      objectReference: {fileID: 0}
+    - target: {fileID: 1030981387, guid: abc00000000017436611329328925722, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -28.57663
+      objectReference: {fileID: 0}
+    - target: {fileID: 1030981387, guid: abc00000000017436611329328925722, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -2.681076
+      objectReference: {fileID: 0}
+    - target: {fileID: 1030981387, guid: abc00000000017436611329328925722, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1030981387, guid: abc00000000017436611329328925722, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1030981387, guid: abc00000000017436611329328925722, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1030981387, guid: abc00000000017436611329328925722, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: abc00000000017436611329328925722, type: 3}
+--- !u!4 &5328356571350676545 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1030981387, guid: abc00000000017436611329328925722,
+    type: 3}
+  m_PrefabInstance: {fileID: 5328356571393700682}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &5356905002011102537
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 7285294432848738229}
+    m_Modifications:
+    - target: {fileID: 1030981375, guid: abc00000000013847982168051626985, type: 3}
+      propertyPath: m_Name
+      value: SM_WoodenWatertank_Foundation
+      objectReference: {fileID: 0}
+    - target: {fileID: 1030981376, guid: abc00000000013847982168051626985, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1030981376, guid: abc00000000013847982168051626985, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1030981376, guid: abc00000000013847982168051626985, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1030981376, guid: abc00000000013847982168051626985, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -6.0909767
+      objectReference: {fileID: 0}
+    - target: {fileID: 1030981376, guid: abc00000000013847982168051626985, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -30.95066
+      objectReference: {fileID: 0}
+    - target: {fileID: 1030981376, guid: abc00000000013847982168051626985, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -2.4471283
+      objectReference: {fileID: 0}
+    - target: {fileID: 1030981376, guid: abc00000000013847982168051626985, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1030981376, guid: abc00000000013847982168051626985, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1030981376, guid: abc00000000013847982168051626985, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1030981376, guid: abc00000000013847982168051626985, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: abc00000000013847982168051626985, type: 3}
+--- !u!4 &5356905002089646665 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1030981376, guid: abc00000000013847982168051626985,
+    type: 3}
+  m_PrefabInstance: {fileID: 5356905002011102537}
+  m_PrefabAsset: {fileID: 0}
