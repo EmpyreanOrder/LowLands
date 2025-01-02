@@ -1,0 +1,755 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>DeepSpaceLabs.Core</name>
+    </assembly>
+    <members>
+        <member name="T:DeepSpaceLabs.Core.ConditionalDisplayAttribute">
+            <summary>
+            An attribute that can be used on a field within a MonoBehaviour to make it only show up in the inspector when the value of another bool type 
+            field is a specific value (either true or false).
+            </summary>
+            <title>
+            ConditionalDisplayAttribute Class
+            </title>
+            <category>
+            Other Classes
+            </category>
+            <navigationName>
+            ConditionalDisplayAttribute
+            </navigationName>
+            <fileName>ConditionalDisplayAttribute.html</fileName>
+            <syntax>
+            public class ConditionalDisplayAttribute : PropertyAttribute
+            </syntax>
+        </member>
+        <member name="P:DeepSpaceLabs.Core.ConditionalDisplayAttribute.ConditionalField">
+            <summary>
+            The bool field that controls whether the field using this attribute will be shown.
+            </summary>
+            <type>string</type>
+        </member>
+        <member name="P:DeepSpaceLabs.Core.ConditionalDisplayAttribute.Value">
+            <summary>
+            The value that the Conditional Field needs to be in order for the field using this attribute to be shown. When the bool constructor is used 
+            false is translated to 0 and true to 1. When the int version is used, no translation is necessary
+            </summary>
+            <type>int</type>
+        </member>
+        <member name="P:DeepSpaceLabs.Core.ConditionalDisplayAttribute.UseEquality">
+            <summary>
+            Whether the attribute is using equality for the comparison of conditionalField's value and Value. If true, 
+            the field using this attribute will be shown only if Value is equal to ConditionalField's value. If false, 
+            the field is shwon only if they are not equal.
+            </summary>
+            <type>bool</type>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.ConditionalDisplayAttribute.#ctor(System.String,System.Boolean)">
+            <summary>
+            Initiates a new instance of this attribute where the value used for evaluation is a bool. Can be used with bool fields.
+            </summary>
+            <param name="conditionalField" type="string">
+            The bool field that controls whether the field using this attribute will be shown.
+            </param>
+            <param name="showIfValue" type="bool">
+            The value (true or false) that the Conditional Field needs to be in order for the field using this attribute to be shown.
+            </param>
+            <displayName id="ConditionalDisplayAttribute1">
+            ConditionalDisplayAttribute(string, bool)
+            </displayName>
+            <syntax>
+            public ConditionalDisplayAttribute(string conditionalField, bool showIfValue)
+            </syntax>
+            <example>
+            [SerializeField]
+            bool someValue = true;
+            
+            [SerializeField, ConditionalDisplay("someValue", true)]
+            bool otherValue = false;
+            </example>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.ConditionalDisplayAttribute.#ctor(System.String,System.Boolean,System.Int32)">
+            <summary>
+            Initiates a new instance of this attribute where the value used for evaluation is an int. You can use this with a conditional 
+            field that is an int or enum. When an enum, convert the enum value you want to its int equivalent.
+            </summary>
+            <param name="conditionalField" type="string">
+            The field that controls whether the field using this attribute will be shown. This field must have a valid intValue for its 
+            equivalent SerializedProperty.
+            </param>
+            <param name="useEquality" type = "bool">
+            If true, field using this attribute will only be shown if conditionalField's value is equal to the value passed into the constructor. If false, it will only be 
+            shown if conditionalField's value does not equal the value passed in.
+            </param>
+            <param name="value" type="int">
+            The value used to determine whether the field is shown or not.
+            </param>
+            <displayName id="ConditionalDisplayAttribute2">
+            ConditionalDisplayAttribute(string, bool, int)
+            </displayName>
+            <syntax>
+            public ConditionalDisplayAttribute(string conditionalField, bool useEquality, int showIfValue)
+            </syntax>
+            <example>
+            [SerializeField]
+            int someValue = 1;
+            
+            //field will not show because someValue is 1 when it needs to be 0 (unless its changed in the inspector)
+            [SerializeField, ConditionalDisplay("someValue", true, 0)]
+            bool otherValue = false;
+            </example>
+        </member>
+        <member name="T:DeepSpaceLabs.Core.FieldRenameAttribute">
+            <summary>
+            An attribute that can be used on a field within a MonoBehaviour to make it show a different label and optionally a tooltip.
+            </summary>
+            <title>
+            FieldRenameAttribute Class
+            </title>
+            <category>
+            Other Classes
+            </category>
+            <navigationName>
+            FieldRenameAttribute
+            </navigationName>
+            <fileName>FieldRenameAttribute.html</fileName>
+            <syntax>
+            public class FieldRenameAttribute : PropertyAttribute
+            </syntax>
+        </member>
+        <member name="P:DeepSpaceLabs.Core.FieldRenameAttribute.NewLabel">
+            <summary>
+            The new label to display. Each string in the array is displayed on a different line.
+            </summary>
+            <type>string[]</type>
+        </member>
+        <member name="P:DeepSpaceLabs.Core.FieldRenameAttribute.Tooltip">
+            <summary>
+            The optional toolitp to display.
+            </summary>
+            <type>string</type>
+        </member>
+        <member name="P:DeepSpaceLabs.Core.FieldRenameAttribute.ConditionalField">
+            <summary>
+            The optional boolean field which controls whether the field using this attribute will be shown. Will be null if no conditional field 
+            was provided.
+            </summary>
+            <type>string</type>
+        </member>
+        <member name="P:DeepSpaceLabs.Core.FieldRenameAttribute.Value">
+            <summary>
+            If ConditionalField is set, this controls what value to use in the comparison to determine whether the field using this attribute is shown.
+            </summary>
+            <type>int</type>
+        </member>
+        <member name="P:DeepSpaceLabs.Core.FieldRenameAttribute.UseEquality">
+            <summary>
+            Whether the attribute is using equality for the comparison of ConditionalField's value and Value. If true, 
+            the field using this attribute will be shown only if Value is equal to ConditionalField's value. If false, 
+            the field is shwon only if they are not equal. This is not used when conditionalField is not supplied.
+            </summary>
+            <type>bool</type>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.FieldRenameAttribute.#ctor(System.String,System.String)">
+            <summary>
+            Initiates a new instance of this attribute that does not use the conditional field.
+            </summary>
+            <param name="newLabel" type="string">
+            The new label to show in the inspector. You can split the label into multiple lines by adding '\n' (without the two ') where you want a new line.
+            </param>
+            <param name="tooltip" type="string">
+            An optional tooltip that will be displayed for the field when you hover the mouse over the label.
+            </param>
+            <displayName id="FieldRenameAttribute1">
+            FieldRenameAttribute(string, [string])
+            </displayName>
+            <syntax>
+            public FieldRenameAttribute(string newLabel, string tooltip = null)
+            </syntax>
+            <example>
+            [SerializeField, FieldRenameAttribute("New Label\nNext Line", "This is an example label\n\nThis is another line.")]
+            bool someValue = false;
+            </example>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.FieldRenameAttribute.#ctor(System.String,System.String,System.Boolean,System.String)">
+            <summary>
+            Initiates a new instance of this attribute that uses a conditional field that is a bool field.
+            </summary>
+            <param name="newLabel" type="string">
+            The new label to show in the inspector. You can split the label into multiple lines by adding '\n' (without the two ') where you want a new line.
+            </param>
+            <param name="conditionalField" type="string">
+            An bool field within the same MonoBehaviour as the field using this attribute. The value of this field will be identified and if euqal to value, 
+            the field using this attribute will be shown.
+            </param>
+            <param name="value" type="bool">
+            The value to use to determine if the field using this attribute is shown or not.
+            </param>
+            <param name="tooltip" type="string">
+            An optional tooltip that will be displayed for the field when you hover the mouse over the label.
+            </param>
+            <displayName id="FieldRenameAttribute2">
+            FieldRenameAttribute(string, string, bool, [string])
+            </displayName>
+            <syntax>
+            public FieldRenameAttribute(string newLabel, string conditionalField, bool showIfValue, string tooltip = null)
+            </syntax>
+            <example>
+            [SerializeField]
+            bool someValue = true;
+            
+            //Other Value will not be shown because someValue needs to be false but it is true (unless it is changed in the inspector of course)
+            [SerializeField, FieldRenameAttribute("New Label\nNext Line", "someValue", false, "This is an example label\n\nThis is another line.")]
+            bool otherValue = false;
+            </example>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.FieldRenameAttribute.#ctor(System.String,System.String,System.Boolean,System.Int32,System.String)">
+            <summary>
+            Initiates a new instance of this attribute that uses a conditional field that contains a valid int value in its SerializedProperty.intValue. 
+            You can use this with a conditional field that is an int or enum for example. When an enum, convert the enum value you want to its int equivalent.
+            </summary>
+            <param name="newLabel" type="string">
+            The new label to show in the inspector. You can split the label into multiple lines by adding '\n' (without the two ') where you want a new line.
+            </param>
+            <param name="conditionalField" type="string">
+            The name of a field within the same MonoBehaviour as the field using this attribute, whose equivalent SerializedProperty has a valid intValue. 
+            The intValue of this field will be identified and used according to 'useEquality' to determine if the field using this attribute is 
+            displayed or not.
+            </param>
+            <param name="useEquality" type = "bool">
+            If true, the field using this attribute is displayed only when conditionalField's value is equal to the value argument. If false, 
+            it is shown only when conditionalField's value is not equal to the value argument.
+            </param>
+            <param name="value" type="int">
+            The value used to determine if the field using this attribute is shown or not.
+            </param>
+            <param name="tooltip" type="string">
+            An optional tooltip that will be displayed for the field when you hover the mouse over the label.
+            </param>
+            <displayName id="FieldRenameAttribute3">
+            FieldRenameAttribute(string, string, bool, int, [string])
+            </displayName>
+            <syntax>
+            public FieldRenameAttribute(string newLabel, string conditionalField, bool useEquality, int showIfValue, string tooltip = null)
+            </syntax>
+            <example>
+            [SerializeField]
+            int someValue = 2;
+            
+            //Other Value will be shown with the new label, because someValue is indeed 2
+            [SerializeField, FieldRenameAttribute("New Label\nNext Line", "someValue", 2, true, "This is an example label\n\nThis is another line.")]
+            bool otherValue = false;
+            </example>
+        </member>
+        <member name="T:DeepSpaceLabs.Core.GlobalValues">
+            <summary>
+            Contains constant string values for different uses. It's doubtful you would need access to these values!
+            </summary>
+        </member>
+        <member name="F:DeepSpaceLabs.Core.GlobalValues.COMPANY_NAME">
+            <summary>
+            The Company Name (Deep Space Labs)
+            </summary>
+        </member>
+        <member name="F:DeepSpaceLabs.Core.GlobalValues.COMPONENT_ROOT_PATH">
+            <summary>
+            The Root Menu Path of Deep Space Labs Components (Deep Space Labs/)
+            </summary>
+        </member>
+        <member name="F:DeepSpaceLabs.Core.GlobalValues.ACTIONS_MENU_PATH">
+            <summary>
+            The Root Menu Path of Deep Space Labs Actions (Assets/Deep Space Labs/)
+            </summary>
+        </member>
+        <member name="F:DeepSpaceLabs.Core.GlobalValues.ACTIONS_MENU_PATH_GUI">
+            <summary>
+            Used to describe Root Path of Deep Space Labs Actions (Actions -> Deep Space Labs -> ) 
+            </summary>
+        </member>
+        <member name="F:DeepSpaceLabs.Core.GlobalValues.ASSET_CREATION_PATH">
+            <summary>
+            Root Path of Deep Space Labs Asset Creation menu options (Assets/Create/Deep Space Labs/") 
+            </summary>
+        </member>
+        <member name="F:DeepSpaceLabs.Core.GlobalValues.ASSET_CREATION_PATH_GUI_FROM_MENU">
+            <summary>
+            Used to describe Root Path of Deep Space Labs Asset Creation options via the top Unity menu bar (Actions -> Deep Space Labs -> ) 
+            </summary>
+        </member>
+        <member name="F:DeepSpaceLabs.Core.GlobalValues.ASSET_CREATION_PATH_GUI_FROM_RIGHT_CLICK">
+            <summary>
+            Used to describe Root Path of Deep Space Labs Asset Creation options via right folder clicking in Project Hierarchy (Actions -> Deep Space Labs -> ) 
+            </summary>
+        </member>
+        <member name="F:DeepSpaceLabs.Core.GlobalValues.COMPONENT_CREATION_PATH_FROM_MENU">
+            <summary>
+            Used to describe Root Path of Deep Space Labs Component Creation options via top Unity menu bar (Component -> Deep Space Labs -> ) 
+            </summary>
+        </member>
+        <member name="F:DeepSpaceLabs.Core.GlobalValues.COMPONENT_CREATION_PATH_FROM_ADD_COMPONENT">
+            <summary>
+            Used to describe Root Path of Deep Space Labs Component Creation options via Inspector Add Component menu (Component -> Deep Space Labs -> ) 
+            </summary>
+        </member>
+        <member name="F:DeepSpaceLabs.Core.GlobalValues.EDITOR_RESOURCES_PATH">
+            <summary>
+            The Root Folder Path of Deep Space Labs Editor Resources (Assets/Editor Default Resources/Deep Space Labs/")
+            </summary>
+        </member>
+        <member name="T:DeepSpaceLabs.Core.Readme">
+            <summary>
+            Simple class for displaying helpful readme information
+            </summary>
+        </member>
+        <member name="F:DeepSpaceLabs.Core.Readme.info">
+            <summary>
+            The info to disiplay.
+            </summary>
+        </member>
+        <member name="F:DeepSpaceLabs.Core.Readme.displayAsWarning">
+            <summary>
+            Whether the info should be displayed as a warning. If false, it is displayed as regular info.
+            </summary>
+        </member>
+        <member name="T:DeepSpaceLabs.Core.ReadOnlyArray`1">
+            <summary>
+            A wrapper for an array. The array is modifiable by the internal code of the kit only. External methods that are 
+            passed this object can only read the content of the array (as well as the Length of the array). The contents 
+            are guranteed to remain unchanged within the life cycle of any method that it is passed to. After that, the content 
+            may change as the array is reused. Therefore, you should treat the array as mutable. If you need to store the 
+            values of the array long term, create a new array and transfer the values yourself.
+            <para>
+            You can access the contents of this object just as you would an array, e.g., to access the 
+            contents of index 0 use reusableArray[0].
+            </para>
+            </summary>
+            <title>ReadOnlyArray&lt;T&gt; Class</title>
+            <category>Other Classes</category>
+            <navigationName>ReadOnlyArray</navigationName>
+            <fileName>ReadOnlyArray.html</fileName>
+            <syntax>public class ReadOnlyArray&lt;T&gt;</syntax>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.ReadOnlyArray`1.#ctor(System.Int32)">
+            <summary>
+            Initialize a new instance of a read only array with the specified length. The only use for 
+            this is to pass the array into a method of the SAM, as otherwise the array is unusable.
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.Core.ReadOnlyArray`1.Length">
+            <summary>
+            Gets the length of the array.
+            </summary>
+            <type>int</type>
+        </member>
+        <member name="P:DeepSpaceLabs.Core.ReadOnlyArray`1.Item(System.Int32)">
+            <summary>
+            Gets the value at the specified index in the array.
+            </summary>
+            <type>T</type>
+        </member>
+        <member name="T:DeepSpaceLabs.Core.ReadOnlyList`1">
+            <summary>
+            A wrapper for a list. The array is modifiable by the internal code of the kit only. External methods that are 
+            passed this object can only read the content of the list (as well as the Count of the list). The contents 
+            are guranteed to remain unchanged within the life cycle of any method that it is passed to. After that, the content 
+            may change as the list is reused. Therefore, you should treat the list as mutable. If you need to store the 
+            values of the list long term, create a new list and transfer the values yourself.
+            <para>
+            You can access the contents of this object just as you would an list, e.g., to access the 
+            contents of index 0 use reusableList[0].
+            </para>
+            </summary>
+            <title>ReadOnlyList&lt;T&gt; Class</title>
+            <category>Other Classes</category>
+            <navigationName>ReadOnlyList</navigationName>
+            <fileName>ReadOnlyList.html</fileName>
+            <syntax>public class ReadOnlyList&lt;T&gt;</syntax>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.ReadOnlyList`1.#ctor(System.Int32)">
+            <summary>
+            Initialize a new instance of a read only list with the specified capacity. The only use for 
+            this is to pass the list into a method of the SAM, as otherwise the list is unusable.
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.Core.ReadOnlyList`1.Count">
+            <summary>
+            Gets the length of the array.
+            </summary>
+            <type>int</type>
+        </member>
+        <member name="P:DeepSpaceLabs.Core.ReadOnlyList`1.Item(System.Int32)">
+            <summary>
+            Gets the value at the specified index in the array.
+            </summary>
+            <type>T</type>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.ReadOnlyList`1.GetEnumerator">
+            <summary>
+            Gets a struct enumerator for the Read Only List. This is used in foreach statements and can be used 
+            manually to avoid garbage generation.
+            </summary>
+            <returns type="List&lt;T&gt;.Enumerator">
+            A struct based enumerator.
+            </returns>
+            <displayName id="GetEnumerator">
+            GetEnumerator()
+            </displayName>
+            <syntax>
+            public List&lt;T&gt;.Enumerator GetEnumerator()
+            </syntax>
+        </member>
+        <member name="T:DeepSpaceLabs.Core.IndexedLists`1">
+            <summary>
+            Represents a wrapper for an array of List objects.
+            </summary>
+            <typeparam name="T">The type of elements to store in the internal Lists.</typeparam>
+        </member>
+        <member name="P:DeepSpaceLabs.Core.IndexedLists`1.Item(System.Int32)">
+            <summary>
+            Gets the List object at index.
+            </summary>
+            <param name="index">The index of the list to get.</param>
+            <returns>The List object at index</returns>
+        </member>
+        <member name="P:DeepSpaceLabs.Core.IndexedLists`1.IsEmpty">
+            <summary>
+            Gets a value indicating whether any of the List objects have elements. This is not a free call so use it sparingly when possible.
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.Core.IndexedLists`1.IsReadOnly">
+            <summary>
+            Gets a value indicating whether the implementation is read only.
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.Core.IndexedLists`1.Length">
+            <summary>
+            Gets a value indicating the number of List in the IndexedLists.
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.Core.IndexedLists`1.IsLocked">
+            <summary>
+            Internally, IndexedLists are shared between different methods to reduce garbage generation. Locking the IndexedLists ensures only one method 
+            can use the list at a time. This property returns a value indicating whether the List is locked.
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.IndexedLists`1.ChangeNumIndexes(System.Int32)">
+            <summary>
+            Changes the number of indexes (i.e., length) of the IndexesList. This controls the number of List that can be stored.
+            </summary>
+            <param name="newNumIndexes">The new number of indexes (length).</param>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.IndexedLists`1.AddRange(DeepSpaceLabs.Core.IndexedLists{`0})">
+            <summary>
+            Adds the elements of another IndexedLists to this IndexList.
+            </summary>
+            <param name="collection">The other IndexedLists.</param>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.IndexedLists`1.ClearAll">
+            <summary>
+            Clears the elements of each List in the IndexedLists.
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.IndexedLists`1.NumIndexesWithItems">
+            <summary>
+            Gets a value indicating the number of List in the IndexedLists that have elements (i.e., that are not empty).
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.IndexedLists`1.Lock">
+            <summary>
+            Locks the IndexedLists so it can not be used by anything else.
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.IndexedLists`1.Unlock">
+            <summary>
+            Unlocks the IndexedLists so it can be used elsewhere.
+            </summary>
+        </member>
+        <member name="T:DeepSpaceLabs.Core.ReadOnlyIndexedLists`1">
+            <summary>
+            A Read Only version of the IndexedLists
+            </summary>
+            <typeparam name="T">The type of elements to store in the internal Lists.</typeparam>
+        </member>
+        <member name="P:DeepSpaceLabs.Core.ReadOnlyIndexedLists`1.Item(System.Int32)">
+            <summary>
+            Gets the List object at index. The returned List is not readonly!
+            </summary>
+            <param name="index">The index of the list to get.</param>
+            <returns>The List object at index</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.ReadOnlyIndexedLists`1.GetReadOnlyList(System.Int32)">
+            <summary>
+            Gets the Read Only version of the List at index.
+            </summary>
+            <param name="index"></param>
+            <returns></returns>
+        </member>
+        <member name="P:DeepSpaceLabs.Core.ReadOnlyIndexedLists`1.IsReadOnly">
+            <summary>
+            Returns true.
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.Core.ReadOnlyIndexedLists`1.Length">
+            <summary>
+            Gets a value indicating the number of List in the IndexedLists.
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.ReadOnlyIndexedLists`1.#ctor(System.Int32)">
+            <summary>
+            Creates a new instance of the ReadOnlyIndexedLists.
+            </summary>
+            <param name="numIndexes">The number of indexes (lists) the IndexedLists stores.</param>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.ReadOnlyIndexedLists`1.ChangeNumIndexes(System.Int32)">
+            <summary>
+            Changes the number of indexes (i.e., length) of the IndexesLists. This controls the number of List that can be stored.
+            </summary>
+            <param name="newNumIndexes">The new number of indexes (length).</param>
+        </member>
+        <member name="T:DeepSpaceLabs.Core.NonReadonlyIndexedLists`1">
+            <summary>
+            A Non Read Only version of the IndexedLists.
+            </summary>
+            <typeparam name="T">The type of elements to store in the internal Lists.</typeparam>
+        </member>
+        <member name="P:DeepSpaceLabs.Core.NonReadonlyIndexedLists`1.Item(System.Int32)">
+            <summary>
+            Gets the List object at index.
+            </summary>
+            <param name="index">The index of the list to get.</param>
+            <returns>The List object at index</returns>
+        </member>
+        <member name="P:DeepSpaceLabs.Core.NonReadonlyIndexedLists`1.IsReadOnly">
+            <summary>
+            Returns false.
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.Core.NonReadonlyIndexedLists`1.Length">
+            <summary>
+            Gets a value indicating the number of List in the IndexedLists.
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.NonReadonlyIndexedLists`1.#ctor(System.Int32)">
+            <summary>
+            Creates a new instance of the NonReadonlyIndexedLists.
+            </summary>
+            <param name="numIndexes">The number of indexes (lists) the IndexedLists stores.</param>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.NonReadonlyIndexedLists`1.ChangeNumIndexes(System.Int32)">
+            <summary>
+            Changes the number of indexes (i.e., length) of the IndexesLists. This controls the number of List that can be stored.
+            </summary>
+            <param name="newNumIndexes">The new number of indexes (length).</param>
+        </member>
+        <member name="T:DeepSpaceLabs.Core.NamingConvention">
+            <summary>
+            A Naming Convention implemented as a scriptable object. You can create a NamingConvention asset via 
+            Assets -> Create -> Deep Space Labs -> Core -> Naming Convention. This can be used to change the naming convention used 
+            by the several of the Deep Space Labs products for various purposes. If a NamingConvention field is visible on a component or tool and no 
+            asset is provided, the default naming convention will be used (%g_%y_%x or GroupName_Row_Column for LODs not using multi chunking, or %g_%y_%x_C%c or GroupName_Row#_Column#_CChunk# for LODs using multi chunking). 
+            <para>
+            You can find more information about 
+            Naming Conventions within the Editor Guide for your product, under the Naming Convention Section of the Scriptable Assets Chapter.
+            </para>
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.Core.NamingConvention.FirstChunkFormat">
+            <summary>
+            Gets the format of the naming convention that does not take chunking into account. This format is always used 
+            with LODs that do not utilize multi chunking. If an LOD utilizes multi chunking but the UseNonChunkFormatForSingleChunkCells 
+            property returns true, this format is also used for cells that only have a single chunk. If that property returns false, 
+            the ChunkFormat is used for cells that only have a single chunk.
+            </summary>
+            <type>string</type>
+        </member>
+        <member name="P:DeepSpaceLabs.Core.NamingConvention.SupplementalChunkFormat">
+            <summary>
+            Gets the format of the naming convention that takes chunking into account. This format is always used with LODs 
+            that utilize multi chunking, for cells that have 2 or more chunks. For cells that only have a single chunk, 
+            this format is used when the UseNonChunkFormatForSingleChunkCells property returns false. If that property 
+            returns true, the NonChunkFormat is used for cells with single chunks.
+            </summary>
+            <type>string</type>
+        </member>
+        <member name="P:DeepSpaceLabs.Core.NamingConvention.NumberingStartsAt0">
+            <summary>
+            Gets a value indicating whether the naming convention calls for row/column/layer/chunk numbers to start at 0.
+            If false, the numbers will start at 1 instead.
+            </summary>
+            <type>bool</type>
+        </member>
+        <member name="T:DeepSpaceLabs.Core.ArrayExtensions">
+            <summary>
+            A collection of extensions for arays.
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.ArrayExtensions.ComputeAverage(System.Single[])">
+            <summary>
+            Finds the average of a set of values.
+            </summary>
+            <param name="values">
+            The values of floats to find the average for.
+            </param>
+            <returns>
+            The average.
+            </returns>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.ArrayExtensions.ComputeSum(System.Single[])">
+            <summary>
+            Computes the sum of a set of float values.
+            </summary>
+            <param name="values">The float values.</param>
+            <returns>The sum.</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.ArrayExtensions.ComputeSum(Unity.Collections.NativeArray{System.Single})">
+            <summary>
+            Computes the sum of a set of double values.
+            </summary>
+            <param name="values">The double values.</param>
+            <returns>The sum.</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.ArrayExtensions.AreAllValuesTheSame(System.Int32[])">
+            <summary>
+            Determines if all input int values are the same.
+            </summary>
+            <param name="values">The input values.</param>
+            <returns>True if all values are the same, false otherwise.</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.ArrayExtensions.AreAllValuesTheSame(System.Boolean[])">
+            <summary>
+            Determines if all input bool values are the same.
+            </summary>
+            <param name="values">The input values.</param>
+            <returns>True if all values are the same, false otherwise.</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.ArrayExtensions.DoAllValuesMatchInputVaue(System.Boolean[],System.Boolean)">
+            <summary>
+            Determines if all input bool values match an input value.
+            </summary>
+            <param name="values">The input values.</param>
+            <param name="inputValue">The input value to match.</param>
+            <returns>True if all values match the inputValue, false otherwise.</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.ArrayExtensions.GetHighestNumber(System.Int32[])">
+            <summary>
+            Returns the highest value in the input int array.
+            </summary>
+            <param name="values">The input array.</param>
+            <returns>The highest value in the array.</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.ArrayExtensions.IsEmpty``1(DeepSpaceLabs.Core.IndexedLists{``0}[])">
+            <summary>
+            Checks if an IndexedLists has any Lists with elements.
+            </summary>
+            <typeparam name="T">The type of the elements stored in the IndexedLists.</typeparam>
+            <param name="indexedLists">The indexed lists to check.</param>
+            <returns>True if the IndexedLists if empty, false otherwise.</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.ArrayExtensions.NumItemsInArray``1(DeepSpaceLabs.Core.IndexedLists{``0}[])">
+            <summary>
+            Gets the number of total elements in the IndexedLists.
+            </summary>
+            <typeparam name="T">The type of the elements stored in the IndexedLists.</typeparam>
+            <param name="indexedLists">The indexed lists to check.</param>
+            <returns>The number of items (in total) in the IndexedLists (across all Lists stored in the IndexedLists).</returns>
+        </member>
+        <member name="T:DeepSpaceLabs.Core.NamingConventionExtensions">
+            <summary>
+            A collection of Naming Convention extensions.
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.NamingConventionExtensions.GetCorrectNamingConvention(DeepSpaceLabs.Core.INamingConvention,System.Boolean,System.Boolean)">
+            <summary>
+            Checks to make sure the inputNamingConvention is not null and is valid for use (depending on whether it is used with 3D assets and multi chunking). If it is valid, the inputNamingConvention is returned. 
+            If it is not valid, a default naming convention is returned. 
+            </summary>
+            <param name="inputNamingConvention">The input naming convention, which might be null.</param>
+            <param name="usedWith3DAssets">Whether the naming convention is to be used with 3D assets.</param>
+            <param name="usedWithMultiChunking">Whether the naming convention is to be used with multi chunking.</param>
+            <returns>The inputNamingConvention, if not null (and valid), a default naming convention otherwise.</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.NamingConventionExtensions.ValidateNamingConvention(DeepSpaceLabs.Core.INamingConvention,System.Boolean,System.Boolean)">
+            <summary>
+            Validates whether the input naming convention is valid to be used with the settings specified (usedWith3DAssets and usedWithMultiChunking).
+            </summary>
+            <param name="namingConvention">The naming convention, which cannot be null.</param>
+            <param name="usedWith3DAssets">Whether the naming convention is to be used with 3D assets.</param>
+            <param name="usedWithMultiChunking">Whether the naming convention is to be used with multi chunking.</param>
+            <returns>True if the naming convention is valid for the settings, false otherwise.</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.NamingConventionExtensions.GetFirstChunkStringFormatVersion(DeepSpaceLabs.Core.INamingConvention,System.Boolean,System.String)">
+            <summary>
+            Returns a string ready to be used in a string.Format method, representing the First Chunk in the Chunk Set. 
+            %x is the first paramater, %y the second, and %z the third (if use3DNamingConvention is true). The input baseName is included as a literal string rater a separate parameter.
+            </summary>
+            <param name="namingConvention">The naming convention, which cannot be null.</param>
+            <param name="use3DNamingConvention">Whether the naming convention is to be used with 3D assets.</param>
+            <param name="baseName">Whether the naming convention is to be used with multi chunking.</param>
+            <returns>A string which can be used in the string.Format method.</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.NamingConventionExtensions.GetFirstChunkStringFormatVersion(DeepSpaceLabs.Core.INamingConvention,System.Boolean)">
+            <summary>
+            Returns a string ready to be used in a string.Format method, representing the First Chunk in the Chunk Set. 
+            %g is the first parameter, %x the second, %y the third, and %z the fourth (if use3DNamingConvention is true). This string allows you to use variable group names.
+            </summary>
+            <param name="namingConvention">The naming convention, which cannot be null.</param>
+            <param name="use3DNamingConvention">Whether the naming convention is to be used with 3D assets.</param>
+            <returns>A string which can be used in the string.Format method.</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.NamingConventionExtensions.GetSupplementalChunkStringFormatVersion(DeepSpaceLabs.Core.INamingConvention,System.Boolean,System.String)">
+            <summary>
+            Returns a string ready to be used in a string.Format method, representing a Supplemental Chunk in the Chunk Set (Chunks 2+). 
+            %x is the first paramater, %y the second, %z the third (if use3DNamingConvention is true), and %c the third or fourth (depending on whether use3DNamingConvention is true). The input baseName is included as a literal string rater a separate parameter.
+            </summary>
+            <param name="namingConvention">The naming convention, which cannot be null.</param>
+            <param name="use3DNamingConvention">Whether the naming convention is to be used with 3D assets.</param>
+            <param name="baseName">Whether the naming convention is to be used with multi chunking.</param>
+            <returns>A string which can be used in the string.Format method.</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.Core.NamingConventionExtensions.GetSupplementalChunkStringFormatVersion(DeepSpaceLabs.Core.INamingConvention,System.Boolean)">
+            <summary>
+            Returns a string ready to be used in a string.Format method, representing a Supplemental Chunk in the Chunk Set (Chunks 2+)
+            %g is the first parameter, %x the second, %y the third, and %z the fourth (if use3DNamingConvention is true), and %c the fourth or fifth (depending on whether use3DNamingConvention is true). This string allows you to use variable group names.
+            </summary>
+            <param name="namingConvention">The naming convention, which cannot be null.</param>
+            <param name="use3DNamingConvention">Whether the naming convention is to be used with 3D assets.</param>
+            <returns>A string which can be used in the string.Format method.</returns>
+        </member>
+        <member name="T:DeepSpaceLabs.Core.INamingConvention">
+            <summary>
+            Represents a Naming Convention
+            </summary>
+            <title>INamingConvention Interface</title>
+            <category>Interfaces</category>
+            <navigationName>INamingConvention</navigationName>
+            <fileName>INamingConvention.html</fileName>
+            <syntax>public interface INamingConvention</syntax>
+        </member>
+        <member name="P:DeepSpaceLabs.Core.INamingConvention.FirstChunkFormat">
+            <summary>
+            Gets the format of the naming convention that does not take chunking into account. This format is always used 
+            with LODs that do not utilize multi chunking. If an LOD utilizes multi chunking but the UseNonChunkFormatForSingleChunkCells 
+            property returns true, this format is also used for cells that only have a single chunk. If that property returns false, 
+            the ChunkFormat is used for cells that only have a single chunk.
+            </summary>
+            <type>string</type>
+        </member>
+        <member name="P:DeepSpaceLabs.Core.INamingConvention.SupplementalChunkFormat">
+            <summary>
+            Gets the format of the naming convention that takes chunking into account. This format is always used with LODs 
+            that utilize multi chunking, for cells that have 2 or more chunks. For cells that only have a single chunk, 
+            this format is used when the UseNonChunkFormatForSingleChunkCells property returns false. If that property 
+            returns true, the NonChunkFormat is used for cells with single chunks.
+            </summary>
+            <type>string</type>
+        </member>
+        <member name="P:DeepSpaceLabs.Core.INamingConvention.NumberingStartsAt0">
+            <summary>
+            Gets a value indicating whether the naming convention calls for row/column/layer numbers to start at 0.
+            If false, the numbers will start at 1 instead.
+            </summary>
+            <type>bool</type>
+        </member>
+    </members>
+</doc>

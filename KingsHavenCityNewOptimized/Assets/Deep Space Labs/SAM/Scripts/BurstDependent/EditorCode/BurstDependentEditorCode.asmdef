@@ -1,0 +1,31 @@
+{
+    "name": "BurstDependentEditorCode",
+    "rootNamespace": "DeepSpaceLabs.EditorSAM",
+    "references": [
+        "GUID:2665a8d13d1b3f18800f46e256720795"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "SAM.dll",
+        "EditorSAM.dll",
+        "DeepSpaceLabs.Core.dll",
+        "DeepSpaceLabs.EditorCore.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "BURST_ENABLED"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.unity.burst",
+            "expression": "",
+            "define": "BURST_ENABLED"
+        }
+    ],
+    "noEngineReferences": false
+}

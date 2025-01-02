@@ -1,0 +1,376 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>DeepSpaceLabs.EditorCore</name>
+    </assembly>
+    <members>
+        <member name="T:DeepSpaceLabs.EditorCore.EditorGuideContentBase">
+            <summary>
+            Base content class for Editor Guides. This can be used to easily create different guides depending on the product
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorCore.EditorGuideContentBase.ContentName">
+            <summary>
+            The name of the content. Will be shown in the title bar of the Editor Guide window.
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorCore.EditorGuideContentBase.GlobalSettingsKey">
+            <summary>
+            A key used to store persistent information about the content, such as the last chapter and section opened.
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorCore.EditorGuideContentBase.Product">
+            <summary>
+            The product that the guide is being used with.
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorCore.EditorGuideContentBase.ProductMajorVersion">
+            <summary>
+            Major Version of the product content is being used with.
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorCore.EditorGuideContentBase.ProductMinorVersion">
+            <summary>
+            Minor Version of the product content is being used with.
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorCore.EditorGuideContentBase.ProductPatchVersion">
+            <summary>
+            Patch Version of the product content is being used with.
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorCore.EditorGuideContentBase.ProductLastUpdated">
+            <summary>
+            Gets the date of the last update of the product the content is being used with
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorCore.EditorGuideContentBase.GetChapters">
+            <summary>
+            Gets the chapters associated with the content.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorCore.EditorGuideContentBase.CreateChapterOutline">
+            <summary>
+            Creates the chapter outline dictionary.
+            </summary>
+            <returns>The outline.</returns>
+        </member>
+        <member name="T:DeepSpaceLabs.EditorCore.GuideChapter">
+            <summary>
+            Represents a chapter in an Editor Guide.
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorCore.GuideChapter.ChapterName">
+            <summary>
+            The name of the chapter.
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorCore.GuideChapter.ChapterDisplayName">
+            <summary>
+            The name to display in the table of contents. By default will be the ChapterName, but you can override it 
+            to display something else
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorCore.GuideChapter.SectionNames">
+            <summary>
+            The names of the sections in the chapter.
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorCore.GuideChapter.#ctor">
+            <summary>
+            Creates a new instance of a GuideChapter
+            </summary>
+        </member>
+        <member name="T:DeepSpaceLabs.EditorCore.GuideSection">
+            <summary>
+            Represents a section within a GuideChapter, A GuideChapter is simply a collection of GuideSections, which in turn are made up of 
+            GuideSubSections
+            </summary>
+        </member>
+        <member name="F:DeepSpaceLabs.EditorCore.GuideSection.guide">
+            <summary>
+            Stores the EditorGuide object using the section
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorCore.GuideSection.APILink">
+            <summary>
+            Gets an html link to the API for a Section's Class if one exist, or should return null if one does not exist.
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorCore.GuideSection.SectionName">
+            <summary>
+            The name of the section. This is displayed in the table of contents
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorCore.GuideSection.InfoWindowName">
+            <summary>
+            The name of the section to display in the content window. By default it just returns SectionName, however it can be overriden to return 
+            some other name.
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorCore.GuideSection.SectionIndex">
+            <summary>
+            Index of the section in relation to other sections in this chapter.
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorCore.GuideSection.IntroOnGUI">
+            <summary>
+            GUI that is shown after the Section Name in the content/info window, before showing sub section GUI's
+            </summary>
+        </member>
+        <member name="F:DeepSpaceLabs.EditorCore.GuideSection.subSections">
+            <summary>
+            The list of sub sections in this section. Accessed by EditorGuide to draw content.
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorCore.GuideSection.#ctor">
+            <summary>
+            Creates a new instance of a GuideSection
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorCore.GuideSection.Initialize(DeepSpaceLabs.EditorCore.EditorGuide)">
+            <summary>
+            Initializes the section. Called automatically by the EditorGuide
+            </summary>
+            <param name="guide"></param>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorCore.GuideSection.CreateSectionContent">
+            <summary>
+            This is called by Editor Guide code to initialize the section content. It should set the IntroOnGUI and then add all sub sections 
+            using AddSubSection method.
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorCore.GuideSection.AddSubSection(DeepSpaceLabs.EditorCore.GuideSubSection)">
+            <summary>
+            Called by implementing sections to add sub sections
+            </summary>
+            <param name="subSection">The sub section to add to this section. Sub Sections are drawn in the order they are added.</param>
+        </member>
+        <member name="T:DeepSpaceLabs.EditorCore.GuideSubSection">
+            <summary>
+            Represents a sub section within a GuideSection. A section is simply a collection of sub sections.
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorCore.GuideSubSection.OnGUI">
+            <summary>
+            GUI code that runs to draw sub section content. Set via constructor.
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorCore.GuideSubSection.SubSectionName">
+            <summary>
+            The name of the sub section. Set via constructor.
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorCore.GuideSubSection.SubSectionIndex">
+            <summary>
+            The index of the sub section in relation to other sub sections. Set automatically when AddSubSection is called.
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorCore.GuideSubSection.#ctor(System.String,System.Action)">
+            <summary>
+            Creates a new instance of a GuideSubSection
+            </summary>
+            <param name="subSectionName">The name of the sub section</param>
+            <param name="OnGUI">The GUI code that will be run to draw the content of the sub section.</param>
+        </member>
+        <member name="T:DeepSpaceLabs.EditorCore.ScriptableObjectAssetCreator">
+            <summary>
+            Static class that can be used to easily create scriptable object assets
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorCore.ScriptableObjectAssetCreator.GenerateScriptableObjectAssetAtSelectedFolder``1(System.String)">
+            <summary>
+            Generates a scriptable object asset at the Unity folder selected. Tries to use the input desiredAssetName, 
+            but if that name is taken a unique name is automatically generated.
+            </summary>
+            <typeparam name="T">The type of the asset. Must derive from ScriptableObject.</typeparam>
+            <param name="desiredAssetName">The desired name of the asset (can include .asset but doesn't need to).</param>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorCore.ScriptableObjectAssetCreator.GenerateAndRetrieveScriptableObjectAssetAtSelectedFolder``1(System.String)">
+            <summary>
+            Generates a scriptable object asset at the Unity folder selected and returns it. Tries to use the input desiredAssetName, 
+            but if that name is taken a unique name is automatically generated.
+            </summary>
+            <typeparam name="T">The type of the asset. Must derive from ScriptableObject.</typeparam>
+            <param name="desiredAssetName">The desired name of the asset (can include .asset but doesn't need to).</param>
+            <returns>The generated asset</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorCore.ScriptableObjectAssetCreator.LoadAsset``1(System.String)">
+            <summary>
+            Loads a Scriptable Asset at the given path
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="fullAssetPath">The path of the asset.</param>
+            <returns>The scriptable asset</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorCore.ScriptableObjectAssetCreator.LoadOrCreateAsset``1(System.String)">
+            <summary>
+            Loads the Scriptable Object Asset at fullAssetPath, or creates a new one if one does not exist there.
+            </summary>
+            <typeparam name="T">The type of the Scriptable Object</typeparam>
+            <param name="fullAssetPath">The full file path where the object is stored or where to create the object if it doesn't already exist. This path should be relative to the project folder, e.g. Assets/MyStuff/SomeScriptableObject.asset</param>
+            <returns>The scriptable object asset</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorCore.ScriptableObjectAssetCreator.LoadOrCreateAsset``1(System.String,System.Boolean@)">
+            <summary>
+            Loads the Scriptable Object Asset at fullAssetPath, or creates a new one if one does not exist there. Also sets isNewAsset to false if there 
+            was an existing object at the specified location, or true if the object had to be created by this method. This is useful if you need to 
+            initialize some data based on whether the object is new.
+            </summary>
+            <typeparam name="T">The type of the Scriptable Object</typeparam>
+            <param name="fullAssetPath">The full file path where the object is stored or where to create the object if it doesn't already exist. This path should be relative to the project folder, e.g. Assets/MyStuff/SomeScriptableObject.asset</param>
+            <param name="isNewAsset">Whether the asset created is a new asset (will be false if the asset already existed).</param>
+            <returns>The scriptable object asset</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorCore.ScriptableObjectAssetCreator.CreateAsset``1(System.String)">
+            <summary>
+            Creates a Scriptable Object Asset at the path specified. This method assumes no asset at the path exist.
+            </summary>
+            <typeparam name="T"
+            >The type of the Scriptable Object
+            </typeparam>
+            <param name="fullAssetPath">
+            The full file path that includes the folder where the asset should be created as well as the name of the 
+            asset, e.g. Assets/MyStuff/SomeScriptableObject.asset</param>
+            <returns>
+            The scriptable object asset
+            </returns>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorCore.ScriptableObjectAssetCreator.CreateAssetFromInstance``1(System.String,``0)">
+            <summary>
+            Creates a Scriptable Object Asset at the path specified. This method assumes no asset at the path exist.
+            </summary>
+            <typeparam name="T"
+            >The type of the Scriptable Object
+            </typeparam>
+            <param name="fullAssetPath">
+            The full file path that includes the folder where the asset should be created as well as the name of the 
+            asset, e.g. Assets/MyStuff/SomeScriptableObject.asset
+            </param>
+            <param name="instance">The instance to create the asset from.</param>
+            <returns>
+            The scriptable object asset
+            </returns>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorCore.CoreHelper.FreeMemory">
+            <summary>
+            Frees editor memory
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorCore.CoreHelper.EnsureUntitledSceneHasBeenSaved(System.String)">
+            <summary>
+            Use this instead of EditorSceneManager.EnsureUntitledSceneHasBeenSaved, as it will iterate through all open scenes and dirty any untitled 
+            scenes, which is necessary for the EnsureUntitledSceneHasBeenSaved to work correctly.
+            </summary>
+            <param name="dialogContent">Content to show in the save dialog box if there is an untitled scene that needs to be saved.</param>
+            <returns>True if there was no untitled scene or the untitled scene was saved by the user, false if the user chose not to save it.</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorCore.CoreHelper.SaveUntitledSceneAtPath(System.String)">
+            <summary>
+            Saves an untitled scene at path.
+            </summary>
+            <param name="folderPath">Should direct to a Unity folder. Do not include the file name as that will be filled in automatically. An example of a valid path might be 
+            'Assets/SomeFolder/'</param>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorCore.CoreHelper.GetAssetList``1(System.String)">
+            <summary>
+            Gets a list of assets of the specified type at the specified folder path in Unity.
+            </summary>
+            <typeparam name="T">The type of assets to look for.</typeparam>
+            <param name="path">The folder path that contains the assets.</param>
+            <returns>The list of assets at path.</returns>
+        </member>
+        <member name="T:DeepSpaceLabs.EditorCore.CoreExtensions">
+            <summary>
+            Contains some common extension methods.
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorCore.CoreExtensions.AreAllValuesTrue(System.Boolean[])">
+            <summary>
+            Test whether all bool values in the bool array are set to true.
+            </summary>
+            <param name="values">The bool array to check</param>
+            <returns>True if all values in array are set to true, false otherwise</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorCore.CoreExtensions.SetAllValuesToSingleValue``1(``0[],``0)">
+            <summary>
+            Sets all values in an array to the same input value.
+            </summary>
+            <typeparam name="T">The type of the array and singleValue</typeparam>
+            <param name="values">The array values to set.</param>
+            <param name="singleValue">The value to set all values in the array to.</param>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorCore.CoreExtensions.RemoveAt``1(``0[],System.Int32)">
+            <summary>
+            Returns a new array with the index specified removed.
+            </summary>
+            <typeparam name="T">The type of the array.</typeparam>
+            <param name="source">The source array to remove the index from</param>
+            <param name="index">The index to remove.</param>
+            <returns>The new array with the index removed.</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorCore.CoreExtensions.Convert2DArrayTo1DArray``1(``0[0:,0:])">
+            <summary>
+            Converts a 2D array to a 1D array
+            </summary>
+            <typeparam name="T">The type of the array.</typeparam>
+            <param name="arr_2D">The 2D array to convert.</param>
+            <returns>The 1D array.</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorCore.CoreExtensions.Convert1DArrayTo2DArray``1(``0[],System.Int32,System.Int32)">
+            <summary>
+            Converts a 1D array to a 2D array.
+            </summary>
+            <typeparam name="T">The type of the array.</typeparam>
+            <param name="arr_1D">The 1D array to convert.</param>
+            <param name="rows">The number of rows in the array.</param>
+            <param name="columns">The number of columns in the array.</param>
+            <returns>The converted 2D array.</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorCore.CoreExtensions.CreateTextureFromColor(UnityEngine.Color,System.Int32)">
+            <summary>
+            Creates a texture of size x size (width x height) where each pixel value is the input color. The texture only exist in memory, no asset will 
+            be generated when using this method.
+            </summary>
+            <param name="color">The color each pixel in the texture will be set to.</param>
+            <param name="size">The size of the texture</param>
+            <returns>The generated texture</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorCore.StringExtensions.ConvertRelativePathToSystemPath(System.String)">
+            <summary>
+            Converts a Relative Path (format '/FolderWithinAssetsFolder/SubFolder' or '/FolderWithinAssetsFolder/SubFolder/') to 
+            a path on your operating system (Application.dataPath + relativePath).
+            </summary>
+            <param name="relalativePath">The Unity relative path to convert.</param>
+            <returns>The System path.</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorCore.StringExtensions.SystemPathExists(System.String)">
+            <summary>
+            Checks whether a system directory exist.
+            </summary>
+            <param name="systemDirectoryPath">The path of the system directory.</param>
+            <returns>True if the directory exist</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorCore.StringExtensions.CreateUnityFolder(System.String)">
+            <summary>
+            Creates a folder inside of your Unity project
+            </summary>
+            <param name="systemDirectoryPath">The system path where the folder should be created.</param>
+            <returns>The path of the folder relative to your project, for example 'Assets/MyTextures/'</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorCore.StringExtensions.DeleteUnityAsset(System.String)">
+            <summary>
+            Deletes a unity asset (including folders).
+            </summary>
+            <param name="systemDirectoryPath">The system directory that points to an asset in your Unity project.</param>
+            <returns>True if the asset was deleted, false if otherwise.</returns>
+        </member>
+        <member name="T:DeepSpaceLabs.EditorCore.TerrainDuplication">
+            <summary>
+            Class used to duplicate terrain. You will not generally use this class directly, as there is a menu command to automate 
+            the duplication of terrain. 
+            </summary>
+        </member>
+    </members>
+</doc>

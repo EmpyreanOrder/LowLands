@@ -1,0 +1,44 @@
+Asset Managers are Scriptable Object Assets used by the World Designer Tool to manage assets within the Unity Editor. 
+You can think of them as Editor versions of Chunk Streamers, however they are more robust as they include functionality 
+beyond just loading the assets, like saving and deleting assets. 
+
+Each Asset Manager is linked to a specific Chunk Streamer class. This link is established in a very simple way, 
+via the name of the Asset Manager Asset. When the World Designer Tool detects 
+that a specific Chunk Streamer is in use by a LOD, it attempts to retrieve the Asset Manager 
+Scriptable Asset linked to it. The name of the Asset Manager must follow the format 
+'{ChunkStreamerClassName}_AssetManager in order to establish a link, where {ChunkStreamerClassName} is 
+replaced by the name of the Chunk Streamer class name.
+
+By default, the World Designer Tool auto-creates default Asset Managers for the 
+Scene Chunk Streamer and Prefab Chunk Streamer when no Asset Managers is found in this folder that 
+is linked to it. This gives you some default but robust functionality for managing scene 
+and prefab assets via the World Designer Tool, however the option is available to you to add or 
+change functionality. To do so, simply create a new class that derives from AssetManager and implement 
+the functionality that you want. You will then need to create a scriptable object asset from this new class, 
+place it in this folder, and name it according to the format described above (PrefabChunkStreamer_AssetManager or 
+SceneChunkStreamer_AssetManager). If the Chunk Streamer 
+has an existing Asset Manager linked to it, feel free to delete it.
+
+In the future, if you want to go back to using the default Asset Managers for the Prefab Chunk Streamer or Scene Chunk Streamer, 
+simply delete or move your custom asset, and the default assets will be auto-created the next time the 
+World Designer Tool is used with an LOD making use of the Chunk Streamer in question.
+
+Notice that by default the folder is empty. This ensures that upon future updates to the SAM package, any custom 
+Asset Managers you've created will not be overwritten.
+
+This system also allows you to provide functionality for custom Chunk Streamers, which can allow you to work with 
+non prefab/scene assets.
+
+Finally, if using Addressables and the Addressable Prefab Chunk Streamer and/or Addressable Scene Chunk Streamer, the SAM package includes 
+default Asset Managers, however they cannot be auto-created by the World Designer Tool. You will need to manually generate the 
+assets by choosing:
+
+Assets -> Deep Space Labs -> SAM -> Generate Default Addressable Prefab Asset Manager
+and/or
+Assets -> Deep Space Labs -> SAM -> Generate Default Addressable Scene Asset Manager
+
+This will auto generate the assets in this folder. Of course, you can create custom Asset Managers 
+for the Addressable Prefab Chunk Streamer and Addressable Scene Chunk Streamer as well.
+
+This folder (and all other folders found in the Editor Default Resources in association with Deep Space Labs) cannot be moved or removed!
+

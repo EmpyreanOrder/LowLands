@@ -1,0 +1,1507 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>EditorSAM</name>
+    </assembly>
+    <members>
+        <member name="T:DeepSpaceLabs.EditorSAM.AssetCreator">
+            <summary>
+            Base abstract class for Asset Creators. The main intention behind the Asset Creator is to allow you to add 
+            new chunk/chunk assets to your project while using the World Designer tool. Whenever the tool needs a new chunk/chunk asset 
+            for a cell, it request the Asset Creator assigned to the current world grouping being edited to create the asset.
+            <para>
+            Note this is an abstract class and has no implementation. You must either use the Default Asset Creator or create 
+            an asset creator yourself that implements some logic that creates the asset. Typically each Asset Creator is associated with a specific 
+            folder where the assets are created, and you should create different Asset Creators assets in order to handle the creation of assets that need 
+            to be stored in differentn folders. The caveat to that is if you are creating multiple assets per call of Create Asset.
+            </para>
+            <para>
+            For instance, the Default Asset Creator is capable of creating a prefab asset and a scene asset for each call of Create Asset, and each 
+            may be stored in separate folders using a single Asset Creator asset.
+            </para>
+            <para>
+            The use of this class offers unlimited implemntation freedom. For instance, you could implement an Asset Creator that writes data about the 
+            new asset to a file, rather than actually creating a new asset in the project.
+            </para>
+            <para>
+            </para>
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetCreator.CanUseWithBatchAssetEditing(DeepSpaceLabs.EditorSAM.LODGroupInfo)">
+            <summary>
+            Override to return a value indicating whether the Asset Creator can be used with batch asset editing for the given LOD. Batch asset editing utilizes 
+            AssetDatabase.StartAssetEditing and AssetDatabase.StopAssetEditing before and after a batch of CreateAssetsForCellChunk calls for a given LOD. This speeds up 
+            editor performance, however introduces some limitations, namely that assets created via the AssetCreator are not immediately available (they 
+            only become available after the last CreateAssetsForCellChunk in the batch is called and StopAssetEditing is called).
+            <para>
+            The Default Asset Creator can always be used with batch editing.
+            </para>
+            <para>
+            If batch editing can be used, it is always used, regardless of the number of asset chunks that need assets created.
+            </para>
+            </summary>
+            <param name="LOD" type="int">
+            The LOD that the next batch of CreateAssetsForCellChunk calls will be used for. If the Asset Creator is only used with a single LOD, you can ignore this value.
+            </param>
+            <param name="storedRootState">
+            The state to set the root game object to when creating scene based Asset Chunks (as defined on the Streamable Grid/LOD Group/Root State 
+            setting). You can ignore this if not creating scene based Asset Chunks.
+            </param>
+            <returns type="bool">
+            Should return true if the Asset Creator can be used with batch editing for the given LOD, false otherwise.
+            </returns>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetCreator.StartingBatchEditing(DeepSpaceLabs.EditorSAM.LODGroupInfo)">
+            <summary>
+            This method is called just before batch editing starts (when CanUseWithBatchAssetEditing returns true for an LOD). You can 
+            override it to implement logic to perform preparation for the batch Asset Creation calls. For example, 
+            the default asset creator (when not using a prefab template with a terrain) can be used with batch editing. 
+            When batch editing is used, newly generated scenes are not added to the build settings immediately. 
+            Instead, they are added to an internal list and once the batch editing is finished, 
+            they are added to the Build Settings (when BatchEditingStopped is called).
+            </summary>
+            <param name="LOD" type="int">
+            The LOD that the batch editing is starting for.
+            </param>
+            <param name="storedRootState">
+            The state to set the root game object to when creating scene based Asset Chunks (as defined on the Streamable Grid/LOD Group/Root State 
+            setting). You can ignore this if not creating scene based Asset Chunks. This value is consistent for all Asset Chunks created 
+            in a single batch, since the setting is set on a per LOD basis.
+            </param>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetCreator.BatchEditingStopped(DeepSpaceLabs.EditorSAM.LODGroupInfo)">
+            <summary>
+            This method is called just after batch editing ends (when CanUseWithBatchAssetEditing returns true for an LOD). You can 
+            override it to implement logic to perform cleanup and to execute pending actions for the batch Asset Creation calls. For example, 
+            the default asset creator (when not using a prefab template with a terrain) can be used with batch editing. 
+            When batch editing is used, newly generated scenes are not added to the build settings immediately. 
+            Instead, they are added to an internal list and once the batch editing is finished and this method is called,
+            they are added to the Build Settings.
+            </summary>
+            <param name="LOD" type="int">
+            The LOD that the batch editing has been stopped for.
+            </param>
+            <param name="storedRootState">
+            The state to set the root game object to when creating scene based Asset Chunks (as defined on the Streamable Grid/LOD Group/Root State 
+            setting). You can ignore this if not creating scene based Asset Chunks. This value is consistent for all Asset Chunks created 
+            in a single batch, since the setting is set on a per LOD basis.
+            <para>
+            This value is passed because sometimes it is necessary to perform some asset creation in this method.
+            </para>
+            </param>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetCreator.CreateAssetsForCellChunk(DeepSpaceLabs.EditorSAM.ChunkInfo)">
+            <summary>
+            Abstract CreateAssetsForCellChunk Method. The expectation is that you will create at least one asset when this method is called, however 
+            in reality you can choose to create multiple assets (of different types; for instance a prefab asset and a scene asset), or you can 
+            just store information in a file rather than creating a new asset.
+            </summary>
+            <param name="chunkInfo" type="ChunkInfo" link="ChunkInfo.html">
+            Info related to the specific chunk that the assets are needed for. 
+            <para>
+            Note that while the Asset Creator needs to create Assets that can be loaded via a specific Chunk Streamer (for instance, the Default 
+            Asset Creator creates prefabs that should be loadable by a Prefab Chunk Streamer), no details from the Chunk Streamer are passed 
+            to the Asset Creator.
+            </para>
+            <para>
+            As such, you must explicitly design your Asset Creator such that instances of it can be created and configured to output Asset Chunks for 
+            a specific LOD Group that can be loaded at runtime using the Chunk Streamer associated with that LOD Group.
+            </para>
+            <para>
+            For example, when using a Prefab Chunk Streamer, the streamer reads the sub folder path where a LOD Group's Asset Chunks are stored (within 
+            a folder called Resources), by accessing Extra Data for the LOD Group via the Streamable Grid. If the Assets are not in the folder, they cannot be loaded.
+            </para>
+            <para>
+            The Asset Creator does not have access to this Extra Data from the Streamable Grid, however you can (and should) manually configure it (via a string field 
+            and custom code) to output the Assets to the folder that the Prefab Chunk Streamer expects to find them in.
+            </para>
+            </param>
+        </member>
+        <member name="T:DeepSpaceLabs.EditorSAM.ChunkInfo">
+            <summary>
+            A structure for storing information about an Asset Chunk, which is passed to 
+            <see cref="T:DeepSpaceLabs.EditorSAM.AssetCreator" href="AssetCreator.html">Asset Creators</see> in order to create the Asset Chunks.
+            </summary>
+        </member>
+        <member name="F:DeepSpaceLabs.EditorSAM.ChunkInfo.chunkName">
+            <summary>
+            The name of the asset chunk to create.
+            </summary>
+            <type>string</type>
+        </member>
+        <member name="F:DeepSpaceLabs.EditorSAM.ChunkInfo.zoneIndex">
+            <summary>
+            The index of the Zone the chunk is a part of.
+            </summary>
+            <type>int</type>
+        </member>
+        <member name="F:DeepSpaceLabs.EditorSAM.ChunkInfo.groupingIndex">
+            <summary>
+            The index of the World Grouping the chunk is a part of.
+            </summary>
+            <type>int</type>
+        </member>
+        <member name="F:DeepSpaceLabs.EditorSAM.ChunkInfo.zoneID">
+            <summary>
+            The ID of the Zone the chunk is a part of.
+            </summary>
+            <type>int</type>
+        </member>
+        <member name="F:DeepSpaceLabs.EditorSAM.ChunkInfo.groupingID">
+            <summary>
+            The ID of the World Grouping the chunk is a part of.
+            </summary>
+            <type>int</type>
+        </member>
+        <member name="F:DeepSpaceLabs.EditorSAM.ChunkInfo.zoneName">
+            <summary>
+            The name of the Zone the chunk is a part of.
+            </summary>
+            <type>string</type>
+        </member>
+        <member name="F:DeepSpaceLabs.EditorSAM.ChunkInfo.groupingName">
+            <summary>
+            The name of the World Grouping the chunk is a part of.
+            </summary>
+            <type>string</type>
+        </member>
+        <member name="F:DeepSpaceLabs.EditorSAM.ChunkInfo.streamableGridCellOfChunk">
+            <summary>
+            The Streamable Grid Cell the chunk is a part of.
+            </summary>
+            <type link="Cell.html">Cell</type>
+        </member>
+        <member name="F:DeepSpaceLabs.EditorSAM.ChunkInfo.LOD">
+            <summary>
+            The LOD of the Asset Chunk.
+            </summary>
+            <type>int</type>
+        </member>
+        <member name="F:DeepSpaceLabs.EditorSAM.ChunkInfo.LODGroupName">
+            <summary>
+            The name of the LOD Group the Asset Chunk belongs to.
+            </summary>
+            <type>string</type>
+        </member>
+        <member name="F:DeepSpaceLabs.EditorSAM.ChunkInfo.chunkNumber">
+            <summary>
+            The index of the chunk in reference to the World Cell it belongs to. Will always be 1 if the World Cell is not using multi-chunking.
+            </summary>
+            <type>int</type>
+        </member>
+        <member name="F:DeepSpaceLabs.EditorSAM.ChunkInfo.chunkPosition">
+            <summary>
+            The position of the asset chunk at time of creation.
+            <para>
+            It is up to you whether you want to apply this position to your created asset chunk. The Default Asset Creator does, and if 
+            you are planning to use the chunk with a fixed World, it can be beneficial to have its position remain fixed. However, for 
+            floating origin based worlds where the position of asset chunks is not fixed, setting the chunk to this position is 
+            less important or even unecessary.
+            </para>
+            <para>
+            If you need a Vector3 position, cast the chunkPosition like so: Vector3 pos = (Vector3)chunkPosition;
+            </para>
+            </summary>
+            <type>Vector3Double</type>
+        </member>
+        <member name="F:DeepSpaceLabs.EditorSAM.ChunkInfo.isTestChunk">
+            <summary>
+            Whether the chunk is a test chunk. The World Designer Tool periodically creates test chunks to ensure the 
+            Asset Creator has been configured correctly to work with whatever Chunk Streamer/Asset Manager is set to be used with the chunks.
+            <para>
+            If the chunk is a test chunk and you are creating multiple different kinds of assets for your chunk, it is generally 
+            a good idea to only create assets for the test chunk that can be detected and used by the Asset Manager that will handle the 
+            chunk. If you do not follow this rule, the Asset Manager will not be able to remove the secondary assets which will result in 
+            assets being "left behind" in your project.
+            </para>
+            <para>
+            For instance, when using the Default Asset Creator and creating both scenes and prefabs, you need to define which type of asset 
+            is the primary asset. When creating a test asset chunk, the Creator will only create the primary asset.
+            </para>
+            </summary>
+        </member>
+        <member name="F:DeepSpaceLabs.EditorSAM.ChunkInfo.storedRootState">
+            <summary>
+            The stored game object state of any root game objects created for scene based Asset Chunks, as configured on the LOD Group (found 
+            on the Streamable Grid asset) that the Asset Chunk is being created for (i.e., the Root State setting).
+            <para>
+            If your Asset Creator is not creating scene based Asset Chunks, you can ignore this value.
+            </para>
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.ChunkInfo.#ctor(System.String,DeepSpaceLabs.SAM.Cell,System.Int32,System.Int32,System.String,System.Int32,System.Int32,System.String,System.Int32,System.Int32,System.String,DeepSpaceLabs.SAM.Vector3Double,System.Boolean,System.Boolean)">
+            <summary>
+            Creates a new instance of the ChunkInfo struct.
+            </summary>
+            <param name="chunkName" type="string">
+            The name of the asset chunk to create.
+            </param>
+            <param name="streamableGridCellOfChunk" type="Cell" link="Cell.html">
+            The Streamable Grid Cell the chunk is a part of.
+            </param>
+            <param name="chunkNumber" type="int">
+            The name of the asset chunk to create.
+            </param>
+            <param name="LOD" type="int">
+            The index of the chunk in reference to the World Cell it belongs to. Will always be 1 if the World Cell is not using multi-chunking.
+            </param>
+            <param name="LODGroupName" type="string">
+            The name of the LOD Group the chunk belongs to.
+            </param>
+            <param name="groupingIndex" type ="int">
+            The index of the World Grouping the chunk is a part of.
+            </param>
+            <param name="groupingID" type ="int">
+            The ID of the World Grouping the chunk is a part of.
+            </param>
+            <param name="groupingName" type ="string">
+            The name of the World Grouping the chunk is a part of.
+            </param>
+            <param name="zoneIndex" type ="int">
+            The index of the Zone the chunk is a part of.
+            </param>
+            <param name="zoneID" type ="int">
+            The ID of the Zone the chunk is a part of.
+            </param>
+            <param name="zoneName" type ="string">
+            The name of the Zone the chunk is a part of.
+            </param>
+            <param name="chunkPosition" type="Vector3Double">
+            The position of the asset chunk at time of creation.
+            <para>
+            It is up to you whether you want to apply this position to your created asset chunk. The Default Asset Creator does, and if 
+            you are planning to use the chunk with a fixed World, it can be beneficial to have its position remain fixed. However, for 
+            floating origin based worlds where the position of asset chunks is not fixed, setting the chunk to this position is 
+            less important or even unecessary.
+            </para>
+            </param>
+            <param name="storedRootState">
+            The stored game object state of any root game objects created for scene based Asset Chunks, as configured on the LOD Group (found 
+            on the Streamable Grid asset) that the Asset Chunk is being created for (i.e., the Root State setting).
+            <para>
+            If your Asset Creator is not creating scene based Asset Chunks, you can ignore this value.
+            </para>
+            </param>
+            <param name="isTestChunk" type="bool">
+            Whether the chunk is a test chunk. The World Designer Tool periodically creates test chunks to ensure the 
+            Asset Creator has been configured correctly to work with whatever Chunk Streamer/Asset Manager is set to be used with the chunks.
+            <para>
+            If the chunk is a test chunk and you are creating multiple different kinds of assets for your chunk, it is generally 
+            a good idea to only create assets for the test chunk that can be detected and used by the Asset Manager that will handle the 
+            chunk. If you do not follow this rule, the Asset Manager will not be able to remove the secondary assets which will result in 
+            assets being "left behind" in your project.
+            </para>
+            <para>
+            For instance, when using the Default Asset Creator and creating both scenes and prefabs, you need to define which type of asset 
+            is the primary asset. When creating a test asset chunk, the Creator will only create the primary asset.
+            </para>
+            </param>
+        </member>
+        <member name="T:DeepSpaceLabs.EditorSAM.LODGroupInfo">
+            <summary>
+            A structure for storing information about an LOD Group that an Asset Creator is going to be used with. Contains information common to the LOD Group.
+            </summary>
+        </member>
+        <member name="T:DeepSpaceLabs.EditorSAM.AssignmentSelector">
+            <summary>
+            A Scriptable Object class you can derive from to create custom logic for choosing 
+            what objects are selected for assignment operations.
+            <para>
+            The selection process works like so:
+            </para>
+            <para>
+            When an Assignment Parent is provided, the World Designer conducts a top down search of the hierarchy of each first level 
+            child of the parent. For each child, the child's Transform component is passed to the IsMatch method. If 
+            the method returns a value of true, the search stops for that specific child's hierarchy and the next sibling 
+            is searched. If it returns false, the search continues drilling down into that child's hierarchy until a match 
+            is found or no more children exist. After drilling all the way down or finding a match, the search moves 
+            back up one level and searches all siblings of the last parent transform that was searched. This 
+            strategy ensures that descendants of a selected object cannot also be selected, which would be problematic if allowed.
+            </para>
+            <para>
+            When no Assignment Parent is provided, the top down search begins with all root level game objects 
+            in all loaded scenes and searches each of their hierarchies. Since this could potentially be a TON 
+            of objects, care should be taken when using this option. We recommend starting with an Assignment 
+            Parent and proceeding with no Assignment Parent only if the operation with the Assignment Parent 
+            did not encounter any problems.
+            </para>
+            </summary>
+            <title>AssignmentSelector Class</title>
+            <category>Scriptable Assets</category>
+            <navigationName>AssignmentSelector</navigationName>
+            <fileName>AssignmentSelector.html</fileName>
+            <syntax>
+            public abstract class AssignmentSelector : ScriptableObject
+            </syntax>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssignmentSelector.OnAssignmentStarting(DeepSpaceLabs.SAM.World,System.Int32,System.Int32)">
+            <summary>
+            This method is called prior to an Assignment Operation starting, and can be overriden 
+            to setup your Selector to function differently depending on the World, World Grouping, and/or 
+            LOD Group that the Assignment Operation is being run for.
+            <para>
+            For example, if performing Tag or Layer based selections, you can change the tag 
+            or layer that is used in the IsMatch method depending on the Grouping or LOD Group that 
+            is being assigned to.
+            </para>
+            <para>
+            This allows you to use the same Selector asset with multiple Worlds, World Grouping's, and/or 
+            LOD Groups, rather than needing to create multiple assets and switch them out for each 
+            Assignment Operation.
+            </para>
+            </summary>
+            <param name="world" type="World" link="World.html">
+            The World that the current Assignment Operation will assign selected objects to.
+            </param>
+            <param name="groupingIndex" type="int">
+            The index of the World Grouping that the current Assignment Operation will assign selected objects to.
+            </param>
+            <param name="LOD" type="int">
+            The index of the LOD Group that the current Assignment Operation will assign selected objects to.
+            </param>
+            <displayName id="OnAssignmentStarting">
+            OnAssignmentStarting(World, int, int)
+            </displayName>
+            <syntax>
+            public virtual void OnAssignmentStarting(World world, int groupingIndex, int LOD)
+            </syntax>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssignmentSelector.IsMatch(UnityEngine.Transform)">
+            <summary>
+            Used to determine if a given Transform/Game Object is a match for assignment.
+            </summary>
+            <param name="transform" type="Transform">
+            The transform to check.
+            </param>
+            
+            <returns type="bool">
+            Return true if the transform/game object is match (i.e., it should be assigned in the 
+            current Assignment Operation), or false otherwise.
+            </returns>
+            <displayName id="IsMatch">
+            IsMatch(Transform, int, int)
+            </displayName>
+            <syntax>
+            public abstract bool IsMatch(Transform transform, int groupingIndex, int LOD)
+            </syntax>
+        </member>
+        <member name="T:DeepSpaceLabs.EditorSAM.AutomatedAction">
+            <summary>
+            Abstract class all Automated Actions must derive from.
+            <para>
+            An Automated Action is an action that can be executed during an Auotmation Operation using the World Designer Tool. You can execute 
+            a single Automated Action during one of these operations, or multiple Actions in whatever order you wish.
+            </para>
+            <para>
+            The goal of the Automate Operation is to allow you to perform the same operations on multiple Streamable Grid Cells' Asset Chunks, 
+            such as lightmapping.
+            </para>
+            <para>
+            It works by iterating through the Streamable Grid Cells for the Grouping To Edit (or a subset of Cells if not 
+            using the full range), and for each Cell, sampling several positions within that Cell. The sampling is used to determine what other 
+            Streamable Grid Cells should be loaded into the Editor (across all Groupings, other than the ones excluded for the operation). 
+            Once these Cells (the Secondary Cells) are loaded into the editor, they are passed (along with the original Cell, which is the Primary Cell) to 
+            each Automated Action provided, in order. All Automated Actions are executed and then the Cells are unloaded, before moving on to the next 
+            Streamable Grid Cell from the Grouping To Edit.
+            </para>
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorSAM.AutomatedAction.AutomatedActionOrderConstraint">
+            <summary>
+            Describes a constraint on how Automated Actions can be ordered in relation to other Actions (via the Automated Actions list 
+            in the World Designer Tool).
+            <para>
+            For example, if you have an Action which must come last in the list of Actions to execute, you can override 
+            this value to return AutomatedActionOrderConstraint.Last.
+            </para>
+            <para>
+            The ordering is enforced before the Automate Operation is run as a safety measure, and an error will be thrown if the 
+            ordering constraints have not been respected.
+            </para>
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AutomatedAction.OnAutomateOperationStarting(DeepSpaceLabs.EditorSAM.AutomationOperationInfo)">
+            <summary>
+            Called before any Primary Cells are processed. Can be used to setup data that needs to be used for all Primary Cells that will be processed 
+            for the current Automate Operation. Does not neeed be overriden if you have no use for it.
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AutomatedAction.ExecuteAction(DeepSpaceLabs.EditorSAM.AutomatedActionInput,DeepSpaceLabs.EditorSAM.AutomatedActionOutput)">
+            <summary>
+            The Execute Action. You can execute this in a single frame by simply adding yield break at the end of the method (in place 
+            of a return statement). If you need to execute your code over multiple frames, use yield return null; this tells the 
+            World Designer Tool to yield for an Editor Frame. Note that other yield statements are not permitted, as null is the only 
+            one the Tool will recognize.
+            </summary>
+            <param name="input">
+            Contains information you may need to run the Action.
+            </param>
+            <param name="output">
+            Can be used to set important information about the action, such as whether it was cancelled and the save strategy to use for 
+            the primary, secondary, and tertiary cells. This is primarily read by the World Designer Tool after the Action completes, however it 
+            can also be used to set the Progress of the Action, which is used by the Tool while the Action is executing.
+            </param>
+            <returns>
+            An IEnumerator object. Use only yield return null or yield break in the method body.
+            </returns>
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:DeepSpaceLabs.EditorSAM.AutomatedAction.CancelAction(DeepSpaceLabs.EditorSAM.AutomatedActionInput,DeepSpaceLabs.EditorSAM.AutomatedActionOutput)" -->
+        <member name="M:DeepSpaceLabs.EditorSAM.AutomatedAction.OnAutomateOperationFinished(DeepSpaceLabs.EditorSAM.AutomationOperationInfo,System.Boolean)">
+            <summary>
+            Called after all Primary Cells are processed, or if you cancelled the operation via the World Designer Tool. 
+            Can be used to cleanup data or perform other necessary steps after the operation has finished.
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AutomatedAction.GetCellsEnumerable(DeepSpaceLabs.Core.ReadOnlyIndexedLists{DeepSpaceLabs.SAM.WorldCell}[])">
+            <summary>
+            A method that can be used to get an Enumerable object for iterating over secondary or tertiary cells. The enumerable iterates over the 
+            ReadOnlyList for all valid Groupings and LOD Groups (i.e., it skips over null Groupings or LOD Groups that do not have any cells).
+            <para>
+            You can use this in a foreach statement [foreach(var cells in GetCellsEnumerable(input.SecondaryCells))].
+            </para>
+            <para>
+            Remember that all cells for a given set will be of the same Grouping and LOD, so you can query the Grouping Index and LOD Group of the cells 
+            by simply checking the first cell in the list!
+            </para>
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AutomatedAction.GetCellCount(DeepSpaceLabs.Core.ReadOnlyIndexedLists{DeepSpaceLabs.SAM.WorldCell}[])">
+            <summary>
+            A method that can be used to get the count of World Cell in the input SecondaryCells or Tertiary Cells list.
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorSAM.AutomatedAction.CellsEnumerator.Current">
+            <summary>
+            Gets the current read only list of World Cells. You can also access the Grouping Index and LOD Group Index 
+            of these cells using the appropriate properties.
+            </summary>
+        </member>
+        <member name="T:DeepSpaceLabs.EditorSAM.AutomatedActionInput">
+            <summary>
+            Class which provides information needed by an Automated Action, and can also be used to save the currently loaded Cells.
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorSAM.AutomatedActionInput.ActionNumber">
+            <summary>
+            The number of the action, in relation to the total number of Actions that will be executed for the current Primary Cell. 
+            You can use this value along with TotalActions to determine which save strategy to use in the result object. 
+            For instance you might only want to save the Cells when the action is the last action executed (i.e., when ActionNumber == TotalActions).
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorSAM.AutomatedActionInput.TotalActions">
+            <summary>
+            The total number of Automated Actions that will be executed for each Primary Cell. You can use this value along with 
+            ActionNumber to determine how save strategy to use in the result object. For instance you might only want to save the 
+            Primary or Secondary Cell when the action is the last action executed (i.e., when ActionNumber == TotalActions).
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorSAM.AutomatedActionInput.PrimaryCellNumber">
+            <summary>
+            The number of the Primary Cell being processed, in relation to the total number of Primary Cells that will be processed 
+            for the current Automate Operation. You can use this value along with TotalPrimaryCells to execute logic that only needs 
+            to be executed after all Primary Cells have been processed (i.e., when PrimaryCellNumber == TotalPrimaryCells).
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorSAM.AutomatedActionInput.TotalPrimaryCells">
+            <summary>
+            The total number of Primary Cells that will be processed for the current Automate Operation. 
+            You can use this value along with PrimaryCellNumber to execute logic that only needs to be executed after all Primary Cells 
+            have been processed (i.e., when PrimaryCellNumber == TotalPrimaryCells).
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorSAM.AutomatedActionInput.PrimaryCell">
+            <summary>
+            The main Streamable Grid Cell from the Grouping To Edit that is currently being processed.
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorSAM.AutomatedActionInput.SecondaryCells">
+            <summary>
+            The secondary cells. The positions of these cells fall within the bounds of the primary cell. 
+            Since each Streamable Grid Cell can only fall within one Primary Cell, this means each of these cells will only be loaded as a 
+            Secondary Cell for a single Primary Cell in the Cell Set. Because of this, you can write to these cells (or save data 
+            related to them elsewhere), since the data you write will not be overwritten when processing other Primary Cells.
+            <para>
+            Note that the same Cells can be loaded for other Primary Cells, however when they are, they will be loaded as Tertiary Cells.
+            </para>
+            <para>
+            If no Secondary Cells exists, this property will return null.
+            </para>
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorSAM.AutomatedActionInput.TertiaryCells">
+            <summary>
+            The tertiary cells. The positions of these cells DO NOT fall within the bounds of the primary cell.
+            <para>
+            Cells can be loaded as tertiary cells for multiple Primary Cells, thus writing data to the cells or saving data related to these 
+            cells is not recommended, since that date will likely be overwritten the next time the cells are loaded as tertiary cells. You should only 
+            write data when the cells are loaded as Secondary Cells.
+            </para>
+            <para>
+            If no Tertiary Cells exists, this property will return null.
+            </para>
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AutomatedActionInput.TryGetOriginCellOfZoneGrouping(System.Int32,System.Int32,DeepSpaceLabs.SAM.Cell@)">
+            <summary>
+            Attempts to get the Origin Cell for a particular grouping. The origin cell will be retrievable in 99% of cases. The only time 
+            it will not be retrievable is if you try to get the origin cell of an uneditable Grouping. However, the Primary Cell, Secondary 
+            Cells, and Tertiary Cells are gauranteed to come from Editable Groupings, so if you use the WorldGroupingIndex property from one of these  
+            World Cells as input, this method is gauranteed to return true.
+            </summary>
+            <param name="zoneIndex">The 1 based index of the Zone.</param>
+            <param name="groupingIndex">The 1 based index of the World Grouping.</param>
+            <param name="originCell">If the method returns true, this will hold the origin cell of the grouping.</param>
+            <returns>True if the origin cell could be retrieved, false if not.</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AutomatedActionInput.SavePrimaryCell">
+            <summary>
+            Saves the Primary Cell's Asset Chunks
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AutomatedActionInput.SaveSecondaryCells">
+            <summary>
+            Saves every Asset Chunk of every Secondary Cell (if such cells exist)
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AutomatedActionInput.SaveTertiaryCells">
+            <summary>
+            Saves every Asset Chunk of every Tertiary Cell (if such cells exist)
+            </summary>
+        </member>
+        <member name="T:DeepSpaceLabs.EditorSAM.AutomatedActionOutput">
+            <summary>
+            A class which stores some important information related to the Action 
+            that you can set in your ExecuteAction and CancelAction methods in order to pass to the World Designer Tool. The information is primary used 
+            by the Tool after the method finishes execution, however the Progress property is used mid-execution.
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorSAM.AutomatedActionOutput.Result">
+            <summary>
+            By default it is set to Success. Change if the Action was cancelled or encountered a critical error/exception.
+            <para>
+            This is not queried when the Automate Operation is cancelled via the World Designer Tool, thus you do not need to set it 
+            in your CancelAction implementation.
+            </para>
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorSAM.AutomatedActionOutput.Progress">
+            <summary>
+            The progress of the Action. You don't have to update this, but doing so will result in better progress tracking 
+            in the World Designer Tool window.
+            </summary>
+        </member>
+        <member name="T:DeepSpaceLabs.EditorSAM.AutomatedActionResult">
+            <summary>
+            Used to describe the result of an Automated Action, as well as how the World Designer Tool should proceed 
+            as a result of any Failure. Failures can result from critical errors/exceptions or the user cancelling an Action.
+            </summary>
+        </member>
+        <member name="F:DeepSpaceLabs.EditorSAM.AutomatedActionResult.OperationFailure">
+            <summary>
+            Indicates a failure of the entire Automate Operation. Use this to have the World Designer Tool stop the Automate 
+            Operation completely, meaning no additional Actions will be executed for the current Primary Cell or any other Primary Cells that 
+            are still to be processed from the Grouping To Edit.
+            </summary>
+        </member>
+        <member name="F:DeepSpaceLabs.EditorSAM.AutomatedActionResult.PrimaryCellFailure">
+            <summary>
+            Indicates a failure of the Automate Operation for the current Primary Cell only. Use this to have the World Designer Tool stop the Automate 
+            Operation completely for only the current Primary Cell, meaning no additional Actions will be executed for the current Primary Cell, however 
+            Actions will still be executed for any remaining Primary Cells on the Grouping To Edit.
+            </summary>
+        </member>
+        <member name="F:DeepSpaceLabs.EditorSAM.AutomatedActionResult.ActionFailure">
+            <summary>
+            Indicates a failure of the current Automated Action for the current Primary Cell only. Use this to have the World Designer Tool continue processing 
+            all remaining Automated Actions for the current Primary Cell, as well as Actions for all remaining Primary Cells on the Grouping To Edit.
+            </summary>
+        </member>
+        <member name="F:DeepSpaceLabs.EditorSAM.AutomatedActionResult.Success">
+            <summary>
+            Indicates the Action executed successfully.
+            </summary>
+        </member>
+        <member name="T:DeepSpaceLabs.EditorSAM.AutomatedActionOrderConstraint">
+            <summary>
+            Describes a constraint on how Automated Actions can be ordered in relation to other Actions. Uses for safety checking.
+            </summary>
+        </member>
+        <member name="F:DeepSpaceLabs.EditorSAM.AutomatedActionOrderConstraint.None">
+            <summary>
+            Indicates there is no Constraint on the Actions order in relation to other Actions.
+            </summary>
+        </member>
+        <member name="F:DeepSpaceLabs.EditorSAM.AutomatedActionOrderConstraint.First">
+            <summary>
+            Indicates that the Action must come first in the list of Automated Actions to execute.
+            </summary>
+        </member>
+        <member name="F:DeepSpaceLabs.EditorSAM.AutomatedActionOrderConstraint.Mid">
+            <summary>
+            Indicates that the Action must come between one or more Automated Actions to execute. That is to say, it cannot be first or last, 
+            but any other position is valid.
+            </summary>
+        </member>
+        <member name="F:DeepSpaceLabs.EditorSAM.AutomatedActionOrderConstraint.Last">
+            <summary>
+            Indicates that the Action must come last in the list of Automated Actions to execute.
+            </summary>
+        </member>
+        <member name="T:DeepSpaceLabs.EditorSAM.AutomationOperationInfo">
+            <summary>
+            Contains information about an Automation Operation
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorSAM.AutomationOperationInfo.World">
+            <summary>
+            The World the operation is being performed on.
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorSAM.AutomatedUnityBakedLightClearer.AutomatedActionOrderConstraint">
+            <summary>
+            Overriden to return AutomatedActionOrderConstraint.Last.
+            <para>
+            The Unity Light Baker unloads scenes associated with tertiary cells. In order to 
+            avoid issues with trying to use or save these scenes via other Actions, the Action must come after all other Actions for a given Automate Operation.
+            </para>
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorSAM.AutomatedUnityLightBaker.AutomatedActionOrderConstraint">
+            <summary>
+            Overriden to return AutomatedActionOrderConstraint.Last.
+            <para>
+            The Unity Light Baker unloads scenes associated with tertiary cells. In order to 
+            avoid issues with trying to use or save these scenes via other Actions, the Action must come after all other Actions for a given Automate Operation.
+            </para>
+            </summary>
+        </member>
+        <member name="T:DeepSpaceLabs.EditorSAM.SAMEditorStatic">
+            <summary>
+            Class that contains some static methods and extension methods
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.SAMEditorStatic.GetOrCreateGlobalRuntimeSettingsAsset">
+            <summary>
+            Gets the Global Runtime Settings asset if it exists, or creates and returns it if it doesn't. This is intended to be used in the 
+            editor only. At runtime, use GlobalRuntimeSettings.GetGlobalRuntimeSettings.
+            </summary>
+            <returns type="GlobalRuntimeSettings">The GlobalRuntimeSettings asset</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.SAMEditorStatic.SetCellState(UnityEditor.SerializedProperty,System.Int64,System.Int32,System.Boolean,UnityEditor.SerializedProperty)">
+            <summary>
+            Sets the cell state of a cell. to speed up the calculation, we assume that the current cellState is not equal to the input cellState
+            (i.e., that the operation is valid)
+            </summary>
+            <param name="cellStatesArrayProperty">The cell states array property long[] cellStates</param>
+            <param name="flattenedCellIndex">The flattened index of the cell to set</param>
+            <param name="cellStatesIndex">The index within the cell states array that points to the range of cells containing the cell whose state will be set</param>
+            <param name="cellState">The state to set the cell too</param>
+            <param name="firstCellState">serialzied property containing state of first cell in streamable grid</param>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorSAM.WorldDesignerWindow.StartingRow_ZeroBased">
+            <summary>
+            The Starting Row of this World in reference to its World Grid. This is basically the smallest row that any zone is in minus South Gap Cells.
+            </summary>
+            <type>int</type>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorSAM.WorldDesignerWindow.StartingColumn_ZeroBased">
+            <summary>
+            The Starting Column of this World in reference to its World Grid. This is basically the smallest column that any zone is in minus West Gap Cells.
+            </summary>
+            <type>int</type>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorSAM.WorldDesignerWindow.StartingLayer_ZeroBased">
+            <summary>
+            The Starting Layer of this World in reference to its World Grid. This is basically the smallest layer that any zone is in minus Bottom Gap Cells.
+            </summary>
+            <type>int</type>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorSAM.WorldDesignerWindow.EndingRow_ZeroBased">
+            <summary>
+            The Ending Row of this World in reference to its World Grid. This is basically the largest row that any zone is in plus North Gap Cells.
+            </summary>
+            <type>int</type>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorSAM.WorldDesignerWindow.EndingColumn_ZeroBased">
+            <summary>
+            The Ending Column of this World in reference to its World Grid. This is basically the largest column that any zone is in plus East Gap Cells.
+            </summary>
+            <type>int</type>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorSAM.WorldDesignerWindow.EndingLayer_ZeroBased">
+            <summary>
+            The Ending Layer of this World in reference to its World Grid. This is basically the largest layer that any zone is in plus Top Gap Cells.
+            </summary>
+            <type>int</type>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorSAM.WorldDesignerWindow.TotalRows">
+            <summary>
+            The Total Rows on this World in reference to its World Grid. This is equal to EndingRow - StartingRow + 1;
+            </summary>
+            <type>int</type>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorSAM.WorldDesignerWindow.TotalColumns">
+            <summary>
+            The Total Column on this World in reference to its World Grid. This is equal to EndingColumn - StartingColumn + 1;
+            </summary>
+            <type>int</type>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorSAM.WorldDesignerWindow.TotalLayers">
+            <summary>
+            The Total Layers on this World in reference to its World Grid. This is equal to EndingLayer - StartingLayer + 1;
+            </summary>
+            <type>int</type>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.WorldDesignerWindow.IsChunkOrAssetNull(DeepSpaceLabs.EditorSAM.AssetChunk)">
+            <summary>
+            Checks if the Asset Chunk or its asset are null.
+            </summary>
+            <param name="assetChunk">The array of asset chunks to use for the check.</param>
+            <returns>True if the asset chunk or its asset is null, false otherwise.</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.WorldDesignerWindow.IsChunkOrAssetNull(DeepSpaceLabs.EditorSAM.AssetChunk[],System.Int32)">
+            <summary>
+            Checks if the Asset Chunk or its asset at chunkIndex are null.
+            </summary>
+            <param name="assetChunks">The array of asset chunks to use for the check.</param>
+            <param name="chunkIndex">The index of the asset chunk to check.</param>
+            <returns>True if the asset chunk or its asset is null, false otherwise.</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.WorldDesignerWindow.IsAssetNull(DeepSpaceLabs.EditorSAM.AssetChunk[],System.Int32)">
+            <summary>
+            Checks whether the asset associated with the WorldEditorAssetChunk at chunkIndex is null. You can use this if you know 
+            the asset chunk at the index is not null.
+            </summary>
+            <param name="assetChunks">The array of asset chunks to use for the check.</param>
+            <param name="chunkIndex">The index of the asset chunk to check.</param>
+            <returns>True if the asset asset is null, false otherwise.</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.WorldDesignerWindow.IsAssetNull(System.Object)">
+            <summary>
+            Checks whether an asset is null.
+            </summary>
+            <param name="asset">The asset to check</param>
+            <returns>True if the asset is null, false otherwise.</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.WorldDesignerWindow.TryGetWorlDesignerInUseByWorld(DeepSpaceLabs.SAM.World,DeepSpaceLabs.EditorSAM.WorldDesignerWindow@)">
+            <summary>
+            Tries to find a World Designer Window that is currently open and in use by a specific World.
+            </summary>
+            <param name="world">The world that is using the World Designer Window.</param>
+            <param name="window">If the method returns true, will contain the World Designer Window. Will be null otherwise.</param>
+            <returns>True if a World Designer World is open and in use by the World, false otherwise.</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.WorldDesignerZoneGrouping.TestAssetCreatorAssetLoading(System.Int32,System.String@,System.String@,DeepSpaceLabs.EditorSAM.AssetCreator@,DeepSpaceLabs.EditorSAM.AssetManager@)">
+            <summary>
+            Used to test whether the Asset Creator creation path is valid. Creates a test asset then tries to load it. It the load fails the creation path is invalid. If it succeeds, the path is 
+            valid. Must print error to user telling them to fix the issue and also delete the asset that was created.
+            </summary>
+        </member>
+        <member name="T:DeepSpaceLabs.EditorSAM.WorldDesignerGroupingListener">
+            <summary>
+            A Scriptable Object class you can derive from and hook up to the World Designer tool to receive notifications 
+            when Asset Chunks are added and removed from the scene using the Tool.
+            <para>
+            This is useful if you need to perform some secondary operations on the assets, perhaps involving third party tools.
+            </para>
+            <para>
+            Do note that this feature has some limitations, including:
+            </para>
+            <para indented="true">
+            1) References to the assets may become nulled out under different situations, such as unloading the scene the assets 
+            are in or performing an assembly reload (but not always in this case). This, in combination with item 2 below, may cause issues.
+            </para>
+            <para indented="true">
+            2) Only newly loaded assets are passed to the OnAfterAssetChunksAdded method. You will need to account for this and 
+            in some cases (when references become "lost"), you may need to manually unload and re-load the Asset Chunks for the 
+            Grouping in order for the asset chunks to be detected as "new" and for them to trigger the OnAfterAssetChunksAdded method.
+            <para indented="true">
+            If storing the assets in a list, you may also need to check before using the assets to make sure they are not null (if they 
+            are null, they should be pruned from the list).
+            </para>
+            </para>
+            <para indented="true">
+            3) The World Cells passed into the OnAfterAssetChunksAdded method are fully configured and settings can be relied upon to be accurate, 
+            including the neighbors; however, 
+            there is no guarantee that the World Cells will remain valid after you return execution to calling code (for instance, they 
+            will be destroyed if you change which World Grouping is being edited by the World Designer Tool). As such, you should only 
+            use the World Cells in your method bodies and should not store references to them to be used later.
+            </para>
+            <para indented="true">
+            In addition to this, neighbors will not be set on World Cells when they are passed to the OnBeforeAssetChunksRemoved method, 
+            due to the nature of how the World Designer works. All values will be null!
+            </para>
+            <para indented = "true">
+            4) It does not make much sense to make edits to the assets using this class, as the edits will be performed every time 
+            the asset is loaded and/or unloaded. Instead, this class is primarily intended to allow you to interface with other 
+            scripts that may need to know when an asset is loaded and unloaded, or to perform secondary logic.
+            </para>
+            <para>
+            If more than one listener is assigned to a Grouping, each listener is called in the order they appear in the World Designer Tool.
+            </para>
+            <para>
+            If you only care about specific LODs, use the LevelOfDetail property of the WorldCell to ignore Asset Chunks that don't belong to the 
+            LODs you care about!
+            </para>
+            </summary>
+            <title>WorldDesignerGroupingListener Class</title>
+            <category>Scriptable Assets</category>
+            <navigationName>WorldDesignerGroupingListener</navigationName>
+            <fileName>WorldDesignerGroupingListener.html</fileName>
+            <syntax>
+            public abstract class WorldDesignerGroupingListener : ScriptableObject
+            </syntax>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.WorldDesignerGroupingListener.OnAfterAssetChunksAdded(DeepSpaceLabs.Core.ReadOnlyList{System.Object},DeepSpaceLabs.Core.ReadOnlyList{DeepSpaceLabs.SAM.WorldCell})">
+            <summary>
+            This is called by the World Designer tool just after an Asset Chunks from a particular World 
+            Grouping and LOD been added to the scene.
+            </summary>
+            <param name="assetChunks" type="ReadOnlyList&lt;object&gt;">
+            The asset chunk objects that were just added.
+            </param>
+            <param name="cellsChunksBelongsTo" type="ReadOnlyList&lt;WorldCell&gt;" link="WorldCell.html">
+            The World Cells that the asset chunks belongs to. All data will be configured correctly, including the 
+            neighbors of each cell. Each index in this list corresponds to the same indexed item in the assetChunks lists, so you 
+            will need to use a for statement rather than a foreach to iterate through the asset chunks and world cells.
+            <para>
+            Because all assets in the assetChunks list are gauranteed to come from the same World Grouping and LOD, you can check the 
+            data of the first World Cell only to determine if your logic should run (perhaps you only want it to run for LOD 2, for example), 
+            or to perform custom logic for each LOD or World Grouping.
+            </para>
+            <para>
+            The data for the cells is only valid within the method, so any logic you need to perform needs to be performed immediately from within the method!
+            </para>
+            </param>
+            <displayName id="OnAfterAssetChunksAdded">
+            OnAfterAssetChunksAdded(ReadOnlyList&lt;object&gt;, ReadOnlyList&lt;WorldCell&gt;)
+            </displayName>
+            <syntax>
+            public abstract void OnAfterAssetChunksAdded(ReadOnlyList&lt;object&gt; assetChunks, ReadOnlyList&lt;WorldCell&gt; cellsChunksBelongsTo)
+            </syntax>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.WorldDesignerGroupingListener.OnBeforeAssetChunksRemoved(DeepSpaceLabs.Core.ReadOnlyList{System.Object},DeepSpaceLabs.Core.ReadOnlyList{DeepSpaceLabs.SAM.WorldCell})">
+            <summary>
+            This is called by the World Designer tool just prior to a group of Asset Chunks from a particular World 
+            Grouping and LOD being removed from the scene.
+            </summary>
+            <param name="assetChunks" type="ReadOnlyList&lt;object&gt;">
+            The asset chunk objects that are about to be removed.
+            </param>
+            <param name="cellsChunksBelongsTo" type="ReadOnlyList&lt;WorldCell&gt;" link="WorldCell.html">
+            The World Cells that the asset chunks belongs to. All data will be configured correctly, excepting the 
+            neighbors of each cell. Each index in this list corresponds to the same indexed item in the assetChunks lists, so you 
+            will need to use a for statement rather than a foreach to iterate through the asset chunks and world cells.
+            <para>
+            Because all assets in the assetChunks list are gauranteed to come from the same World Grouping and LOD, you can check the 
+            data of the first World Cell only to determine if your logic should run (perhaps you only want it to run for LOD 2, for example), 
+            or to perform custom logic for each LOD or World Grouping.
+            </para>
+            <para>
+            The data for the cells is only valid within the method, so any logic you need to perform needs to be performed immediately from within the method!
+            </para>
+            </param>
+            <displayName id="OnBeforeAssetChunksRemoved">
+            OnBeforeAssetChunksRemoved(ReadOnlyList&lt;object&gt;, ReadOnlyList&lt;WorldCell&gt;)
+            </displayName>
+            <syntax>
+            public abstract void OnBeforeAssetChunksRemoved(ReadOnlyList&lt;object&gt; assetChunks, ReadOnlyList&lt;WorldCell&gt; cellsChunksBelongsTo)
+            </syntax>
+        </member>
+        <member name="T:DeepSpaceLabs.EditorSAM.AssetManager">
+            <summary>
+            Base Asset Manager implementation. Override to create custom Asset Managers!
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorSAM.AssetManager.PrefabEditorScene">
+            <summary>
+            The editor scene used to store prefabs when the prefabs are edited directly. Use this for orgnaizational purposes and also to make finding 
+            chunk assets easier.
+            </summary>
+            <type>Scene</type>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetManager.GetAssetChunks(System.Collections.Generic.List{DeepSpaceLabs.EditorSAM.AssetChunkInfo},System.Collections.Generic.List{DeepSpaceLabs.EditorSAM.AssetChunk},System.Boolean)">
+            <summary>
+            Your method should iterate over the items in the assetChunkInfo list in order. For each entry, first search the 
+            Hiearchy of loaded assets for the asset indicated by the assetChunkName. If an asset is not loaded (i.e., not in the hierarchy) 
+            and loadNewAssetsIfNotAlreadyLoaded is true, you can attempt to load the asset from your project into the 
+            hiearchy using the assetChunkLoadKey. 
+            <para>
+            If loading the asset fails, add null to the lists instead of a AssetChunk object.
+            </para>
+            <para>
+            You should also add null to the list when loadNewAssetsIfNotAlreadyLoaded is false and you are unable to find 
+            an asset already in the hiearchy. In these instances, the method is used by the World Designer 
+            to find asset chunks already in the hiearchy, rather than for loading new assets.
+            </para>
+            <para>
+            In either case, it's imperative that the Count of the loadedAssetChunks list after method execution 
+            equals the Count of the assetChunkInfo before the method was called. No errory checking is done to ensure this, however 
+            if you do not stick to that rule there will likely be problems!
+            </para>
+            </summary>
+            <param name="assetChunkInfos">
+            The list of the asset chunks names and load keys to find in the hierarchy or load into the hiearchy.
+            <para>
+            The assetChunkLoadKey's stored in each AssetChunkInfo are setup by examining the Chunk Streamer you are using for each LOD. In addition to containing the 
+            asset chunk names, they contain any prepended or appended data needed to load the assets (such as sub folder paths when loading 
+            prefabs stored in a sub folder of the Resources folder). If no prepended or appended data is needed, they will match the 
+            asset chunk names exactly. Usually you will want to use the assetChunkLoadKey rather than assetChunkName to load your assets, however it's up to you and 
+            depends on your implementation.
+            </para>
+            </param>
+            <param name="loadedAssetChunks">The list that will store the asset chunks you find or load.</param>
+            <param name="loadNewAssetsIfNotAlreadyLoaded">
+            If true, you should attempt to load new asset chunks when an asset chunk is not found in the hierarchy. If false, 
+            do not load a new asset, instead just add null to the loadedAssetChunks list.
+            </param>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetManager.AreAllAssetChunksEmpty(System.Collections.Generic.List{DeepSpaceLabs.EditorSAM.AssetChunkInfo},System.Boolean[])">
+            <summary>
+            This is a special method used solely when trying to determine if a Cell should be disabled. The Asset Chunk's identified by assetChunkInfos are guaranteed 
+            to not be loaded, so you should try to load them (without checking if they are already in the scene). If you cannot load a chunk, you should treat it as 
+            empty and move on to the next Asset Chunk. If an Asset Chunk is present and you load it but it is empty, you should unload it and move on to the next chunk.
+            <para>
+            If you find an Asset Chunk that is not empty (as determined by your Asset Manager), you should unload it and set emptyStatus[0] to false. You can and should 
+            safely break out of the method at this point using yield break, as it is not necessary to continue processing the rest of the Asset Chunks in the list. Not 
+            yield breaking would just slow down the World Designer Tool's performance.
+            </para>
+            <para>
+            If you make it through all Asset Chunks in the list without finding a non empty Asset Chunk should you set emptyStatus[0] to true.
+            </para>
+            <para>
+            Always remember, if you load an Asset Chunk resource using this method, you must unload it before the method finishes/breaks!
+            </para>
+            </summary>
+            <param name="assetChunkInfos">The infos of the Asset Chunks to check.</param>
+            <param name="emptyStatus">Set index 0 to true if all Asset Chunks in the list are empty. Set to false if at least one Asset Chunk is not empty.</param>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetManager.UnloadAssetChunks(System.Collections.Generic.List{DeepSpaceLabs.EditorSAM.AssetChunk})">
+            <summary>
+            Unloads multiple asset chunks that are loaded in the editor. Note that it is always possible that the underlying 
+            asset that each asset chunk is representing has been removed (for example, perhaps you deleted it), so you 
+            should always verify that the asset still exist before attempting to remove it.
+            </summary>
+            <param name="assetChunks">The asset chunks to unload from the editor.</param>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetManager.SaveAssetChunks(System.Collections.Generic.List{DeepSpaceLabs.EditorSAM.AssetChunk})">
+            <summary>
+            Saves any changes made to the asset chunks
+            </summary>
+            <param name="assetChunks">The asset chunks to save.</param>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetManager.DoesAssetHaveUnsavedChanges(DeepSpaceLabs.EditorSAM.AssetChunk)">
+            <summary>
+            Checks if the asset has unsaved changes. The editor chunk is checked before calling this method to make sure the asset is present, 
+            so you don't need to do this yourself!
+            </summary>
+            <param name="assetChunk">The editor asset chunk whose asset you should check to see if its dirty.</param>
+            <returns>True if the asset has unsaved changes, false otherwise.</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetManager.DoesAssetExist(DeepSpaceLabs.EditorSAM.AssetChunkInfo)">
+            <summary>
+            Method called to check whether an asset exist in the users project.
+            </summary>
+            <param name="assetChunkInfo" type="AssetChunkInfo">
+            The name and load key of the asset. Usually you will want to use the load key to determine if the asset exists in your project.
+            </param>
+            <returns type="bool">
+            True if the asset exist in the project, false otherwise.
+            </returns>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetManager.StartBatchAssetsExistCheck">
+            <summary>
+            In some cases, the DoesAssetExist method needs to access information that can be expensive to access in order to 
+            carry out its functionality. For example, when checking if a scene exist the Asset Manager needs to access 
+            the array of Editor Build Settings scenes, which is not a free operation.
+            <para>
+            In many cases, however, DoesAssetExist is called multiple times while the Asset Database remains unchanged; using the 
+            scenes again as an example, the method may be called multiple times where the Editor Build Settings scenes do not 
+            change.
+            </para>
+            <para>
+            In these cases, it should be possible to access the information you need once, then reuse that information for multiple 
+            calls to DoesAssetExist. This speeds up the World Designer Tool's performance drastically in many cases.
+            </para>
+            <para>
+            This method is called before a batch of DoesAssetExist calls are invoked. You can rely on the Asset Database not 
+            changing up until the point of StopBatchAssetsExistCheck being called, so you can access and store any information (especially 
+            information pertaining to the state of the Asset Database/Existence of Assets).
+            </para>
+            <para>
+            By default the method implementation is empty, in case you do not need to retrieve any information to perform the 
+            DoesAssetExist checks.
+            </para>
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetManager.StopBatchAssetsExistCheck">
+            <summary>
+            In some cases, the DoesAssetExist method needs to access information that can be expensive to access in order to 
+            carry out its functionality. For example, when checking if a scene exist the Asset Manager needs to access 
+            the array of Editor Build Settings scenes, which is not a free operation.
+            <para>
+            In many cases, however, DoesAssetExist is called multiple times while the Asset Database remains unchanged; using the 
+            scenes again as an example, the method may be called multiple times where the Editor Build Settings scenes do not 
+            change.
+            </para>
+            <para>
+            In these cases, it should be possible to access the information you need once, then reuse that information for multiple 
+            calls to DoesAssetExist. This speeds up the World Designer Tool's performance drastically in many cases.
+            </para>
+            <para>
+            This method is after a batch of DoesAssetExist calls are invoked. You can rely on the Asset Database not 
+            changing from the time StartBatchAssetsExistCheck is called up until the point of this method being called. You should clear or 
+            free up resources retrieved in StartBatchAssetsExistCheck in this method.
+            </para>
+            <para>
+            By default the method implementation is empty, in case you do not need to retrieve any information to perform the 
+            DoesAssetExist checks (and thus you do not need to free those resources).
+            </para>
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetManager.GetAllLikelyLoadedWorldDesignerAssets(System.Collections.Generic.List{DeepSpaceLabs.EditorSAM.AssetChunk})">
+            <summary>
+            Should add to the input list all assets that are likely to be associated with the World Designer tool. This is used to find assets in the scene 
+            that are associated with a World Grouping currently being edited by the World Designer. You should be overzealous with this method, as things will 
+            break if you don't add all the assets associated with the World Designer tool. Let the calling code worry about if a particular asset is 
+            actually associated with the current World and World Grouping being edited!
+            </summary>
+            <param name="loadedAssets">
+            The list to add the loaded assets that are likely to be associated with the World Designer tool.
+            </param>
+            <returns>An IEnumerator which you can enumerator over, or you can return this method call directly from another method that returns IEnumerator.</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetManager.DeleteAssets(System.Collections.Generic.List{DeepSpaceLabs.EditorSAM.AssetChunkInfo})">
+            <summary>
+            Override to delete multiple assets identified by AssetChunkInfo (asset name and asset load key).
+            </summary>
+            <param name="assetChunkInfos">
+            The info about the asset chunks to delete.
+            </param>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetManager.CleanupAssetChunksWithMissingAssets(System.Collections.Generic.List{DeepSpaceLabs.EditorSAM.AssetChunk})">
+            <summary>
+            Called when editor assets chunks are found with game objects missing. This will typically only occur when the 
+            objects are manually removed from the scene by the developer. The method by default does nothing but return, and 
+            in some cases where no cleanup is needed (when working with Prefabs directly, for example), this is sufficient. However, 
+            if there are leftover resources that need to be removed (such as occurs when working with scenes), overriding 
+            this method can be useful.
+            </summary>
+            <param name="assetChunks">The asset chunks to cleanup.</param>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetManager.IsAssetChunkEmpty(DeepSpaceLabs.EditorSAM.AssetChunk)">
+            <summary>
+            Used to determine if an Asset Chunk is 'Empty'. An Empty asset chunk is basically a chunk that has no use. The method is used by the World Designer 
+            when evuluating cells to determine if a cell needs to be disabled and/or its assets deleted. By default 
+            this will evaluate to true if the chunk has no children (ChildrenOnRoot = 0) and has no components other than the default Transform component.
+            <para>
+            You can override to implement other behavior, and must do so if not using Game Objects, because the default behavior examines the components 
+            on the Asset, which will not work if the Asset is not a Game Object.
+            </para>
+            <para>
+            The Asset Chunks passed in may or may not be transitioned, so you need to factor that in if it matters (though it should not in most cases).
+            </para>
+            </summary>
+            <param name="assetChunk">The chunk to see whether it's empty.</param>
+            <returns>True if the chunk is empty, false otherwise.</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetManager.GetAllPrefabAssetsInPrefabEditorScene(System.Collections.Generic.List{DeepSpaceLabs.EditorSAM.AssetChunk})">
+            <summary>
+            Adds to the loadedAssets list Asset Chunks representing all of the root prefab instance assets currently in the Prefab Editor Scene. This is 
+            used directly by the DefaultPrefabInstantiatorAsyncAssetManager and in some instances the DefaultSceneChunkStreamerAssetManager (when 
+            'Edit Prefab Roots When Possible' is enabled).
+            <para>
+            You can use this in a custom Asset Manager if working with direct prefab instances (i.e., if you want to let the user edit the prefab 
+            instances and have those changes applied back to the prefab source asset).
+            </para>
+            </summary>
+            <param name="loadedAssets">At input, may be empty or contain other asset identified by the calling class, so it is not cleared, but rather, 
+            Asset Chunks are created for every root prefab instance currently in the Prefab Editor Scene, and added to the list.</param>
+            <returns>An IEnumerator which you can enumerator over, or you can return this method call directly from another method that returns IEnumerator.</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetManager.SavePrefab(UnityEngine.GameObject,System.String)">
+            <summary>
+            Applies changes to the input prefab instance to the root prefab source. Safe to use with batch asset editing (i.e., Start/StopAssetEditing).
+            </summary>
+            <param name="prefabInstance">The prefab instance representing the root prefab you want to apply changes to.</param>
+            <param name="prefabAssetPath">Path of the prefab asset path, which should be stored in the AssetChunk's SourceAssetPath property. This is used 
+            to save the prefab when the prefab instance is no longer associated with the prefab asset, which can occur if it has been unpacked.</param>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetManager.UnloadPrefab(UnityEngine.GameObject)">
+            <summary>
+            Unloads a prefab instance from the editing scene.
+            </summary>
+            <param name="prefabInstance">The prefab instance to unload.</param>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetManager.DeletePrefabAssets(System.Collections.Generic.List{UnityEngine.GameObject})">
+            <summary>
+            Can be used to delete multiple prefab assets. Meant to be used by your 
+            DeleteAssets implementation when using Prefab Assets.
+            </summary>
+            <param name="prefabAssets">The list of prefab assets to delete from the Project.</param>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetManager.DoesPrefabHaveUnsavedChanges(UnityEngine.GameObject)">
+            <summary>
+            Checks whether a prefab instance has changes (in reference to the root prefab). Ignores default overrides, such as transform 
+            position/rotation.
+            </summary>
+            <param name="prefabInstance">the prefab instance to check.</param>
+            <returns>True if there are changes, false otherwise.</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetManager.TryGetAssetInstanceFromSceneRoots(System.String,UnityEngine.GameObject[])">
+            <summary>
+            Give an array of root game objects in a scene, tries to find an instance of the asset with the chunkName.
+            </summary>
+            <param name="chunkName">The name of the asset intance to find.</param>
+            <param name="sceneRoots">The array of scene root game objects to search.</param>
+            <returns>The asset instance if found, null if not found.</returns>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetManager.FindPrefabEditorScene">
+            <summary>
+            Tries to locate and assign to PrefabEditorScene the prefab editor scene (called WorldDesignerPrefabs). This will not create a new prefab editor scene 
+            if one is not already created. Use FindOrCreatePrefabEditorScene instead if you want 
+            the prefab editor scene to be created if it is not already created. The prefab editor scene can and should be used for placing 
+            the prefab instances loaded for chunks. When you are loading assets that aren't directly prefabs but contain prefabs (such 
+            as scenes), it is a good idea to edit the prefab rather than the containing asset, as any changes to the prefab will be reflected in the 
+            containing asset (such as the scene). However, if you edit the containing asset rather than the prefab, 
+            the root prefab will not be changed, which may present issues.
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetManager.FindOrCreatePrefabEditorScene">
+            <summary>
+            Tries to locate and assign to PrefabEditorScene the prefab editor scene (called WorldDesignerPrefabs). This will create a new prefab editor scene 
+            if one is not already created. Use FindPrefabEditorScene instead if you don't want 
+            the prefab editor scene to be created if it is not already created. The prefab editor scene can and should be used for placing 
+            the prefab instances loaded for chunks. When you are loading assets that aren't directly prefabs but contain prefabs (such 
+            as scenes), it is a good idea to edit the prefab rather than the containing asset, as any changes to the prefab will be reflected in the 
+            containing asset (such as the scene). However, if you edit the containing asset rather than the prefab, 
+            the root prefab will not be changed, which may present issues.
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetManager.RemovePrefabEditorSceneIfEmpty">
+            <summary>
+            Used to check if the prefab editor scene has been created, and if it has been created, checks if any prefabs are actually 
+            in the scene. If there are no prefabs in the scene, it is unloaded. Use this anytime you unload assets, and in instances 
+            where you try to load assets but can't be certain the load succeeded.
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetManager.DoesAssetExistInDatabase(System.String)">
+            <summary>
+            Checks whether an asset exist using. Needs a asset relative folder path to work, which ends 
+            with the asset file name + extension (.unity for scenes, .prefab for prefabs for example).
+            </summary>
+            <param name="assetPath">Path of asset relative to assets folder, ending in file name and extension. For example 'Assets/Prefab.prefab' would 
+            point to a prefab stored directly in the Assets folder.</param>
+            <returns>True if the asset exist, false otherwise.</returns>
+        </member>
+        <member name="T:DeepSpaceLabs.EditorSAM.PrefabBasedAssetManager">
+            <summary>
+            Base asset manager for prefab based workflows. You can override this to implement default scene based asset management where you need to provide 
+            a different LoadPrefabAssetResource implementation than the DefaultPrefabChunkStreamerAssetManager
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.PrefabBasedAssetManager.SaveAssetChunks(System.Collections.Generic.List{DeepSpaceLabs.EditorSAM.AssetChunk})">
+            <summary>
+            Saves a list of prefab asset chunks. Uses AssetDatabase.Start/StopAssetEditing() for speedier performance
+            </summary>
+            <param name="assetChunks">the asset chunks to save</param>
+            <returns>an enumerator you can iterate over</returns>
+        </member>
+        <member name="T:DeepSpaceLabs.EditorSAM.DefaultPrefabChunkStreamerAssetManager">
+            <summary>
+            Default Asset Manager for the Prefab Chunk Streamer
+            </summary>
+        </member>
+        <member name="T:DeepSpaceLabs.EditorSAM.SceneBasedAssetManager">
+            <summary>
+            Base asset manager for scene based workflows. You can override this to implement default scene based asset management where you need to provide 
+            a different GetFullScenePath implementation than the DefaultSceneChunkStreamerAssetManager
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.SceneBasedAssetManager.OnScenesDeleted(System.Collections.Generic.List{System.String})">
+            <summary>
+            Called after scenes are deleted. Use this to perform any cleanup needed for the deleted scenes. For instances, if you know the 
+            scenes are in the build settings, you should remove them.
+            </summary>
+            <param name="deletedScenes"></param>
+        </member>
+        <member name="T:DeepSpaceLabs.EditorSAM.DefaultSceneChunkStreamerAssetManager">
+            <summary>
+            Default Asset Manager for the Scene Chunk Streamer. Note that this manager doesn't always return scenes. When 
+            Edit Prefab Roots When Possible is enabled, if a scene has a 
+            prefab instance of the same name as it, and if that prefab instance does not contain any overrides (i.e, difference between 
+            it and its prefab source), it moves the prefab instance to the 
+            Prefab Editor Scene and closes the original scene the prefab was in (unsaved). This 
+            allows you to edit the root prefab directly rather than the prefab instance in the scene. It is assumed that this behavior is 
+            desirable, as editing the root prefab will result in the prefab instance within the scene also being updated, thus both the scene and the 
+            prefab root can be changed using the World Designer. If this behavior is not desirable
+            </summary>
+        </member>
+        <member name="T:DeepSpaceLabs.EditorSAM.AssetChunk">
+            <summary>
+            The World Designer works by requesting chunk assets from Asset Managers (remember, a cell can have only 1 chunk 
+            or it might have multiple chunks). However, each project may store these chunk assets in different formats, e.g., as scenes 
+            or directly as prefabs. In order to cover a variety of different formats, we use this container class, which you can derive 
+            from to support types not already supported by the kit. The only thing required of your derived class is that it be able 
+            to return an actual Object via the Asset property, and the name of the asset via the AssetName property.
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorSAM.AssetChunk.Asset">
+            <summary>
+            Returns the asset as a object. For prefabs this will be the prefab instance itself, however for scenes 
+            it will be the root object in the scene. For custom asset types you will need to figure out how to retrieve this 
+            object and pass it into the constructor for this class.
+            </summary>
+            <type>object</type>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorSAM.AssetChunk.AssetName">
+            <summary>
+            The name of the asset.
+            </summary>
+            <type>string</type>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorSAM.AssetChunk.SourceAssetPath">
+            <summary>
+            Gets the Unity asset path for the source asset. For scenes this is the scene path, for prefabs its the path to the 
+            actual prefab asset in the project that the Asset isntance comes from. Must include 'Assets' at the beginning of the path 
+            and the file extension at the end, such that the path is useable with methods like AssetDatabase.LoadAssetAtPath.
+            <para>
+            For example, a prefab Source Asset Path might be Assets/Prefabs/Terrain_1_1.prefab"
+            </para>
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorSAM.AssetChunk.ChildrenOnRoot">
+            <summary>
+            Gets the number of children belonging to the 
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorSAM.AssetChunk.IsNewlyLoaded">
+            <summary>
+            Gets a value indicating whether the Asset is newly loaded, which should be true if the asset 
+            had to be loaded from the project/disk in order to create this Asset Chunk object, or false 
+            if the Asset was already loaded/in the scene.
+            </summary>
+        </member>
+        <member name="P:DeepSpaceLabs.EditorSAM.AssetChunk.StoredRootState">
+            <summary>
+            The game object state of the root object in the scene when the scene is stored on disk. This is used when saving the scene to 
+            ensure the root object's state is reset to false (deactivated) if needed.
+            <para>
+            This setting only applies to scene based asset chunks, however due to the way Asset Managers work it is necessary to 
+            place this setting here.
+            </para>
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetChunk.RecalculateChildrenOnRoot">
+            <summary>
+            Recalculates the number of children on the root. This is used during Advanced Operations to ensure manually added children are 
+            accounted for before the ops are run.
+            <para>
+            The base implementation assumes the Asset is a Game Object. If this is not the case, you need to override this method!
+            </para>
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetChunk.#ctor(System.String,System.Object,System.String,System.Int32,System.Boolean)">
+            <summary>
+            Called by sub class when creating an instance of the sub class. In some cases the assetName will be easy as it will 
+            be provided to you, in other cases you may need to retrieve it from your asset.
+            </summary>
+            <param name="assetName">
+            The name of the asset.
+            </param>
+            <param name="asset">
+            The root/main object that is the asset or that is stored within the asset.
+            </param>
+            <param name="sourceAssetPath">
+            The asset path of the source asset (e.g., Assets/Prefabs/Terrain_1_1.prefab for prefabs.
+            </param>
+            <param name="childrenOnRoot">
+            The number of children associated with the root asset chunk. For a game object this is gameobject.transform.childCount
+            </param>
+            <param name="isNewlyLoaded">
+            Indicates whether the Asset associate with this Asset Chunk was newly loaded. If the asset was already in the scene, you 
+            should pass in false.
+            </param>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetChunk.#ctor(System.String,System.Object,System.String,System.Int32,System.Boolean,System.Boolean)">
+            <summary>
+            Called by sub class when creating an instance of the sub class. In some cases the assetName will be easy as it will 
+            be provided to you, in other cases you may need to retrieve it from your asset.
+            </summary>
+            <param name="assetName">
+            The name of the asset.
+            </param>
+            <param name="asset">
+            The root/main object that is the asset or that is stored within the asset.
+            </param>
+            <param name="sourceAssetPath">
+            The asset path of the source asset (e.g., Assets/Prefabs/Terrain_1_1.prefab for prefabs.
+            </param>
+            <param name="childrenOnRoot">
+            The number of children associated with the root asset chunk. For a game object this is gameobject.transform.childCount
+            </param>
+            <param name="isNewlyLoaded">
+            Indicates whether the Asset associate with this Asset Chunk was newly loaded. If the asset was already in the scene, you 
+            should pass in false.
+            </param>
+            <param name="storedRootState">
+            The game object state of the root object in the scene when the scene is stored on disk. This is used when saving the scene to 
+            ensure the root object's state is reset to false (deactivated) if needed.
+            <para>
+            This setting only applies to scene based asset chunks, however due to the way Asset Managers work it is necessary to 
+            place this setting here.
+            </para>
+            </param>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetChunk.#ctor(System.String,UnityEngine.GameObject,System.String,System.Boolean)">
+            <summary>
+            Called by sub class when creating an instance of the sub class in which the underlying asset is a Game Object. In some cases the assetName will be easy as it will 
+            be provided to you, in other cases you may need to retrieve it from your asset. ChildrenOnRoot is automatically set to
+            asset.transform.childCount; Use the version that accepts a System.object if not using Game Objects
+            </summary>
+            <param name="assetName">The name of the asset.</param>
+            <param name="asset">The root/main object that is the asset or that is stored within the asset.</param>
+            <param name="sourceAssetPath">The asset path of the source asset (e.g., Assets/Prefabs/Terrain_1_1.prefab for prefabs.</param>
+            <param name="isNewlyLoaded">
+            Indicates whether the Asset associate with this Asset Chunk was newly loaded. If the asset was already in the scene, you 
+            should pass in false.
+            </param>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetChunk.#ctor(System.String,UnityEngine.GameObject,System.String,System.Boolean,System.Boolean)">
+            <summary>
+            Called by sub class when creating an instance of the sub class in which the underlying asset is a Game Object. In some cases the assetName will be easy as it will 
+            be provided to you, in other cases you may need to retrieve it from your asset. ChildrenOnRoot is automatically set to
+            asset.transform.childCount; Use the version that accepts a System.object if not using Game Objects
+            </summary>
+            <param name="assetName">The name of the asset.</param>
+            <param name="asset">The root/main object that is the asset or that is stored within the asset.</param>
+            <param name="sourceAssetPath">The asset path of the source asset (e.g., Assets/Prefabs/Terrain_1_1.prefab for prefabs.</param>
+            <param name="isNewlyLoaded">
+            Indicates whether the Asset associate with this Asset Chunk was newly loaded. If the asset was already in the scene, you 
+            should pass in false.
+            </param>
+            <param name="storedRootState">
+            The game object state of the root object in the scene when the scene is stored on disk. This is used when saving the scene to 
+            ensure the root object's state is reset to false (deactivated) if needed.
+            <para>
+            This setting only applies to scene based asset chunks, however due to the way Asset Managers work it is necessary to 
+            place this setting here.
+            </para>
+            </param>
+        </member>
+        <member name="T:DeepSpaceLabs.EditorSAM.SceneBasedAssetChunk">
+            <summary>
+            Can be used in conjunction with Asset Managers that manage scene assets.
+            </summary>
+        </member>
+        <member name="F:DeepSpaceLabs.EditorSAM.SceneBasedAssetChunk.scene">
+            <summary>
+            The scene associated with the cell chunk. Always check if the scene is valid using IsValid
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.SceneBasedAssetChunk.#ctor(UnityEngine.SceneManagement.Scene,System.Boolean)">
+            <summary>
+            Construct a Scene Based Asset Chunk by passing in just the Scene, the root game object is pulled from this scene using 
+            GetRootGameObjects.
+            </summary>
+            <param name="scene">The scene</param>
+            <param name="isNewlyLoaded">
+            Indicates whether the scene associate with this Asset Chunk was newly loaded. If the scene was already loaded, you 
+            should pass in false.
+            </param>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.SceneBasedAssetChunk.#ctor(UnityEngine.SceneManagement.Scene,System.Boolean,System.Boolean)">
+            <summary>
+            Construct a Scene Based Asset Chunk by passing in just the Scene, the root game object is pulled from this scene using 
+            GetRootGameObjects.
+            </summary>
+            <param name="scene">The scene</param>
+            <param name="isNewlyLoaded">
+            Indicates whether the scene associate with this Asset Chunk was newly loaded. If the scene was already loaded, you 
+            should pass in false.
+            </param>
+            <param name="storedRootState">
+            The game object state of the root object in the scene when the scene is stored on disk. This is used when saving the scene to 
+            ensure the root object's state is reset to false (deactivated) if needed.
+            </param>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.SceneBasedAssetChunk.#ctor(UnityEngine.SceneManagement.Scene,UnityEngine.GameObject,System.Boolean)">
+            <summary>
+             Construct a Scene Based Asset Chunk by passing in the Scene and root game object. Useful if you've already retrieved the 
+             root game object using GetRootGameObjects.
+            </summary>
+            <param name="scene">The scene</param>
+            <param name="rootSceneObject">The root game object.</param>
+            <param name="isNewlyLoaded">
+            Indicates whether the scene associate with this Asset Chunk was newly loaded. If the scene was already loaded, you 
+            should pass in false.
+            </param>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.SceneBasedAssetChunk.#ctor(UnityEngine.SceneManagement.Scene,UnityEngine.GameObject,System.Boolean,System.Boolean)">
+            <summary>
+             Construct a Scene Based Asset Chunk by passing in the Scene and root game object. Useful if you've already retrieved the 
+             root game object using GetRootGameObjects.
+            </summary>
+            <param name="scene">The scene</param>
+            <param name="rootSceneObject">The root game object.</param>
+            <param name="isNewlyLoaded">
+            Indicates whether the scene associate with this Asset Chunk was newly loaded. If the scene was already loaded, you 
+            should pass in false.
+            </param>
+            <param name="storedRootState">
+            The game object state of the root object in the scene when the scene is stored on disk. This is used when saving the scene to 
+            ensure the root object's state is reset to false (deactivated) if needed.
+            </param>
+        </member>
+        <member name="T:DeepSpaceLabs.EditorSAM.AssetChunkInfo">
+            <summary>
+            A structure for storing information about an Asset Chunk which is used by Asset Managers to load them.
+            </summary>
+        </member>
+        <member name="F:DeepSpaceLabs.EditorSAM.AssetChunkInfo.assetChunkName">
+            <summary>
+            The name of the Asset Chunk
+            </summary>
+        </member>
+        <member name="F:DeepSpaceLabs.EditorSAM.AssetChunkInfo.assetChunkLoadKey">
+            <summary>
+            The load key for the Asset Chunk. This usually marks the full path of the asset (including folders), though this will depend on the Chunk Streamer 
+            you are using. Since Asset Managers are designed around working with specific Chunk Streamers, your custom Asset Manager should know what 
+            format this load key will be in and be able to utilize it to load the asset chunk.
+            </summary>
+        </member>
+        <member name="F:DeepSpaceLabs.EditorSAM.AssetChunkInfo.sceneRootState">
+            <summary>
+            The game object state that the root object should be in when the Asset Chunk is a scene based Asset Chunk.
+            <para>
+            When loading non scenes, this value can be ignored.
+            </para>
+            </summary>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetChunkInfo.#ctor(System.String,System.String,System.Boolean)">
+            <summary>
+            Creates a new instance of the AssetChunkInfo object.
+            </summary>
+            <param name="assetChunkName">The name of the Asset Chunk.</param>
+            <param name="assetChunkLoadKey">The load key used by the Asset Manager to load the Asset Chunk.</param>
+            <param name="sceneRootState">
+            The game object state that the root object should be in when the Asset Chunk is a scene based Asset Chunk.
+            <para>
+            When loading non scenes, this value can be ignored.
+            </para>
+            </param>
+        </member>
+        <member name="M:DeepSpaceLabs.EditorSAM.AssetChunkInfo.#ctor(DeepSpaceLabs.SAM.CellString,System.Boolean)">
+            <summary>
+            Creates a new instance of the AssetChunkInfo object using a Cell String that has been matched to a specific Cell.
+            </summary>
+            <param name="cellString">The cell string that has been matched to a Cell</param>
+            <param name="sceneRootState">
+            The game object state that the root object should be in when the Asset Chunk is a scene based Asset Chunk.
+            <para>
+            When loading non scenes, this value can be ignored.
+            </para>
+            </param>
+        </member>
+    </members>
+</doc>

@@ -1,0 +1,32 @@
+Job Implementations
+The World Designer and Loading Blueprint Editor tools both make use of Jobs to speed up performance.
+
+By default these Jobs do not make use of Burst, as Burst is contained in a separate Unity Package that 
+needs to be imported before the Streamable Assets Manager can use it.
+
+As such, you will see an Asset called BurstDisabledJobImplementation within this folder. In order to 
+make use of Burst and speed up performance of the mentioned tools, import the Burst Package via the 
+Unity Package Manager (version does not matter) and then from the top menu bar, choose 
+Assets -> Deep Space Labs -> SAM -> Regenerate Burst Enabled Job Implementation
+
+You will need to close the Editor tools and re-launch them before seeing the Burst enabled improvements.
+
+Note that the option to regenerate the burst enabled job implementation may not appear immediately after 
+importing the Burst Package. If that is the case, try closing the Unity Editor and re-launching it.
+
+You should not delete the BurstDisabled or BurstEnabledJobImplementation assets. If you do by mistake, you 
+can regenerate them both via the menu command mentioned above. If both assets are present, the 
+Editor Tools will favor using the BurstEnabled version. If you see any issues that seems to be 
+Burst related, you can try deleting the Burst Enabled asset and re-launching the Editor Tools.
+
+SAMCurves
+This asset stores some Curves that are assigned by default to some of the default Cell Visual Transition Controllers. 
+Please do not remove it.
+
+GlobalEditorSettings
+These settings store various Colors and other settings related to Editor Tools. You can freely delete it, however 
+you will lose editor related data and the Settings will be regenerated automatically the next time an Editor Tool 
+tries to access them (therefore, deleting the asset is only beneficial if you want to *start over*).
+
+Initially, you may not see this asset. It is only generated the first time it is accessed! If you don't see it, simply 
+open the World Designer tool or Loading Blueprint Editor and it will be automatically generated. 
