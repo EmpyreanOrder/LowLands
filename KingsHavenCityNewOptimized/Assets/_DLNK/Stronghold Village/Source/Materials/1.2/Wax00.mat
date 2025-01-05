@@ -20,7 +20,8 @@ Material:
   m_CustomRenderQueue: -1
   stringTagMap:
     RenderType: Opaque
-  disabledShaderPasses: []
+  disabledShaderPasses:
+  - MOTIONVECTORS
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
@@ -166,6 +167,7 @@ Material:
     - _TransColor: {r: 0.9705882, g: 0.93987614, b: 0.69225776, a: 1}
     - _TranslucentColor: {r: 0.7941176, g: 0.71406156, b: 0.3795415, a: 1}
   m_BuildTextureStacks: []
+  m_AllowLocking: 1
 --- !u!114 &7445918183433382534
 MonoBehaviour:
   m_ObjectHideFlags: 11
@@ -178,4 +180,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d0353a89b1f911e48b9e16bdc9f2e058, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  version: 7
+  version: 9

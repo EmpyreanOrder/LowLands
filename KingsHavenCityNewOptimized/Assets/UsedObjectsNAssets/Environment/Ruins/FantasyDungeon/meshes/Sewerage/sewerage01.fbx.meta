@@ -1,7 +1,7 @@
 fileFormatVersion: 2
 guid: abc00000000004576539831021015922
 ModelImporter:
-  serializedVersion: 21300
+  serializedVersion: 22200
   internalIDToNameTable:
   - first:
       1: 100000
@@ -79,8 +79,6 @@ ModelImporter:
     optimizeGameObjects: 0
     removeConstantScaleCurves: 0
     motionNodeName: 
-    rigImportErrors: 
-    rigImportWarnings: 
     animationImportErrors: 
     animationImportWarnings: 
     animationRetargetingWarnings: 
@@ -106,6 +104,7 @@ ModelImporter:
     addColliders: 0
     useSRGBMaterialColor: 1
     sortHierarchyByName: 1
+    importPhysicalCameras: 1
     importVisibility: 1
     importBlendShapes: 1
     importCameras: 1
@@ -133,6 +132,7 @@ ModelImporter:
     secondaryUVMinObjectScale: 1
     secondaryUVPackMargin: 4
     useFileScale: 1
+    strictVertexDataChecks: 0
   tangentSpace:
     normalSmoothAngle: 60
     normalImportMode: 0
@@ -141,17 +141,7 @@ ModelImporter:
     legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
     blendShapeNormalImportMode: 1
     normalSmoothingSource: 0
-  referencedClips:
-  - abc00000000011190130137185325613
-  - abc00000000009382192292973301136
-  - abc00000000017288640472030776296
-  - abc00000000009329180714674531205
-  - abc00000000003186016257600527804
-  - abc00000000009031790023892549632
-  - abc00000000003859121598420454861
-  - abc00000000009168249200282726872
-  - abc00000000005441942706942140151
-  - abc00000000014675151104231901343
+  referencedClips: []
   importAnimation: 1
   humanDescription:
     serializedVersion: 3
@@ -175,6 +165,7 @@ ModelImporter:
   humanoidOversampling: 1
   avatarSetup: 1
   addHumanoidExtraRootOnlyWhenUsingAvatar: 0
+  importBlendShapeDeformPercent: 0
   remapMaterialsIfMaterialImportModeIsNone: 1
   additionalBone: 0
   userData: 

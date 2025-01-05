@@ -112,7 +112,7 @@ namespace MalbersAnimations.Controller
 
             RB.useGravity = false;
             RB.constraints = RigidbodyConstraints.FreezeRotation;
-            RB.drag = 0;
+            RB.linearDamping = 0;
 
             //Initialize The Default Stance
             if (defaultStance == null)
@@ -236,7 +236,7 @@ namespace MalbersAnimations.Controller
             {
                 // Anim.Rebind(); //Reset the Animator Controller
                 Anim.speed = AnimatorSpeed * TimeMultiplier;                         //Set the Global Animator Speed
-                Anim.updateMode = AnimatorUpdateMode.AnimatePhysics;
+                Anim.updateMode = AnimatorUpdateMode.Fixed;
 
 
                 var AllModeBehaviours = Anim.GetBehaviours<ModeBehaviour>();
@@ -442,7 +442,7 @@ namespace MalbersAnimations.Controller
             DisableMainPlayer();
 
             MTools.ResetFloatParameters(Anim); //Reset all Anim Floats!!
-            RB.velocity = Vector3.zero;
+            RB.linearVelocity = Vector3.zero;
 
             if (!alwaysForward.UseConstant && alwaysForward.Variable != null) //??????
                 alwaysForward.Variable.OnValueChanged -= Always_Forward;
@@ -1315,7 +1315,7 @@ namespace MalbersAnimations.Controller
         {
             float difference = Height - hit_Hip.distance;
             AdditivePosition += Rotation * new Vector3(0, difference, 0); //Rotates with the Transform to better alignment
-            InertiaPositionSpeed = Vector3.ProjectOnPlane(RB.velocity * DeltaTime, UpVector);
+            InertiaPositionSpeed = Vector3.ProjectOnPlane(RB.linearVelocity * DeltaTime, UpVector);
             ResetUPVector(); //IMPORTANT!
         }
 
@@ -1492,7 +1492,7 @@ namespace MalbersAnimations.Controller
                         //}
                         //else
                         //{
-                            RB.velocity = DesiredRBVelocity;
+                            RB.linearVelocity = DesiredRBVelocity;
                         //}
                     }
                 }
@@ -1840,7 +1840,7 @@ namespace MalbersAnimations.Controller
 
             CurrentCycle = (CurrentCycle + 1) % 999999999;
 
-            var DeltaRB = RB.velocity * DeltaTime;
+            var DeltaRB = RB.linearVelocity * DeltaTime;
           //  DeltaVelocity = Grounded ? Vector3.ProjectOnPlane(DeltaRB, UpVector) : DeltaRB; //When is not grounded take the Up Vector this is the one!!!
             DeltaVelocity = DeltaRB; //When is not grounded take the Up Vector this is the one!!!
 
