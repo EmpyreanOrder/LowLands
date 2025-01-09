@@ -34,19 +34,30 @@ namespace MalbersAnimations
     /// <summary>  Recieve messages from the Animator State Machine Behaviours using MessageBehaviour  </summary>
     public interface IAnimatorListener
     {
+        Transform transform { get; }
+
+
         /// <summary> Recieve messages from the Animator State Machine Behaviours </summary>
         /// <param name="message">The name of the method</param>
         /// <param name="value">the parameter</param>
         bool OnAnimatorBehaviourMessage(string message, object value);
+
+        //ADD THIS METHOD TO THE IMPLEMENTATION WHEN YOU USE THIS INTERFACE
         //public virtual bool OnAnimatorBehaviourMessage(string message, object value) => this.InvokeWithParams(message, value);
 
-        Transform transform { get; }
     }
 
     /// <summary> Interface used for Syncing Locomotion Animations .. (E.g. Rider Horse or Horse and Wings) </summary>
     public interface IAnimatorStateCycle
     {
-        /// <summary>Sets a Bool Parameter on the Animator using the parameter Hash</summary>
+        /// <summary>Broadcast when the Animal change states</summary>
         System.Action<int> StateCycle { get; set; }
+    }
+
+
+    /// <summary>  Use this interface on your Monobehaviours to  Read the Curves from the Animator Behaviour</summary>
+    public interface IAnimatorCurve
+    {
+        void AnimatorCurve(int ID, float value);
     }
 }

@@ -1,5 +1,5 @@
-﻿using UnityEngine;
-using MalbersAnimations.Controller;
+﻿using MalbersAnimations.Controller;
+using UnityEngine;
 
 
 namespace MalbersAnimations.Reactions
@@ -11,7 +11,7 @@ namespace MalbersAnimations.Reactions
         public State_Reaction type = State_Reaction.Activate;
 
         [Tooltip("State you want to activate or Exit")]
-        [Hide(nameof(type),true, (int)State_Reaction.Replace)]
+        [Hide(nameof(type), true, (int)State_Reaction.Replace)]
         public StateID ID;
 
         [Hide(nameof(type), (int)State_Reaction.Activate, (int)State_Reaction.ForceActivate)]
@@ -28,8 +28,6 @@ namespace MalbersAnimations.Reactions
         protected override bool _TryReact(Component component)
         {
             var animal = component as MAnimal;
-
-            // if (!animal.HasState(ID)) return false;
 
             switch (type)
             {
@@ -90,6 +88,6 @@ namespace MalbersAnimations.Reactions
             Replace
         }
 
-       
+
     }
 }

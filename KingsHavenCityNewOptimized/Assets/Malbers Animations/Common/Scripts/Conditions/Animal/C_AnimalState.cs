@@ -3,23 +3,18 @@
 namespace MalbersAnimations.Conditions
 {
     [System.Serializable]
+    [AddTypeMenu("Animal/States")]
     public class C_AnimalState : MAnimalCondition
     {
-        public override string DisplayName => "Animal/States";
+        //public override string DisplayName => "Animal/States";
 
-
-        public enum StateCondition { ActiveState, Enabled, HasState , Pending, SleepFromMode, SleepFromState, SleepFromStance }
+        public enum StateCondition { ActiveState, Enabled, HasState, Pending, SleepFromMode, SleepFromState, SleepFromStance, LastState, }
         public StateCondition Condition = StateCondition.ActiveState;
         public StateID Value;
 
         public void SetValue(StateID v) => Value = v;
 
         private State st;
-
-        private void OnEnable()
-        {
-            if (Target) st = Target.State_Get(Value);
-        }
 
         public override bool _Evaluate()
         {
@@ -36,15 +31,10 @@ namespace MalbersAnimations.Conditions
                     case StateCondition.SleepFromMode: return st.IsSleepFromMode;
                     case StateCondition.SleepFromState: return st.IsSleepFromState;
                     case StateCondition.SleepFromStance: return st.IsSleepFromStance;
+                    case StateCondition.LastState: return Target.LastState.ID == Value;       //Check if the LastState is this ID
                 }
             }
             return false;
-        }
-        private void Reset()
-        {
-            Name = "New Animal State Condition";
-
-            Target = this.FindComponent<MAnimal>();
         }
     }
 }

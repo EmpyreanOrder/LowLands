@@ -36,7 +36,7 @@ namespace MalbersAnimations.Controller.AI
         {
             if (animal && animal.InZone)
             {
-                animal.InZone.ActivateZone(animal);
+                animal.Zone.ActivateZone(animal);
                 return true;
             }
             return false;

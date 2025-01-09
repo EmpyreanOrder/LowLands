@@ -1,8 +1,5 @@
-﻿using MalbersAnimations.Controller;
-using MalbersAnimations.Scriptables;
-using System.Collections.Generic;
+﻿using MalbersAnimations.Scriptables;
 using UnityEngine;
-using static MalbersAnimations.Conditions.C_Stats;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -11,12 +8,10 @@ using UnityEditor;
 namespace MalbersAnimations.Conditions
 {
     [System.Serializable]
+    [AddTypeMenu("General/Stats")]
+
     public class C_Stats : MCondition
     {
-        public enum StatCondition { HasStat, Enabled, Full, Empty, Regenerating, Degenerating, Inmune, Value, ValueNormalized, MaxValue, MinValue }
-
-        public override string DisplayName => "General/Stats";
-
         [RequiredField] public Stats Target;
         public StatID ID;
         public StatCondition Condition;
@@ -29,15 +24,12 @@ namespace MalbersAnimations.Conditions
         public void _SetValue(FloatVar targ) => Value.Value = targ;
         public void _SetValue(float targ) => Value.Value = targ;
 
-        private void OnEnable()
+        public override void OnEnable()
         {
-            if (Target)  st = Target.Stat_Get(ID);
+            if (Target) st = Target.Stat_Get(ID);
         }
 
-        public override void SetTarget(Object target)
-        {
-            if (target is Stats) this.Target = target as Stats;
-        }
+        protected override void _SetTarget(Object target) => VerifyTarget(target, ref Target);
 
         public override bool _Evaluate()
         {
@@ -50,13 +42,13 @@ namespace MalbersAnimations.Conditions
                         case StatCondition.Enabled: return st.Active;
                         case StatCondition.Regenerating: return st.IsRegenerating;
                         case StatCondition.Degenerating: return st.IsDegenerating;
-                        case StatCondition.Inmune: return st.IsInmune;
+                        case StatCondition.Inmune: return st.IsImmune;
                         case StatCondition.Value: return st.Value.CompareFloat(Value.Value, Compare);
                         case StatCondition.ValueNormalized: return st.NormalizedValue.CompareFloat(Value.Value, Compare);
-                        case StatCondition.Full:return st.IsFull;
+                        case StatCondition.Full: return st.IsFull;
                         case StatCondition.Empty: return st.IsEmpty;
                         case StatCondition.MaxValue: return st.MaxValue.CompareFloat(Value.Value, Compare);
-                        case StatCondition.MinValue:   return st.MinValue.CompareFloat(Value.Value, Compare);
+                        case StatCondition.MinValue: return st.MinValue.CompareFloat(Value.Value, Compare);
                     }
                 }
                 else
@@ -67,7 +59,6 @@ namespace MalbersAnimations.Conditions
             }
             return false;
         }
-
         private void Reset() => Name = "New Stat Comparer";
     }
 
@@ -75,7 +66,7 @@ namespace MalbersAnimations.Conditions
     [CustomEditor(typeof(C_Stats))]
     public class C_StatsEditor : MConditionEditor
     {
-        SerializedProperty ID,Compare;
+        SerializedProperty ID, Compare;
 
         protected override void OnEnable()
         {
@@ -88,13 +79,13 @@ namespace MalbersAnimations.Conditions
         {
             EditorGUILayout.PropertyField(ID);
 
-            var c =  Condition.intValue;
+            var c = Condition.intValue;
 
             if (c >= 7)
             {
                 EditorGUILayout.PropertyField(Compare);
                 EditorGUILayout.PropertyField(Value);
-            }    
+            }
         }
     }
 #endif

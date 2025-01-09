@@ -12,7 +12,7 @@ namespace MalbersAnimations
     public class MalbersInput : MInput
     {
         #region Variables
-        private ICharacterMove mCharacterMove;
+        private ICharacterMove mCharacterMove; //Reference for Malbers Character 
 
         public InputAxis Horizontal = new("Horizontal", true, true);
         public InputAxis Vertical = new("Vertical", true, true);
@@ -24,13 +24,17 @@ namespace MalbersAnimations
         public float vertical;          //Vertical   Forward & Back Axis Z
         public float upDown;            //Up Down value    
 
-        public Vector3Event MovementEvent = new Vector3Event();
+        public Vector3Event MovementEvent = new();
 
-        #endregion
+        #endregion 
 
-        protected Vector3 m_InputAxis;
 
-        public virtual void SetMoveCharacter(bool val) => MoveCharacter = val;
+        protected void InitializeCharacter()
+        {
+            mCharacterMove = GetComponent<ICharacterMove>();
+            MoveCharacter = true;       //Set that the Character can be moved
+                                        //   AI = this.FindInterface<IAIControl>();
+        }
 
 
         protected override void OnEnable()
@@ -95,12 +99,7 @@ namespace MalbersAnimations
             Horizontal.InputSystem = Vertical.InputSystem = UpDown.InputSystem = Input_System;
         }
 
-        protected void InitializeCharacter()
-        {
-            mCharacterMove = GetComponent<ICharacterMove>();
-            MoveCharacter = true;       //Set that the Character can be moved
-                                        //   AI = this.FindInterface<IAIControl>();
-        }
+
 
         public virtual void UpAxis(bool input)
         {
@@ -125,24 +124,30 @@ namespace MalbersAnimations
             vertical = Vertical.GetAxis;
             upDown = UpDown.GetAxis;
 
-            m_InputAxis = new Vector3(horizontal, upDown, vertical);
+            MoveAxis = new Vector3(horizontal, upDown, vertical);
 
-            MovementEvent.Invoke(m_InputAxis); //Invoke the Event for the Movement AXis
+            OnMoveAxis(MoveAxis); //BroadCast the Horizontal and vertical values
+            MovementEvent.Invoke(MoveAxis); //Invoke the Event for the Movement AXis
 
 
-            if (mCharacterMove != null)
-            {
-                mCharacterMove.SetInputAxis(MoveCharacter ? m_InputAxis : Vector3.zero);
-            }
+            mCharacterMove?.SetInputAxis(MoveCharacter ? MoveAxis : Vector3.zero);
 
             base.SetInput();
+        }
+
+        protected override bool IsJoystickInput()
+        {
+            if (horizontal != 0 && Mathf.Abs(horizontal) < 1) return true; //Meaning the Stick on the Joystic is moving slowly horizontally
+            if (vertical != 0 && Mathf.Abs(vertical) < 1) return true; //Meaning the Stick on the Joystic is moving slowly vertically
+
+            return base.IsJoystickInput();
         }
 
         public virtual void Horizontal_Enable(bool value) => Horizontal.active = value;
         public virtual void UpDown_Enable(bool value) => UpDown.active = value;
         public virtual void Vertical_Enable(bool value) => Vertical.active = value;
 
-        public void ResetInputAxis() => m_InputAxis = Vector3.zero;
+        public void ResetInputAxis() => MoveAxis = Vector3.zero;
 
     }
 }

@@ -21,8 +21,6 @@ namespace MalbersAnimations
         {
             var hasProperty = property.objectReferenceValue != null;
 
-
-
             if (!hasProperty) { position.width -= 22; }
 
             //Draw Label
@@ -32,22 +30,19 @@ namespace MalbersAnimations
 
             if (hasProperty)
             {
-                EditorGUI.indentLevel++;
                 property.isExpanded = EditorGUI.Foldout(position, property.isExpanded, GUIContent.none);
-                EditorGUI.indentLevel--;
-
 
                 if (property.isExpanded)
                 {
-                    EditorGUI.indentLevel++;
+                    // EditorGUI.indentLevel++;
+                    using (new GUILayout.VerticalScope(EditorStyles.helpBox))
+                    {
+                        if (!editor)
+                            Editor.CreateCachedEditor(property.objectReferenceValue, null, ref editor);
 
-                    if (!editor)
-                        Editor.CreateCachedEditor(property.objectReferenceValue, null, ref editor);
-
-                    editor.OnInspectorGUI();
-
-                    EditorGUI.indentLevel--;
-
+                        editor.OnInspectorGUI();
+                    }
+                    // EditorGUI.indentLevel--;
                 }
             }
             else
@@ -63,7 +58,7 @@ namespace MalbersAnimations
 
                 if (GUI.Button(AddButtonRect, plus, UnityEditor.EditorStyles.helpBox))
                 {
-                    MTools.CreateScriptableAsset(property, MTools.GetPropertyType(property), MTools.GetSelectedPathOrFallback());
+                    MTools.CreateScriptableAsset(property, MalbersEditor.GetSelectedPathOrFallback());
                     GUIUtility.ExitGUI();
                 }
             }

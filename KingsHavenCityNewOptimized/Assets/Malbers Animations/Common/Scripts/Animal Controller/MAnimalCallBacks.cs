@@ -1,5 +1,4 @@
 ﻿using MalbersAnimations.Scriptables;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -21,8 +20,7 @@ namespace MalbersAnimations.Controller
         /// <summary>Updates all the Input from Malbers Input in case needed (Rewired conextion(</summary>
         public virtual void UpdateInputSource(bool connect)
         {
-            if (InputSource == null)
-                InputSource = gameObject.FindInterface<IInputSource>(); //Find if we have a InputSource
+            InputSource ??= gameObject.FindInterface<IInputSource>(); //Find if we have a InputSource
 
             if (InputSource != null)
             {
@@ -54,7 +52,7 @@ namespace MalbersAnimations.Controller
             MainAnimal = this;
         }
 
-        public void DisableMainPlayer()
+        public virtual void DisableMainPlayer()
         {
             if (MainAnimal == this) MainAnimal = null;
         }
@@ -72,14 +70,15 @@ namespace MalbersAnimations.Controller
         {
             if (newPos)
             {
+                Rotation = newPos.rotation; //Rotation First then the position
                 Teleport(newPos.position);
-                Rotation = newPos.rotation;
             }
         }
 
 
         public virtual void Teleport(Vector3 newPos)
         {
+            OnPreTeleport.Invoke(newPos); //Invoke the Pre Teleport Event
             Teleport_Internal(newPos);
             OnTeleport.Invoke(newPos);
         }
@@ -104,82 +103,132 @@ namespace MalbersAnimations.Controller
         #endregion
 
         #region Gravity
+
         /// <summary>Resets the gravity to the default Vector.Down value</summary>
-        public void ResetGravityDirection() => Gravity = Vector3.down;
+        public virtual void Gravity_ResetDirection() => Gravity_DirectionFromGround(false);
+
+        /// <summary>Resets the gravity power to the default value</summary>
+        public virtual void Gravity_ResetPower() => GravityPower = defaultGravityPower;
+
+        /// <summary>The Ground will change the Gravity Direction. Using the ground Normal as reference</summary>
+        /// <param name="value"> Enable/Disable the logic</param>
+        public virtual void Gravity_DirectionFromGround(bool value)
+        {
+            ground_Changes_Gravity.Value = value;
+            OnGroundChangesGravity.Invoke(value);
+
+            //Reset Camera Input when Gravity is restored!
+            if (!value)
+            {
+                UseCameraInput = DefaultCameraInput;
+                Gravity = Vector3.down;
+            }
+        }
 
         /// <summary>Clears the Gravity Logic</summary>
-        internal void ResetGravityValues()
+        internal virtual void Gravity_ResetValues()
         {
             GravityTime = m_gravityTime;
             GravityStoredVelocity = Vector3.zero;
             GravityOffset = Vector3.zero;
-            GravityExtraPower = 1;
         }
+
         internal void ResetUPVector()
         {
-            RB.linearVelocity = Vector3.ProjectOnPlane(RB.linearVelocity, UpVector);
-            //Extra OPTIONAL
+            if (RB && !RB.isKinematic)
+                RB.linearVelocity = Vector3.ProjectOnPlane(RB.linearVelocity, UpVector);
+
             AdditivePosition = Vector3.ProjectOnPlane(AdditivePosition, UpVector);
             DeltaPos = Vector3.ProjectOnPlane(DeltaPos, UpVector);
-            InertiaPositionSpeed = Vector3.ProjectOnPlane(InertiaPositionSpeed, UpVector);
-            //Debug.Log("RESET Up Vector");
+
+            InertiaPositionSpeed = Vector3.ProjectOnPlane(InertiaPositionSpeed, UpVector); //Remove the UpDown Inertia
+
+            DeltaVelocity = Vector3.ProjectOnPlane(DeltaVelocity, UpVector);
+
+            Gravity_ResetValues();
         }
 
-        public void ResetDeltaRootMotion() => DeltaRootMotion = Vector3.zero;
 
-        /// <summary>The Ground will change the Gravity Direction. Using the ground Normal as reference</summary>
-        /// <param name="value"> Enable/Disable the logic</param>
-        public void GroundChangesGravity(bool value) => ground_Changes_Gravity.Value = value;
+        /// <summary>Clears the Gravity Logic</summary>
+        public virtual void ResetGravityValues() => Gravity_ResetValues();
+
+
+        /// <summary> IDeltaRootMotiom  </summary>
+        public virtual void ResetDeltaRootMotion() => Reset_Movement();
+
 
 
         /// <summary>Aling the character instantly to the Gravity Direction</summary>
-        public void AlignToGravity()
+        public virtual void AlignToGravity()
         {
             Quaternion AlignRot = Quaternion.FromToRotation(t.up, UpVector) * Rotation;  //Calculate the orientation to Terrain 
             Rotation = AlignRot;
         }
+
+        /// <summary>The Ground will change the Gravity Direction. Using the ground Normal as reference</summary>
+        /// <param name="value"> Enable/Disable the logic</param>
+        public virtual void GroundChangesGravity(bool value) => Gravity_DirectionFromGround(value);
+
         #endregion
 
         #region Stances
 
         /// <summary>Toggle the New Stance with the Default Stance▼▲ </summary>
-        public void Stance_Toggle(StanceID NewStance)
+        public virtual void Stance_Toggle(StanceID NewStance)
         {
             if (NewStance == null) Debug.LogError("The Stance you are trying to Toggle is NULL. Please check your reference!");
             else
                 Stance = (Stance.ID == NewStance.ID) ? DefaultStanceID : NewStance;
         }
 
-        public void Stance_Set(StanceID id) => Stance = id;
+        public virtual void Stance_Set(StanceID id) => Stance = id;
+
+
+        public virtual void Stance_SetPersistent(StanceID ID)
+        {
+            var Stance = Stance_Get(ID); //Find the next stance
+
+            if (Stance != null)
+            {
+                Stance_Set(ID); // Set it as active
+                if (ActiveStance.ID == ID || Stance.Queued) //If it was activated or it was sent to Queue then Set it persistent
+                {
+                    Stance.SetPersistent(true);
+                }
+            }
+        }
+        public virtual void Stance_ResetPersistent(StanceID ID)
+        {
+            var Stance = Stance_Get(ID); //Find the next stance
+            Stance?.SetPersistent(false); //Reset Persistent
+            Stance?.SetQueued(false); //Reset the queue
+            Stance_Reset(); //Restore Default
+        }
+        public virtual void Stance_Activate(StanceID id) => Stance = id;
 
         /// <summary>  Change the Default Stance to another ID  </summary>
-        public void Stance_SetDefault(StanceID id) => DefaultStanceID = id;
+        public virtual void Stance_SetDefault(StanceID id) => DefaultStanceID = id;
 
-        /// <summary> Restore the Default Stance to the Starting Stance</summary>
-        public void Stance_RestoreDefault() => DefaultStanceID = StartingStance;
+
 
         public Stance Pin_Stance { get; set; }
 
-        public Stance Stance_Get(StanceID id) => Pin_Stance = Stances.Find(x => x.ID == id);
+        public virtual Stance Stance_Get(StanceID id) => Pin_Stance = Stances.Find(x => x.ID == id);
 
-        public void Stance_Set(int id)
+        public virtual void Stance_Set(int id)
         {
             var stance = Stances.Find(x => x.ID.ID == id);
             if (stance != null)
                 Stance = stance.ID;
         }
-        public void Stance_Enable(StanceID id) => Stance_Get(id)?.Enable(true);
-        public void Stance_Disable(StanceID id) => Stance_Get(id)?.Enable(false);
-        public void Stance_Enable(StanceID id, bool val) => Stance_Get(id)?.Enable(val);
-
-        public void Stance_Enable_Temporal(StanceID id) => Stance_Get(id)?.Disable_Temp_Restore();
-        public void Stance_Disable_Temporal(StanceID id) => Stance_Get(id)?.Disable_Temp();
-
-        public void Stance_Persistent(StanceID id, bool val) => Stance_Get(id)?.SetPersistent(val);
-
-        public void Stance_PersistentOn(StanceID id) => Stance_Persistent(id, true);
-
-        public void Stance_Activate_Persistent(StanceID id)
+        public virtual void Stance_Enable(StanceID id) => Stance_Get(id)?.Enable(true);
+        public virtual void Stance_Disable(StanceID id) => Stance_Get(id)?.Enable(false);
+        public virtual void Stance_Enable(StanceID id, bool val) => Stance_Get(id)?.Enable(val);
+        public virtual void Stance_Enable_Temporal(StanceID id) => Stance_Get(id)?.Disable_Temp_Restore();
+        public virtual void Stance_Disable_Temporal(StanceID id) => Stance_Get(id)?.Disable_Temp();
+        public virtual void Stance_Persistent(StanceID id, bool val) => Stance_Get(id)?.SetPersistent(val);
+        public virtual void Stance_PersistentOn(StanceID id) => Stance_Persistent(id, true);
+        public virtual void Stance_Activate_Persistent(StanceID id)
         {
             Stance_Get(id);
 
@@ -189,7 +238,7 @@ namespace MalbersAnimations.Controller
                 Pin_Stance.SetPersistent(true);
             }
         }
-        public void Stance_ResetPersistent()
+        public virtual void Stance_ResetPersistent()
         {
             ActiveStance.SetPersistent(false);
             Stance_Reset();
@@ -197,25 +246,24 @@ namespace MalbersAnimations.Controller
 
 
         /// <summary>Changes the Last Stance on the Animator</summary>
-        public void Stance_SetLast(int id)
+        public virtual void Stance_SetLast(int id)
         {
             LastStanceID = id;
             TryAnimParameter(hash_LastStance, LastStanceID);        //Set on the Animator the Last Stance
         }
 
         /// <summary>Changes the Last State on the Animator</summary>
-        public virtual void LastState_Reset()
-        {
-            TryAnimParameter(hash_LastState, -1);   //Sent to the Animator the previews Active State
-        }
+        public virtual void LastState_Reset() => TryAnimParameter(hash_LastState, -1);   //Sent to the Animator the previews Active State
 
 
-        //internal void RotateAnimal(Quaternion Delta)
-        //{
-        //    Rotation *= Delta;
-        //}
         /// <summary> Set the Current State to be the Default Stance </summary>
-        public void Stance_Reset() => Stance = defaultStance;
+        public virtual void Stance_Reset() => Stance = defaultStance;
+
+        public virtual void Stance_Reset_To_Default() => Stance_Reset();
+
+        /// <summary> Restore the Default Stance to the starting Default Stance value</summary>
+        public virtual void Stance_ResetDefaultValue() => DefaultStanceID = StartingStance;
+        public virtual void Stance_RestoreDefault() => DefaultStanceID = StartingStance;
 
         #endregion
 
@@ -224,7 +272,8 @@ namespace MalbersAnimations.Controller
         /// <summary>  Method required for the Interface IAnimator Listener to send messages From the Animator to any class who uses this Interface</summary>
         public virtual bool OnAnimatorBehaviourMessage(string message, object value)
         {
-            foreach (var state in states) state.ReceiveMessages(message, value);
+            foreach (var state in states)
+                state.ReceiveMessages(message, value);
 
             return this.InvokeWithParams(message, value);
         }
@@ -234,7 +283,11 @@ namespace MalbersAnimations.Controller
 
 
         /// <summary>Set a Int on the Animator</summary>
-        public virtual void SetAnimParameter(int hash, int value) => Anim.SetInteger(hash, value);
+        public virtual void SetAnimParameter(int hash, int value)
+        {
+            // Debug.Log($"SetAnimParameter hash {hash} value{value}");
+            Anim.SetInteger(hash, value);
+        }
 
         /// <summary>Set a float on the Animator</summary>
         public virtual void SetAnimParameter(int hash, float value) => Anim.SetFloat(hash, value);
@@ -246,34 +299,35 @@ namespace MalbersAnimations.Controller
         public virtual void SetAnimParameter(int hash)
         {
             Anim.SetTrigger(hash);
-           // Debug.Log("SetTrigger");
+            // Debug.Log("SetTrigger");
         }
 
         public virtual void ResetAnimTrigger(int hash)
         {
             Anim.ResetTrigger(hash);
-          //  Debug.Log("ResetTrigger");
+            //  Debug.Log("ResetTrigger");
         }
 
         public virtual void TryAnimParameter(int Hash, float value)
         {
-            if (Hash != 0) SetFloatParameter(Hash, value);
+            if (Hash != 0) SetFloatParameter?.Invoke(Hash, value);
         }
 
         public virtual void TryAnimParameter(int Hash, int value)
         {
-           // Debug.Log($"Int hash:{Hash}, value{value}");
-            if (Hash != 0) SetIntParameter(Hash, value);
+            // Debug.Log($"ANIMAL Int hash:{Hash}, value{value}");
+            if (Hash != 0)
+                SetIntParameter?.Invoke(Hash, value);
         }
 
         public virtual void TryAnimParameter(int Hash, bool value)
         {
-            if (Hash != 0) SetBoolParameter(Hash, value);
+            if (Hash != 0) SetBoolParameter?.Invoke(Hash, value);
         }
 
         public virtual void TryAnimParameter(int Hash)
         {
-            if (Hash != 0) SetTriggerParameter(Hash);
+            if (Hash != 0) SetTriggerParameter?.Invoke(Hash);
         }
 
         /// <summary> Set the Parameter Random to a value and pass it also to the Animator </summary>
@@ -306,7 +360,7 @@ namespace MalbersAnimations.Controller
         {
             // Debug.Log($"State_Float: {value:F3}");
             State_Float = value;
-            SetFloatParameter(hash_StateFloat, State_Float);
+            SetFloatParameter?.Invoke(hash_StateFloat, State_Float);
         }
 
 
@@ -315,7 +369,7 @@ namespace MalbersAnimations.Controller
         {
             // Debug.Log($"State_Float: {value:F3}");
             State_Float = Mathf.Lerp(State_Float, value, smoothValue * DeltaTime);
-            SetFloatParameter(hash_StateFloat, State_Float);
+            SetFloatParameter?.Invoke(hash_StateFloat, State_Float);
         }
 
 
@@ -324,11 +378,11 @@ namespace MalbersAnimations.Controller
         {
             var oldState = states.Find(s => s.ID == NewState.ID);
 
-            if (NewState == oldState) 
+            if (NewState == oldState)
             {
                 //Do nothing if we are replacing the same state
                 oldState.Enable(true);
-                return; 
+                return;
             }
 
             if (CloneStates)
@@ -363,7 +417,7 @@ namespace MalbersAnimations.Controller
                 {
                     oldState.ForceActivate();
                     AnimStateTag = -1;
-                  //  StartCoroutine(C_EnterCoreAnim(oldState));  //Little Hack! 
+                    //  StartCoroutine(C_EnterCoreAnim(oldState));  //Little Hack! 
                 }
             }
         }
@@ -373,6 +427,8 @@ namespace MalbersAnimations.Controller
 
         /// <summary>Returns if the Animal has a state by its ID</summary>
         public bool HasState(StateID ID) => HasState(ID.ID);
+        public bool HasState<T>() where T : State => states.Exists(s => s is T);
+
 
 
         /// <summary>Returns if the Animal has a state by its int ID value</summary>
@@ -381,11 +437,16 @@ namespace MalbersAnimations.Controller
         /// <summary>Returns if the Animal has a state by its name</summary>
         public bool HasState(string statename) => states.Exists(s => s.name == statename);
 
+        public int StateEnterStatus { get; set; }
+        public int StateExitStatus { get; set; }
+
         /// <summary>Set the State Status on the Animator</summary>
         public virtual void State_SetEnterStatus(int status)
         {
+            StateEnterStatus = status;
             SetIntParameter(hash_StateEnterStatus, status);
-            // Debug.Log("State_SetEnterStatus = " + status);
+            //if (debugStates)
+            // Debuging($"StateEnterStatus [{status}]");
         }
 
         /// <summary>Set the State Status on the Animator</summary>
@@ -393,39 +454,52 @@ namespace MalbersAnimations.Controller
 
 
         /// <summary>Set the State Exit Status on the Animator</summary>
-        public virtual void State_SetExitStatus(int ExitStatus) => TryAnimParameter(hash_StateExitStatus, ExitStatus);
+        public virtual void State_SetExitStatus(int ExitStatus)
+        {
+            StateExitStatus = ExitStatus;
+            TryAnimParameter(hash_StateExitStatus, ExitStatus);
+
+            //  Debuging($"State_SetExitStatus [{StateExitStatus}]");
+        }
 
         public virtual void State_Enable(StateID ID) => State_Enable(ID.ID);
         public virtual void State_Disable(StateID ID) => State_Disable(ID.ID);
 
-        public virtual void State_Enable(int ID) => State_Get(ID)?.Enable(true);
+        public virtual void State_Enable(int ID)
+        {
+            State_Get(ID)?.Enable(true);
 
-        public virtual void State_Disable(int ID) => State_Get(ID)?.Enable(false);
+            var cache = states_C.Find(x => x.state.ID == ID);
+            if (cache != null) cache.active = true;
+        }
+
+        public virtual void State_Disable(int ID)
+        {
+            State_Get(ID)?.Enable(false);
+
+            var cache = states_C.Find(x => x.state.ID == ID);
+            if (cache != null) cache.active = true;
+        }
 
         public virtual void ActiveState_Persisent(bool value) => ActiveState.IsPersistent = value;
 
+
         /// <summary>Force the Activation of an state regarding if is enable or not</summary>
-        public virtual void State_Force(int ID)
+        public virtual void State_Force(int ID) => State_Force(ID, -1);
+
+
+        /// <summary>Force the Activation of an state regarding if is enable or not</summary>
+        public virtual void State_Force(int ID, int enterStatus)
         {
-            State state = State_Get(ID);
+            //Do nothing if is the same state and cannot transition to itself
+            if (ActiveState != null && ActiveState.ID == ID && !ActiveState.CanTransitionToItself) return;
 
-            if (state == ActiveState)
-            {
-                state.ForceActivate();
-
-                 StartCoroutine(C_EnterCoreAnim(state));  //Little Hack! 
-            }
-            else
-                state.ForceActivate();
+            State_Get(ID)?.ForceActivate(enterStatus);
         }
 
-        IEnumerator C_EnterCoreAnim(State state)
-        {
-            state.IsPending = true;
-            yield return null;
-            yield return null;
-            state.AnimationTagEnter(AnimStateTag);
-        }
+        /// <summary>  Allow Lower States to be activated </summary>
+        public virtual void State_AllowExit() => ActiveState.AllowExit();
+
 
         /// <summary>  Allow Lower States to be activated  </summary>
         public virtual void State_Allow_Exit(StateID ID) => State_Allow_Exit(ID.ID);
@@ -449,7 +523,7 @@ namespace MalbersAnimations.Controller
 
         public virtual void State_InputTrue(StateID ID) => State_Get(ID)?.SetInput(true);
         public virtual void State_InputFalse(StateID ID) => State_Get(ID)?.SetInput(false);
-        public virtual void ActiveStateAllowExit() => ActiveState.AllowExit();
+
 
 
         /// <summary>Try to Activate a State direclty from the Animal Script </summary>
@@ -466,7 +540,7 @@ namespace MalbersAnimations.Controller
 
             if (NewState && NewState.CanBeActivated)
             {
-                return NewState.TryActivate();
+                return NewState.TryActivate() && NewState.TryOverride;
             }
             return false;
         }
@@ -476,12 +550,47 @@ namespace MalbersAnimations.Controller
         {
             State NewState = State_Get(ID);
 
-            if (NewState && NewState.CanBeActivated)
-                NewState.Activate();
+            if (NewState)
+            {
+                if (JustActivateState) //Delay it because another state was just activated
+                {
+                    this.Delay_Action(() => ActiveState.IsPending, () => CanActivateState(NewState));
+                }
+                else CanActivateState(NewState);
+            }
+
+            void CanActivateState(State newState)
+            {
+                if (newState.CanBeActivated) newState.Activate();
+            }
+        }
+
+        /// <summary>Try to Activate a State direclty from the Animal Script </summary>
+        public virtual void State_Activate(int ID, int StateStatus)
+        {
+            State NewState = State_Get(ID);
+
+            if (NewState)
+            {
+                if (JustActivateState) //Delay it because another state was just activated
+                {
+                    this.Delay_Action(() => ActiveState.IsPending, () => CanActivateState(NewState));
+                }
+                else CanActivateState(NewState);
+            }
+
+            void CanActivateState(State newState)
+            {
+                if (newState.CanBeActivated) newState.Activate(StateStatus);
+            }
         }
 
         /// <summary> Return a State by its  ID value </summary>
         public virtual State State_Get(int ID) => states.Find(s => s.ID == ID);
+
+        /// <summary> Return a State by its type</summary>
+        public virtual T State_Get<T>() where T : State => states.Find(s => s is T) as T;
+
 
         /// <summary> Return a State by its ID</summary>
         public virtual State State_Get(StateID ID)
@@ -512,6 +621,8 @@ namespace MalbersAnimations.Controller
         ///<summary> Send to the Possible State (PreState) the value of the Input</summary>
         public virtual void State_Activate_by_Input(int stateID, bool input)
         {
+
+            Debug.Log("asdasd");
             State_Pin(stateID);
             State_Pin_ByInput(input);
         }
@@ -526,6 +637,10 @@ namespace MalbersAnimations.Controller
         #endregion
 
         #region Modes
+
+        /// <summary> Returns if the Animal has a mode By its Type</summary>
+        public virtual T Mode_Get<T>() where T : Mode => modes.Find(s => s is T) as T;
+
 
         /// <summary> Returns if the Animal has a mode By its ID</summary>
         public bool HasMode(ModeID ID) => HasMode(ID.ID);
@@ -552,7 +667,7 @@ namespace MalbersAnimations.Controller
             return null;
         }
 
-        public void Mode_SetPower(float value)
+        public virtual void Mode_SetPower(float value)
         {
             ModePower = value;
             //   Debug.Log("ModePower = " + ModePower); 
@@ -569,13 +684,7 @@ namespace MalbersAnimations.Controller
 
         public virtual void Mode_Activate_By_Input(ModeID ModeID, bool InputValue) => Mode_Get(ModeID.ID).ActivatebyInput(InputValue);
 
-        #region INTERFACE ICHARACTER ACTION
-        public bool PlayAction(int Set, int Index) => Mode_TryActivate(Set, Index);
 
-        public bool ForceAction(int Set, int Index) => Mode_ForceActivate(Set, Index);
-
-        public bool IsPlayingAction => IsPlayingMode;
-        #endregion
 
         /// <summary>Activate a mode on the Animal combining the Mode and Ability e.g 4002</summary>
         public virtual void Mode_Activate(int ModeID)
@@ -583,15 +692,8 @@ namespace MalbersAnimations.Controller
             if (ModeID == 0) return;
 
             var id = Mathf.Abs(ModeID / 1000);
-
-            if (id == 0)
-            {
-                Mode_Activate(ModeID, -99);
-            }
-            else
-            {
-                Mode_Activate(id, ModeID % 100);
-            }
+            var ability = id == 0 ? -99 : ModeID % 1000;
+            Mode_Activate(id, ability);
         }
 
         /// <summary>Activate a mode on the Animal</summary>
@@ -639,13 +741,14 @@ namespace MalbersAnimations.Controller
             }
         }
 
-
         public virtual bool Mode_ForceActivate(ModeID ModeID, int AbilityIndex) => Mode_ForceActivate(ModeID.ID, AbilityIndex);
 
         public virtual void Mode_ForceActivate(ModeID ModeID) => Mode_ForceActivate(ModeID.ID, 0);
 
         public virtual bool Mode_ForceActivate(int ModeID, int AbilityIndex)
         {
+            // Debug.Log($"Mode: {ModeID} ,  AbilityIndex; {AbilityIndex}");
+
             var mode = Mode_Get(ModeID);
 
             if (mode != null)
@@ -688,15 +791,15 @@ namespace MalbersAnimations.Controller
         {
             if (ModeID == 0) return;
 
-            var id = Mathf.Abs(ModeID / 1000);
+            var MODEID = Mathf.Abs(ModeID / 1000);
 
-            if (id == 0)
+            if (MODEID == 0)
             {
                 Mode_ForceActivate(ModeID, 0);
             }
             else
             {
-                Mode_ForceActivate(id, ModeID % 100);
+                Mode_ForceActivate(MODEID, ModeID % 1000);
             }
         }
 
@@ -743,8 +846,6 @@ namespace MalbersAnimations.Controller
                 return;
             }
 
-            
-
             //ActiveMode.PlayingMode = false;
             ActiveMode = null;
             ModeTime = 0;
@@ -755,9 +856,7 @@ namespace MalbersAnimations.Controller
         public virtual void SprintUpdate() => Sprint = sprint; //Check Again the sprint everytime a new state is active IMPORTANT
         public virtual void Sprint_Set(bool value) => Sprint = value;
 
-
-
-        /// <summary>Set IntID to -2 to exit the Mode Animation</summary>
+        /// <summary>Set ModeStatus to -2 to Interrput the mode animations</summary>
         public virtual void Mode_Interrupt()
         {
             IsPreparingMode = false;
@@ -765,6 +864,21 @@ namespace MalbersAnimations.Controller
             ModeAbility = 0;
             SetModeStatus(Int_ID.Interrupted);
 
+            ResetModeOn();
+        }
+
+
+        /// <summary>Set ModeStatus to 0 to Interrput the mode animations</summary>
+        public virtual void Mode_Interrupt_Forced()
+        {
+            IsPreparingMode = false;
+            ModeAbility = 0;
+            SetModeStatus(0); //Important. Mode Status needs to be zero so Empty Mode states can be activated
+            ResetModeOn();
+        }
+
+        private void ResetModeOn()
+        {
             if (hash_ModeOn != 0) Anim.ResetTrigger(hash_ModeOn); //Reset the MODE ON Parameter
         }
 
@@ -867,7 +981,7 @@ namespace MalbersAnimations.Controller
         public virtual void Mode_Pin_Ability(int AbilityIndex)
         {
             if (AbilityIndex == 0) return;
-            if (Pin_Mode != null) Pin_Mode.SetAbilityIndex(AbilityIndex);
+            Pin_Mode?.SetAbilityIndex(AbilityIndex);
         }
 
 
@@ -902,26 +1016,6 @@ namespace MalbersAnimations.Controller
             var ability = Pin_Mode?.GetAbility(AbilityIndex);
             if (ability != null) ability.Active = false;
         }
-
-
-        ///// <summary>Pin an Ability on the Pin Mode to Disable it</summary>
-        //public virtual void Mode_Ability_Disable(string name)
-        //{
-        //    var ability = Mode_AbilitybyName(name);
-
-        //    if (ability != null)
-        //        ability.Active = false;
-        //}
-
-        ///// <summary>Pin an Ability on the Pin Mode to Disable it</summary>
-        //public virtual void Mode_Ability_Enable(string name)
-        //{
-        //    var ability = Mode_AbilitybyName(name);
-
-        //    if (ability != null)
-        //        ability.Active = true;
-        //}
-
 
         /// <summary>Disable a mode Ability using its Combined Index</summary>
         public virtual void Mode_Ability_Disable(int IndexCombined)
@@ -1015,6 +1109,7 @@ namespace MalbersAnimations.Controller
             UsingMoveWithDirection = true;
             UseRawInput = false;
             Rotate_at_Direction = false;
+            RawRotateDirAxis = Vector3.zero;
             DeltaAngle = 0;
             RawInputAxis = direction;//.normalized; //Store the Last Raw Direction sent (Important to Normalize?? why??)
         }
@@ -1029,6 +1124,7 @@ namespace MalbersAnimations.Controller
         public virtual void StopMoving()
         {
             RawInputAxis = Vector3.zero;
+            RawRotateDirAxis = Vector3.zero;
             DeltaAngle = 0;
         }
 
@@ -1039,6 +1135,7 @@ namespace MalbersAnimations.Controller
             HorizontalSpeed = 0;
 
             RawInputAxis =
+            RawRotateDirAxis =
             MovementAxisSmoothed =
             InertiaPositionSpeed =
             TargetSpeed =
@@ -1046,6 +1143,12 @@ namespace MalbersAnimations.Controller
             HorizontalVelocity =
             DeltaRootMotion = Vector3.zero;
             LastPosition = Position;
+        }
+
+        public virtual void Lock(bool value)
+        {
+            LockInput = value;
+            LockMovement = value;
         }
 
         /// <summary>Add Inertia to the Movement</summary>d
@@ -1073,7 +1176,7 @@ namespace MalbersAnimations.Controller
             {
                 foreach (var st in states)
                 {
-                    speed = st.SpeedSets.Find(x => x.name == name); 
+                    speed = st.SpeedSets.Find(x => x.name == name);
                     if (speed != null) break;
                 }
             }
@@ -1100,7 +1203,7 @@ namespace MalbersAnimations.Controller
             {
                 SetTargetSpeed(); //Important needs to calculate the Target Speed again
                 InertiaPositionSpeed = TargetSpeed; //Set the Target speed to the Fall Speed so there's no Lerping when the speed changes\
-              //  Debug.Log("KEEPINERTIA");
+                                                    //  Debug.Log("KEEPINERTIA");
             }
         }
 
@@ -1157,6 +1260,12 @@ namespace MalbersAnimations.Controller
                     speedSet.StartVerticalIndex = activeIndex; //Set the Start Vertical Index as the new Speed 
                 }
             }
+            else
+            {
+                CurrentSpeedIndex = activeIndex; //Change the current active speed to the first index
+
+                Debug.Log($"SpeedSet_Set_Active: {activeIndex}");
+            }
         }
 
 
@@ -1181,7 +1290,11 @@ namespace MalbersAnimations.Controller
         }
 
         /// <summary>If the Animal is inside a zone then activate that zone</summary>
-        public virtual void Zone_Activate() => InZone?.ActivateZone();
+        public virtual void Zone_Activate()
+        {
+            if (Sleep || LockInput) return; //Do nothing if the the Character is Sleep or Locked
+            if (InZone) Zone.ActivateZone(this);
+        }
 
         /// <summary> Change the Speed of a Speed Set</summary>
         public virtual void SpeedSet_Set_Active(string SpeedSetName, string activeSpeed)
@@ -1239,7 +1352,7 @@ namespace MalbersAnimations.Controller
                 fall.FallCurrentDistance = 0;
             }
 
-            if (ResetGravity) ResetGravityValues();
+            if (ResetGravity) Gravity_ResetValues();
 
             ExternalForceAirControl = ForceAirControl;
         }
@@ -1248,6 +1361,9 @@ namespace MalbersAnimations.Controller
         /// <param name="Aceleration"> Current aceleration to remove the force. When set to Zero then the force will be removed instantly</param>
         public virtual void Force_Remove(float Aceleration = 0)
         {
+            //if (debugStates)
+            //  Debug.Log("Force Removed", this);
+
             ExternalForceAcel = Aceleration;
             ExternalForce = Vector3.zero;
         }
@@ -1255,6 +1371,9 @@ namespace MalbersAnimations.Controller
         /// <summary> Removes every force applied to the animal </summary>
         internal void Force_Reset()
         {
+            //if (debugStates)
+            //    Debug.Log("Force Reset", this);
+
             CurrentExternalForce = Vector3.zero;
             ExternalForce = Vector3.zero;
             ExternalForceAcel = 0;
@@ -1276,6 +1395,26 @@ namespace MalbersAnimations.Controller
 
             return false;
         }
+
+
+        public virtual void UpInertia_Store()
+        {
+            UpInertia = Vector3.Project(Inertia, UpVector); //Store the Up Vector
+
+            //  Debug.Log($"UpInertia {UpInertia} ... DeltaPlatformPos{DeltaPlatformPos}");
+        }
+
+        public virtual void UpInertia_Apply()
+        {
+            if (UpInertia == Vector3.zero) return;
+
+            Position += UpInertia * DeltaTime;
+            //AdditivePosition += UpInertia * DeltaTime;
+
+            //  Debug.Log($"Apply!!! UpInertia {UpInertia}");
+        }
+
+        public virtual void UpInertia_Clear() => UpInertia = Vector3.zero;
 
         /// <summary> Use the height for aligning to the ground not the Pivots  </summary>
         public bool CheckIfGrounded_Height()
@@ -1317,19 +1456,61 @@ namespace MalbersAnimations.Controller
         public void DamagerAnimationEnd(int hash) { }
 
 
+        #region Colliders
+
         /// <summary>Store all the Animal Colliders </summary>
-        internal void GetAnimalColliders()
+        public void FindInternalColliders()
         {
-            var colls = GetComponentsInChildren<Collider>(true).ToList();      //Get all the Active colliders
-
-            colliders = new List<Collider>();
-
-            foreach (var item in colls)
+            if (colliders == null || colliders.Count == 0)
             {
-                if (!item.isTrigger) 
-                    colliders.Add(item);        //Add the Animal Colliders Only
+
+                var colls = GetComponentsInChildren<Collider>(true).ToList();      //Get all the Active colliders
+
+                colliders = new List<Collider>();
+
+                foreach (var item in colls)
+                {
+                    if (item.gameObject == gameObject) continue; //Do not Find the Main Collider here
+
+                    if (!item.isTrigger)
+                        colliders.Add(item);        //Add the Animal Colliders Only
+                }
+            }
+
+
+#if UNITY_EDITOR
+            if (!Application.isPlaying) MTools.SetDirty(this);
+#endif
+        }
+
+
+
+        public void FindMainCollider()
+        {
+            if (MainCollider == null)
+            {
+                MainCollider = GetComponent<CapsuleCollider>();
+#if UNITY_EDITOR
+                if (!Application.isPlaying) MTools.SetDirty(this);
+#endif
             }
         }
+
+        private void SetDefaultMainColliderValues()
+        {
+            if (MainCollider) MainCapsuleDefault = new(MainCollider);
+
+            MainCapsuleDefault.modify = (CapsuleModifier)(-1);
+        }
+
+        /// <summary>  Resets the MainCollider of the Animal Controller  </summary>
+        public void Reset_MainCollider()
+        {
+            MainCapsuleDefault.Modify(MainCollider);
+        }
+
+
+
 
         /// <summary>Enable/Disable All Colliders on the animal. Avoid the Triggers </summary>
         public virtual void EnableColliders(bool active)
@@ -1337,29 +1518,33 @@ namespace MalbersAnimations.Controller
             foreach (var item in colliders)
             {
                 if (item)
-                { 
+                {
                     if (item.transform == transform) continue; //Do nothing with the Collider in the Main GameObject
-                    item.enabled = active; 
+                    item.enabled = active;
                 }
             }
         }
+
+        #endregion
+
 
         /// <summary>Disable this Script and MalbersInput Script if it has it.</summary>
         public virtual void DisableAnimal()
         {
             enabled = false;
-            MalbersInput MI = GetComponent<MalbersInput>();
-            if (MI) MI.enabled = false;
+            IInputSource MI = GetComponent<IInputSource>();
+            MI?.Enable(false); //Disable the Input source
         }
 
         public void SetTimeline(bool isonTimeline)
         {
-            if (debugStates) Debug.Log($"[{name}] Set Timeline {isonTimeline}",this);
+            if (debugStates) Debug.Log($"[{name}] Set Timeline {isonTimeline}", this);
 
             Sleep = isonTimeline;
-
+            InTimeline = isonTimeline;
             RB.isKinematic = isonTimeline; //Make Sure the Animal is set to Kinematic\
-            RB.collisionDetectionMode = isonTimeline ? CollisionDetectionMode.ContinuousSpeculative : CollisionDetectionMode.Discrete;
+
+            //  RB.collisionDetectionMode = isonTimeline ? CollisionDetectionMode.ContinuousSpeculative : CollisionDetectionMode.Discrete;
 
             Mode_Stop();
 
@@ -1380,6 +1565,8 @@ namespace MalbersAnimations.Controller
         /// <summary>InertiaPositionSpeed = TargetSpeed</summary>
         public void ResetInertiaSpeed() => InertiaPositionSpeed = TargetSpeed;
 
+        public void ResetInertiaSpeed(Vector3 newTargetSpeed) => InertiaPositionSpeed = TargetSpeed = newTargetSpeed;
+
         public void UseCameraBasedInput() => UseCameraInput = true;
 
         //private void OnDestroy()
@@ -1387,65 +1574,5 @@ namespace MalbersAnimations.Controller
         //    OnDisable();
         //}
         #endregion
-
-        // #region Animal Aligment
-        //public virtual void Aling_Position(Vector3 Destination, float time, AnimationCurve curve)
-        //{
-        //   if (!Aligning) StartCoroutine(AlignPos(Destination,time,curve));
-        //}
-
-        //public virtual void Aling_Position(Vector3 Destination, Quaternion DestRot, float time, AnimationCurve curve)
-        //{
-        //    if (!Aligning) StartCoroutine(AlignTransform(Destination, DestRot, time, curve));
-        //}
-
-        //private bool Aligning;
-
-        //IEnumerator AlignPos(Vector3 NewPosition, float time, AnimationCurve curve = null)
-        //{
-        //    float elapsedTime = 0;
-        //    Aligning = true;
-
-        //    var Wait = new WaitForFixedUpdate();
-
-        //    Vector3 CurrentPos = transform.position;
-
-        //    while ((time > 0) && (elapsedTime <= time))
-        //    {
-        //        float result = curve != null ? curve.Evaluate(elapsedTime / time) : elapsedTime / time;               //Evaluation of the Pos curve
-        //        transform.position = Vector3.LerpUnclamped(CurrentPos, NewPosition, result);
-        //        elapsedTime += Time.fixedDeltaTime;
-
-        //        yield return Wait;
-        //    }
-
-        //    transform.position = NewPosition;
-        //    Aligning = false;
-        //    yield return null;
-        //}
-        //IEnumerator AlignTransform(Vector3 PosDestination, Quaternion RotDestination,  float time, AnimationCurve curve = null)
-        //{
-        //    float elapsedTime = 0;
-        //    Aligning = true;
-
-        //    Vector3 CurrentPos = transform.position;
-        //    Quaternion CurrentRot = transform.rotation;
-
-        //    var Wait = new WaitForFixedUpdate();
-        //    while ((time > 0) && (elapsedTime <= time))
-        //    {
-        //        float result = curve != null ? curve.Evaluate(elapsedTime / time) : elapsedTime / time;               //Evaluation of the Pos curve
-        //        transform.position = Vector3.LerpUnclamped(CurrentPos, PosDestination, result);
-        //        transform.rotation = Quaternion.LerpUnclamped(CurrentRot, RotDestination, result);
-        //        elapsedTime += Time.fixedDeltaTime;
-
-        //        yield return Wait;
-        //    }
-        //    transform.position = PosDestination;
-        //    transform.rotation = RotDestination;
-        //    Aligning = false;
-        //    yield return null;
-        //}
-        // #endregion
     }
 }

@@ -1,5 +1,5 @@
-﻿using UnityEngine;
-using MalbersAnimations.Controller;
+﻿using MalbersAnimations.Controller;
+using UnityEngine;
 
 namespace MalbersAnimations.Reactions
 {
@@ -37,8 +37,7 @@ namespace MalbersAnimations.Reactions
         [Hide("type", (int)Mode_Reaction.Activate, (int)Mode_Reaction.ActivateForever, (int)Mode_Reaction.ForceActivate)]
         [Tooltip("Mode Power Value for the Animator Controller")]
         public float ModePower = 0;
-  
-        
+
         protected override bool _TryReact(Component component)
         {
             var animal = component as MAnimal;
@@ -51,9 +50,9 @@ namespace MalbersAnimations.Reactions
             switch (type)
             {
                 case Mode_Reaction.Activate:
-                    return animal.Mode_TryActivate(ID, Ability, abilityStatus,AbilityTime);
+                    return animal.Mode_TryActivate(ID, Ability, abilityStatus, AbilityTime);
                 case Mode_Reaction.ActivateForever:
-                    return animal.Mode_TryActivate(ID, Ability,  AbilityStatus.Forever);
+                    return animal.Mode_TryActivate(ID, Ability, AbilityStatus.Forever);
                 case Mode_Reaction.Interrupt:
                     if (animal.ActiveMode.ID == ID)
                     {
@@ -118,6 +117,6 @@ namespace MalbersAnimations.Reactions
             EnableAbility,
             /// <summary>Force a Mode to be activated.. ignoring if another mode is playing</summary>
             DisableAbility,
-        } 
+        }
     }
 }

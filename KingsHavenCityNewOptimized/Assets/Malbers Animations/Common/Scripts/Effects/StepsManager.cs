@@ -1,4 +1,5 @@
 ﻿using MalbersAnimations.Scriptables;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace MalbersAnimations
@@ -9,8 +10,10 @@ namespace MalbersAnimations
     {
         [Tooltip("Enable Disable the Steps Manager")]
         public bool Active = true;
+        [Tooltip("Time to wait to create a new track")]
+        public float WaitNextStep = 0.2f;
         [Tooltip("Layer Mask used to find the ground")]
-        public LayerReference GroundLayer = new LayerReference(1);
+        public LayerReference GroundLayer = new(1);
         [Tooltip("Global Particle System for the Tracks, to have more individual tracks ")]
         public ParticleSystem Tracks;
         private ParticleSystem Instance;
@@ -31,9 +34,16 @@ namespace MalbersAnimations
         [Tooltip("Distance to Instantiate the tracks on a terrain")]
         public float trackOffset = 0.0085f;
 
+        [Tooltip("Tracks will be on only when the character is on any of these tats")]
+        public List<StateID> TracksOnlyOnState;
+        private bool InTrackState;
 
 
-        void Awake()
+        public List<StepTrigger> Feet { get; set; }
+
+        protected ICharacterAction character;
+
+        protected virtual void Awake()
         {
             if (Tracks != null)
             {
@@ -43,17 +53,46 @@ namespace MalbersAnimations
                 }
                 else
                 {
-                    Instance = Tracks; 
+                    Instance = Tracks;
                 }
-
                 Instance.transform.localScale = Scale;
+            }
+
+
+            InTrackState = true;
+
+            character = GetComponentInParent<ICharacterAction>();
+        }
+
+        protected virtual void OnEnable()
+        {
+            if (character != null && TracksOnlyOnState != null) character.OnState += StateChange;
+
+        }
+
+        protected virtual void OnDisable()
+        {
+            if (character != null && TracksOnlyOnState != null) character.OnState -= StateChange;
+        }
+
+        protected virtual void StateChange(int obj)
+        {
+            if (Feet == null) return;
+
+            InTrackState = (TracksOnlyOnState.Find(x => x.ID == obj));
+
+            foreach (var track in Feet)
+            {
+                track.gameObject.SetActive(InTrackState);
             }
         }
 
+
         //Is Called by any of the "StepTrigger" Script on a feet when they collide with the ground.
-        internal void EnterStep(StepTrigger foot, Collider surface)
+        public virtual void EnterStep(StepTrigger foot, Collider surface)
         {
             if (!Active) return;
+            //if (!InTrackState) return; //The character is not on a locomotion or idle
 
             if (Dust && Dust.gameObject.IsPrefab())
             {
@@ -71,13 +110,12 @@ namespace MalbersAnimations
 
             if (surface.Raycast(Ray, out RaycastHit hit, 1))
             {
-                var TrackPosition = foot.transform.position;     TrackPosition.y += trackOffset;
+                var TrackPosition = foot.transform.position; TrackPosition.y += trackOffset;
                 var TrackRotation = (Quaternion.FromToRotation(-foot.transform.forward, hit.normal) * foot.transform.rotation);
 
                 if (Dust)
                 {
-                    Dust.transform.position = TrackPosition; //Set The Position
-                    Dust.transform.rotation = TrackRotation;
+                    Dust.transform.SetPositionAndRotation(TrackPosition, TrackRotation);
                     Dust.transform.Rotate(-90, 0, 0);
                     Dust.Emit(DustParticles);
                 }
@@ -103,7 +141,7 @@ namespace MalbersAnimations
                             var ParentFixer = newtrack.transform.SetParentScaleFixer(hit.transform, TrackPosition);
 
 
-                            ParticleSystem.EmitParams tr = new ParticleSystem.EmitParams
+                            ParticleSystem.EmitParams tr = new()
                             {
                                 rotation3D = TrackRotation.eulerAngles, //Set The Rotation
                                 position = Vector3.zero, //Set The Position
@@ -112,9 +150,9 @@ namespace MalbersAnimations
                             var main = newtrack.main;
                             main.simulationSpace = ParticleSystemSimulationSpace.Local;
                             newtrack.Emit(tr, 1);
-                            this.Delay_Action(() => newtrack.isPlaying,  () =>
+                            this.Delay_Action(() => newtrack.isPlaying, () =>
                             {
-                              if (ParentFixer != null)  Destroy(ParentFixer.gameObject);
+                                if (ParentFixer != null) Destroy(ParentFixer.gameObject);
                             });
                         }
                     }

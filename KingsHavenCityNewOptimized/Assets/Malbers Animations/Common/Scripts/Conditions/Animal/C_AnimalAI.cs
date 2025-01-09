@@ -1,19 +1,19 @@
 ﻿using MalbersAnimations.Controller.AI;
+using MalbersAnimations.Scriptables;
 using UnityEngine;
 
 namespace MalbersAnimations.Conditions
 {
     [System.Serializable]
     [AddComponentMenu("Malbers/Animal Controller/Conditions/Animal AI")]
+    [AddTypeMenu("Animal/Animal AI")]
     public class C_AnimalAI : MCondition
     {
-        public override string DisplayName => "Animal/Animal AI";
-
         [RequiredField] public MAnimalAIControl AI;
         public enum AnimalAICondition { enabled, HasTarget, HasNextTarget, Arrived, Waiting, InOffMesh, CurrentTarget, NextTarget }
         public AnimalAICondition Condition;
         [Hide("Condition", 6, 7)]
-        public Transform Target;
+        public TransformReference Target;
 
         public override bool _Evaluate()
         {
@@ -26,27 +26,15 @@ namespace MalbersAnimations.Conditions
                     case AnimalAICondition.HasNextTarget: return AI.NextTarget != null;
                     case AnimalAICondition.Arrived: return AI.HasArrived;
                     case AnimalAICondition.InOffMesh: return AI.InOffMeshLink;
-                    case AnimalAICondition.CurrentTarget: return AI.Target == Target;
+                    case AnimalAICondition.CurrentTarget: return AI.Target == Target.Value;
                     case AnimalAICondition.Waiting: return AI.IsWaiting;
-                    case AnimalAICondition.NextTarget: return AI.NextTarget == Target;
+                    case AnimalAICondition.NextTarget: return AI.NextTarget == Target.Value;
                 }
             }
             return false;
         }
 
+        protected override void _SetTarget(Object target) => VerifyTarget(target, ref AI);
 
-        private void Reset() => Name = "New Animal AI Condition";
-
-        [HideInInspector, SerializeField] bool showTarg;
-        protected override void OnValidate()
-        {
-            base.OnValidate();
-            showTarg = Condition == AnimalAICondition.CurrentTarget || Condition == AnimalAICondition.NextTarget;
-        }
-
-        public override void SetTarget(Object target)
-        {
-            if (target is MAnimalAIControl) this.AI = target as MAnimalAIControl;
-        }
     }
 }

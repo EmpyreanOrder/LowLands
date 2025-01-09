@@ -19,11 +19,17 @@ namespace MalbersAnimations
         [Range(0f, 1f), Tooltip("0 = Min Force, 1 = Max Force")]
         public float ForceRange = 1f;
 
-        [SerializeField] private LayerReference hitLayer = new LayerReference(-1);
+        [SerializeField] private LayerReference hitLayer = new(-1);
         [SerializeField] private QueryTriggerInteraction triggerInteraction = QueryTriggerInteraction.Ignore;
 
         [SerializeField, Tooltip("Gravity to apply to the Projectile. By default is set to Physics.gravity")]
-        private Vector3Reference gravity = new Vector3Reference(Physics.gravity);
+        private Vector3Reference gravity = new(Physics.gravity);
+
+
+        [SerializeField, Tooltip("Apply Gravity after certain distance is reached")]
+        private FloatReference m_AfterDistance = new(0f);
+        public float AfterDistance { get => m_AfterDistance.Value; set => m_AfterDistance.Value = value; }
+
         public Vector3 Gravity { get => gravity.Value; set => gravity.Value = value; }
 
         /// <summary> Is Used to calculate the Trajectory and Display it as a LineRenderer </summary>
@@ -41,6 +47,8 @@ namespace MalbersAnimations
         public GameObject Owner => transform.gameObject;
 
         public void Throw() => Throw(projectile);
+
+        public void Fire() => Throw(projectile);
 
         public void Throw(GameObject b)
         {

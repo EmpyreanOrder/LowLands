@@ -6,11 +6,12 @@ using UnityEngine;
 namespace MalbersAnimations
 {
     [System.Serializable] //Needs to be Serializable!!!!
-    [AddTypeMenu("Malbers/Scriptables/Set Bool Var")]
+    [AddTypeMenu("Malbers/Scriptables/Set Bool Var Listener")]
     public class SetBoolVarReaction : Reaction
     {
         public override System.Type ReactionType => typeof(BoolVarListener); //set the Type of component this Reaction Needs
 
+        [Header("Set Bool Var Listener")]
         [Tooltip("ID for the Var Listener. If is set to -1 it will get the first Bool Listener found")]
         public IntReference ID = new(-1);
         public BoolReference newValue;

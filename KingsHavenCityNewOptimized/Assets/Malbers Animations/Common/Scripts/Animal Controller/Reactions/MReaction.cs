@@ -3,7 +3,7 @@ using System;
 
 namespace MalbersAnimations.Reactions
 {
-    /// <summary> Reaction Script for Making the Animal do something </summary>
+    /// <summary> Animal Parent Reaction Class  </summary>
     [System.Serializable]
     public abstract class MReaction : Reaction
     {

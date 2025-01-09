@@ -41,14 +41,14 @@ namespace MalbersAnimations.Controller.AI
                     if (TargetT == null)
                     { Debug.LogError("Set Destination Task is missing the Transform Hook", this); return; }
 
-                    brain.AIControl.SetDestination(TargetT.Value.position, true);
+                    brain.AIControl.SetDestination(TargetT.Value.position, MoveToTarget);
                     break;
                 case DestinationType.GameObject:
 
                     if (TargetG == null)
                     { Debug.LogError("Set Destination Task is missing the GameObject Hook", this); return; }
 
-                    brain.AIControl.SetDestination(TargetG.Value.transform.position, true);
+                    brain.AIControl.SetDestination(TargetG.Value.transform.position, MoveToTarget);
                     break;
                 case DestinationType.RuntimeGameObjects:
 
@@ -56,7 +56,7 @@ namespace MalbersAnimations.Controller.AI
                     { Debug.LogError("Set Destination Task is missing the RuntimeSet", this); return; }
 
                     var go = TargetRG.GetItem(rtype, RTIndex, RTName, brain.Animal.gameObject);
-                    if (go != null) brain.AIControl.SetDestination(go.transform.position, true);
+                    if (go != null) brain.AIControl.SetDestination(go.transform.position, MoveToTarget);
 
                     break;
                 case DestinationType.Vector3:
@@ -64,7 +64,7 @@ namespace MalbersAnimations.Controller.AI
                     { Debug.LogError("Set Destination Task is missing the Vector Scriptable Variable", this); return; }
 
 
-                    brain.AIControl.SetDestination(Destination.Value, true);
+                    brain.AIControl.SetDestination(Destination.Value, MoveToTarget);
                     break;
                 case DestinationType.Name:
                     var GO = GameObject.Find(RTName);
@@ -108,8 +108,6 @@ namespace MalbersAnimations.Controller.AI
             RTName = serializedObject.FindProperty("RTName");
             MoveToTarget = serializedObject.FindProperty("MoveToTarget");
             WaitForPreviousTask = serializedObject.FindProperty("WaitForPreviousTask");
-
-
         }
         public override void OnInspectorGUI()
         {

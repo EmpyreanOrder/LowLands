@@ -1,9 +1,10 @@
 ﻿using UnityEngine;
-using System.Text.RegularExpressions;
-using System.Collections.Generic;
-using System.Reflection;
 using System.Linq;
 using System.IO;
+using Object = UnityEngine.Object;
+
+
+
 
 #if UNITY_EDITOR
 using UnityEditor.Presets;
@@ -56,24 +57,14 @@ namespace MalbersAnimations
                 EditorGUILayout.LabelField(valType.ToString(), s, GUILayout.Width(28));
             }
         }
-
-
-        //public static object RunCode(string userCode, string MyClass, string MyMethod)
-        //{
-        //    CSharpCodeProvider provider = new CSharpCodeProvider();
-        //    CompilerResults results = provider.CompileAssemblyFromSource(new CompilerParameters(), userCode);
-        //    System.Type classType = results.CompiledAssembly.GetType(MyClass);
-        //    System.Reflection.MethodInfo method = classType.GetMethod(MyMethod);
-
-        //    return method.Invoke(null, null);
-        //}
-
         public static GUIStyle BoldFoldout
         {
             get
             {
-                var boldFoldout = new GUIStyle(EditorStyles.foldout);
-                boldFoldout.fontStyle = FontStyle.Bold;
+                var boldFoldout = new GUIStyle(EditorStyles.foldout)
+                {
+                    fontStyle = FontStyle.Bold
+                };
                 return boldFoldout;
             }
         }
@@ -122,9 +113,9 @@ namespace MalbersAnimations
                 return toolTipStyle;
             }
         }
-        
-        
-        
+
+
+
         private static GUIContent _icon_Point;
         public static GUIContent Icon_Point
         {
@@ -209,65 +200,27 @@ namespace MalbersAnimations
 
         }
 
-
+        // This method copy an Object value from a given Object and save it as an asset in the project.
         public static bool CopyObjectSerialization(Object source, Object target)
         {
-            Preset preset = new Preset(source);
+            Preset preset = new(source);
             return preset.ApplyTo(target);
         }
 
         // This method creates a Preset from a given Object and save it as an asset in the project.
         public static void CreatePresetAsset(Object source, string name)
         {
-            Preset preset = new Preset(source);
+            Preset preset = new(source);
             AssetDatabase.CreateAsset(preset, "Assets/" + name + ".preset");
-        }
-
-        public static string GetPropertyType(SerializedProperty property)
-        {
-            var type = property.type;
-            var match = Regex.Match(type, @"PPtr<\$(.*?)>");
-            if (match.Success)
-                type = match.Groups[1].Value;
-            return type;
-        }
-
-        public static System.Type[] GetTypesByName(string className)
-        {
-            List<System.Type> returnVal = new List<System.Type>();
-
-            foreach (Assembly a in System.AppDomain.CurrentDomain.GetAssemblies())
-            {
-                System.Type[] assemblyTypes = a.GetTypes();
-                for (int j = 0; j < assemblyTypes.Length; j++)
-                {
-                    if (assemblyTypes[j].Name == className)
-                    {
-                        returnVal.Add(assemblyTypes[j]);
-                    }
-                }
-            }
-
-            return returnVal.ToArray();
-        }
-
-        public static System.Type GetTypeByName(string className)
-        {
-            return System.AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.GetTypes()).FirstOrDefault(t => t.Name == className);
         }
 
         /// <summary> Check if an Object is an Asset Folder </summary>
         public static bool IsAssetAFolder(Object obj)
         {
-            string path = "";
+            if (obj == null) return false;
 
-            if (obj == null)
-            {
-                return false;
-            }
 
-            path = AssetDatabase.GetAssetPath(obj.GetInstanceID());
-
+            string path = AssetDatabase.GetAssetPath(obj.GetInstanceID());
             if (path.Length > 0)
             {
                 if (Directory.Exists(path))
@@ -385,16 +338,6 @@ namespace MalbersAnimations
 
             return state;
         }
-        public static void DrawCross(Transform m_transform)
-        {
-            var gizmoSize = 0.25f;
-            Gizmos.DrawLine(m_transform.position, m_transform.position + m_transform.TransformVector(m_transform.root.forward * gizmoSize / m_transform.localScale.z));
-            Gizmos.DrawLine(m_transform.position, m_transform.position + m_transform.TransformVector(m_transform.root.forward * -gizmoSize / m_transform.localScale.z));
-            Gizmos.DrawLine(m_transform.position, m_transform.position + m_transform.TransformVector(m_transform.root.up * gizmoSize / m_transform.localScale.y));
-            Gizmos.DrawLine(m_transform.position, m_transform.position + m_transform.TransformVector(m_transform.root.up * -gizmoSize / m_transform.localScale.y));
-            Gizmos.DrawLine(m_transform.position, m_transform.position + m_transform.TransformVector(m_transform.root.right * gizmoSize / m_transform.localScale.x));
-            Gizmos.DrawLine(m_transform.position, m_transform.position + m_transform.TransformVector(m_transform.root.right * -gizmoSize / m_transform.localScale.x));
-        }
 
         public static void DrawLineHelpBox()
         {
@@ -414,9 +357,8 @@ namespace MalbersAnimations
 
         public static void DrawScript(MonoScript script)
         {
-            EditorGUI.BeginDisabledGroup(true);
-            EditorGUILayout.ObjectField("Script", script, typeof(MonoScript), false);
-            EditorGUI.EndDisabledGroup();
+            using (new EditorGUI.DisabledGroupScope(true))
+                EditorGUILayout.ObjectField("Script", script, typeof(MonoScript), false);
         }
 
         public static void DrawEventConnection(Transform t, UnityEngine.Events.UnityEvent e, bool selected)
@@ -463,9 +405,13 @@ namespace MalbersAnimations
             }
         }
 
+        //  public static GUIStyle DescStyle;
+
         public static void DrawDescription(string v)
         {
-            var styleDesc = new GUIStyle(StyleBlue)
+            // if (DescStyle == null)
+            // {
+            var DescStyle = new GUIStyle(StyleBlue)
             {
                 fontSize = 12,
                 fontStyle = FontStyle.Bold,
@@ -473,9 +419,9 @@ namespace MalbersAnimations
                 stretchWidth = true
             };
 
-            styleDesc.normal.textColor = EditorStyles.label.normal.textColor;
-
-            UnityEditor.EditorGUILayout.LabelField(v, styleDesc);
+            DescStyle.normal.textColor = EditorStyles.label.normal.textColor;
+            //  }
+            EditorGUILayout.LabelField(v, DescStyle);
         }
 
         private static GUIContent debugCont;
@@ -484,8 +430,7 @@ namespace MalbersAnimations
         {
             get
             {
-                if (debugCont == null)
-                    debugCont = new GUIContent(EditorGUIUtility.IconContent("d_debug"));
+                debugCont ??= new GUIContent(EditorGUIUtility.IconContent("d_debug"));
                 return debugCont;
             }
         }
@@ -530,13 +475,13 @@ namespace MalbersAnimations
         }
 
 
-        public static bool Foldout(SerializedProperty prop, GUIContent content)
-        {
-            EditorGUI.indentLevel++;
-            prop.boolValue = GUILayout.Toggle(prop.boolValue, content, EditorStyles.foldoutHeader);
-            EditorGUI.indentLevel--;
-            return prop.boolValue;
-        }
+        //public static bool Foldout(SerializedProperty prop, GUIContent content)
+        //{
+        //    EditorGUI.indentLevel++;
+        //    prop.boolValue = GUILayout.Toggle(prop.boolValue, content, EditorStyles.foldoutHeader);
+        //    EditorGUI.indentLevel--;
+        //    return prop.boolValue;
+        //}
 
         public static bool Foldout(bool prop, string name)
         {
@@ -546,26 +491,35 @@ namespace MalbersAnimations
             return prop;
         }
 
-
-
-    }
-
-    public static class ManagedReferenceUtility
-    {
-        public static object SetManagedReference(this SerializedProperty property, System.Type type)
+        public static bool Foldout_Bold(bool prop, string name)
         {
-            object obj = (type != null) ? System.Activator.CreateInstance(type) : null;
-            property.managedReferenceValue = obj;
-            return obj;
+            var boldFoldout = new GUIStyle(EditorStyles.foldoutHeader);
+            boldFoldout.fontStyle = FontStyle.Bold;
+
+            EditorGUI.indentLevel++;
+            prop = GUILayout.Toggle(prop, name, boldFoldout);
+            EditorGUI.indentLevel--;
+            return prop;
         }
 
-        public static System.Type GetType(string typeName)
-        {
-            int splitIndex = typeName.IndexOf(' ');
-            var assembly = Assembly.Load(typeName.Substring(0, splitIndex));
-            return assembly.GetType(typeName.Substring(splitIndex + 1));
-        }
 
+        public static string GetSelectedPathOrFallback()
+        {
+            string path = "Assets";
+
+            foreach (UnityEngine.Object obj in Selection.GetFiltered(typeof(UnityEngine.Object), SelectionMode.Assets))
+            {
+                path = AssetDatabase.GetAssetPath(obj);
+                if (!string.IsNullOrEmpty(path) && File.Exists(path))
+                {
+                    path = Path.GetDirectoryName(path);
+                    break;
+                }
+            }
+            return path;
+        }
     }
+
+
 #endif
 }

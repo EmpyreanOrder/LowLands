@@ -33,6 +33,8 @@ namespace MalbersAnimations.UI
         private Camera cam;
 
         private List<UIFollowItem> items;
+
+        [Tooltip("Hide the UI component if the Object is not in camera view. Set it to false to keep showning it")]
         public bool HideOffScreen = true;
 
         [Tooltip("Offset position for the tracked gameobject")]

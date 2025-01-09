@@ -131,8 +131,8 @@ namespace MalbersAnimations.Controller.AI
                         var DeathS = ActiveAnimal.activeState as Death; //make sure the Death does not disable all things... since where reusing the same animal
                         DeathS.disableAnimal = false;
                         DeathS.DisableAllComponents = false;
-                        DeathS.RemoveAllColliders = false;
-                        DeathS.RemoveAllTriggers = false;
+                        DeathS.DisableInternalColliders = false;
+                        //DeathS.RemoveAllTriggers = false;
 
                         this.Delay_Action(RespawnTime, () => SceneAnimal());
 

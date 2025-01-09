@@ -2,12 +2,13 @@
 
 namespace MalbersAnimations.Conditions
 {
-    public enum ColCondition {Enabled ,Equal, Trigger, PhysicMaterial, Box, Capsule, Sphere, MeshCollider}
+    public enum ColCondition { Enabled, Equal, Trigger, PhysicMaterial, Box, Capsule, Sphere, MeshCollider }
 
     [System.Serializable]
+    [AddTypeMenu("Unity/Collider")]
     public class C_Collider : MCondition
     {
-        public override string DisplayName => "Unity/Collider";
+        //public override string DisplayName => "Unity/Collider";
 
         [Tooltip("Target to check for the condition ")]
         [RequiredField] public Collider Target;
@@ -18,8 +19,8 @@ namespace MalbersAnimations.Conditions
         public Collider Value;
         [Hide("Condition", 3)]
         public PhysicsMaterial Material;
-         
-         
+
+
 
         public override bool _Evaluate()
         {
@@ -42,11 +43,9 @@ namespace MalbersAnimations.Conditions
             return false;
         }
 
-        public override void SetTarget(Object target)
-        {
-            if (target is Collider) this.Target = target as Collider;
-        }
-         
+        protected override void _SetTarget(Object target) => VerifyTarget(target, ref Target);
+
+
         private void Reset() => Name = "New Collider Condition";
     }
 

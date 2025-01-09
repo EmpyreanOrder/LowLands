@@ -13,7 +13,7 @@ namespace MalbersAnimations.Controller.AI
         [Space, Tooltip("Apply the Task to the Animal(Self) or the Target(Target)")]
         public Affected affect = Affected.Self;
 
-        public BoolReference strafe = new BoolReference(true);
+        public BoolReference strafe = new(true);
 
       //  public enum StrafeActions { }
 
@@ -23,7 +23,7 @@ namespace MalbersAnimations.Controller.AI
         public bool TargetIsStrafeTarget;
         [Hide(nameof(showTarget))]
         [Tooltip("The Strafe Target of the current AI Target, will be this AI Character")]
-        public bool SelfIsStrafeTarget;
+        public bool SelfIsStrafeTarget = true;
 
         [Tooltip("Add a completely new Strafe Target to the Animal")]
         [Hide(nameof(showTransform))]
@@ -33,12 +33,11 @@ namespace MalbersAnimations.Controller.AI
         {
             var StrafeTarget = this.NewStrafeTarget != null ? this.NewStrafeTarget.Value : null;
 
-
             if (affect == Affected.Self)
             {
                 brain.Animal.Strafe = strafe.Value;
 
-                if (StrafeTarget == null) StrafeTarget = brain.AIControl.Target;
+                if (StrafeTarget == null) StrafeTarget = brain.AIControl.Target; 
                 if (TargetIsStrafeTarget) brain.Animal.Aimer.SetTarget(StrafeTarget);
             }
             else

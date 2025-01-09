@@ -1,12 +1,12 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.AI;
-using MalbersAnimations.Reactions; 
+using MalbersAnimations.Reactions;
 
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
+
 namespace MalbersAnimations.Controller.AI
 {
     [AddComponentMenu("Malbers/AI/AI Animal Link")]
@@ -15,10 +15,6 @@ namespace MalbersAnimations.Controller.AI
         public static List<MAIAnimalLink> OffMeshLinks;
         public bool BiDirectional = true;
 
-        [Tooltip("OffMesh Start Link Transform")]
-        public Transform Start;
-        [Tooltip("OffMesh End Link Transform")]
-        public Transform End;
 
         [SerializeReference, SubclassSelector]
         public Reaction StartReaction;
@@ -26,7 +22,7 @@ namespace MalbersAnimations.Controller.AI
         public Reaction EndReaction;
         public Color DebugColor = Color.yellow;
 
-       
+
         public float StoppingDistance = 1f;
         public float SlowingDistance = 1f;
         public float SlowingLimit = 0.3f;
@@ -34,16 +30,37 @@ namespace MalbersAnimations.Controller.AI
         public bool AlignToLink = true;
         public float AlignTime = 0.2f;
 
-        [Tooltip("Input Axis Mode instead of ")]
+        public bool ForwardToVertical;
+
+        [Tooltip("OffMesh Start Link Transform For aligning when the Character is near the start point")]
+        [RequiredField] public Transform start;
+        [Tooltip("OffMesh End Link Transform")]
+        [RequiredField] public Transform end;
+
+        [Tooltip("Input Axis Mode instead of Direction to Move. Use this for Climb")]
         public bool UseInputAxis;
-        [Tooltip("Value for the Horizontal(X) and Vertical(Y) axis values to move")]
-        public Vector2 Axis = Vector2.up;
+
 
         public bool debug = true;
 
+        //#if UNITY_6000_0_OR_NEWER
+        //        NavMeshLink meshLink;
+        //#else
+        //        UnityEngine.AI.OffMeshLink meshLink;
+        //#endif
+
+        //        private void Awake()
+        //        {
+        //#if UNITY_6000_0_OR_NEWER
+        //            meshLink = GetComponent<NavMeshLink>();
+        //#else
+        //            meshLink = GetComponent<UnityEngine.AI.OffMeshLink>();
+        //#endif
+        //        }
+
         protected virtual void OnEnable()
         {
-            if (OffMeshLinks == null) OffMeshLinks = new List<MAIAnimalLink>();
+            OffMeshLinks ??= new List<MAIAnimalLink>();
             OffMeshLinks.Add(this);
         }
 
@@ -52,75 +69,46 @@ namespace MalbersAnimations.Controller.AI
             OffMeshLinks.Remove(this);
         }
 
-
-        private void Reset()
+        public virtual void Execute(IAIControl ai, MAnimal animal, Vector3 StartPoint, Vector3 EndPoint)
         {
-            var offMeshLink = GetComponent<OffMeshLink>();
+            animal.StartCoroutine(OffMeshMove(ai, animal, StartPoint, EndPoint));
+        }
 
-            if (offMeshLink)
-            {
-                Start = offMeshLink.startTransform;
-                End = offMeshLink.endTransform;
-                BiDirectional = offMeshLink.biDirectional;
-            }
-            else
-            {
-                Start = transform;
-            }
+        /// <summary>  AI START Pathfinding Coroutine </summary>
+        public IEnumerator Coroutine_Execute(IAIControl ai, MAnimal animal, Vector3 StartPoint, Vector3 EndPoint)
+        {
+            yield return OffMeshMove(ai, animal, StartPoint, EndPoint);
         }
 
 
-        internal void Execute(IAIControl ai, MAnimal animal)
+        private IEnumerator OffMeshMove(IAIControl ai, MAnimal animal, Vector3 StartPoint, Vector3 EndPoint)
         {
-            var NearLink = ai.Transform.NearestTransform(Start, End);
-            var FarLink = NearLink == Start ? End : Start;
-
-
-            var axis = Axis;
-            if (BiDirectional && NearLink == End)  axis *=  -1; //Invert if the End Link its the nearest
-           
-
-            ai.AIDirection = (FarLink.position - NearLink.position).normalized; 
-            ///animal.Move(ai.AIDirection);    //Move where the AI DIRECTION FROM THE OFFMESH IS Pointing
-              
-          //  Debug.DrawRay(ai.Transform.position, ai.AIDirection * 10, DebugColor, 3);
-            animal.StartCoroutine(OffMeshMove(ai, animal,NearLink, FarLink,axis));
-        }
-
-        public IEnumerator Coroutine_Execute(IAIControl ai, MAnimal animal)
-        {
-            var NearLink = ai.Transform.NearestTransform(Start, End);
-            var FarLink = NearLink == Start ? End : Start;
-            var axis = Axis;
-            if (BiDirectional && NearLink == End) axis *= -1; //Invert if the End Link its the nearest
-            ai.AIDirection = (FarLink.position - NearLink.position).normalized;
-
-            yield return OffMeshMove(ai, animal, NearLink, FarLink, axis);
-        }
-
-        private IEnumerator OffMeshMove(IAIControl ai, MAnimal animal, Transform NearLink, Transform EndLink, Vector2 NewAxis)
-        {
-            if (AlignToLink)
+            if (AlignToLink && start && end)
             {
-                Debbuging($"Begin alignment with [{NearLink.name}]");
-                yield return MTools.AlignTransform_Rotation(animal.transform, NearLink.rotation, AlignTime);
-                Debbuging($"Finish alignment with [{NearLink.name}]");
+                Debbuging($"Start alignment with [{animal.name}]");
+                var NearAlign = animal.transform.NearestTransform(start, end); //Find the closest alignpoint
+                yield return MTools.AlignTransform_Rotation(animal.transform, NearAlign.rotation, AlignTime);
+                Debbuging($"Finish alignment with [{animal.name}]");
             }
 
             StartReaction?.React(animal);
             Debbuging($"Start Offmesh Coroutine");
 
             ai.InOffMeshLink = true;
-           // ai.SetActive( false);
-
-            var AIDirection = (EndLink.position - animal.transform.position).normalized;
+            ai.AIDirection = StartPoint.DirectionTo(EndPoint);
 
             RemainingDistance = float.MaxValue;
 
-            while (RemainingDistance >= StoppingDistance  && ai.InOffMeshLink)
+            // var axis = animal.transform.NearestPoint(start.position, end.position) == start.position ? StartAxis : EndAxis;
+
+            while (RemainingDistance >= StoppingDistance && ai.InOffMeshLink)
             {
-                MDebug.DrawWireSphere(EndLink.position, DebugColor, StoppingDistance);
-                MDebug.DrawWireSphere(EndLink.position, Color.cyan, SlowingDistance);
+                var AIDirection = (EndPoint - animal.Position).normalized;
+
+                MDebug.Draw_Arrow(animal.Position, AIDirection, Color.green);
+
+                MDebug.DrawWireSphere(EndPoint, DebugColor, StoppingDistance);
+                MDebug.DrawWireSphere(EndPoint, Color.cyan, SlowingDistance);
 
                 if (!UseInputAxis) //If its using Direction vector to move
                 {
@@ -129,18 +117,21 @@ namespace MalbersAnimations.Controller.AI
                 }
                 else //If its using Input Axis to to move (Meaning go All Horizontal, or Forward movement)
                 {
-                    animal.SetInputAxis(NewAxis * SlowMultiplier);
+                    AIDirection = transform.InverseTransformDirection(AIDirection); //Convert to UP Down like Climb
+                    AIDirection.z = AIDirection.y;
+                    AIDirection.y = 0;
+                    animal.SetInputAxis(AIDirection * SlowMultiplier);
                     animal.UsingMoveWithDirection = false;
                 }
 
-                RemainingDistance = Vector3.Distance(animal.transform.position, EndLink.position);
+                RemainingDistance = Vector3.Distance(animal.transform.position, EndPoint);
                 yield return null;
             }
 
-             if (ai.InOffMeshLink)
+            if (ai.InOffMeshLink)
                 EndReaction?.React(animal); //Execute the End Reaction only if the Animal has not interrupted the Offmesh Link
 
-            Debbuging($"End Offmesh Coroutine");    
+            Debbuging($"End Offmesh Coroutine");
             ai.CompleteOffMeshLink();
         }
 
@@ -167,6 +158,8 @@ namespace MalbersAnimations.Controller.AI
 
 #if UNITY_EDITOR
 
+
+
         private void OnDrawGizmos()
         {
             Gizmos.color = DebugColor;
@@ -174,48 +167,77 @@ namespace MalbersAnimations.Controller.AI
 
             var AxisSize = transform.lossyScale.y;
 
-            if (Start)
+            if (start)
             {
-                Gizmos.DrawSphere(Start.position, 0.2f * AxisSize);
-                Handles.ArrowHandleCap(0, Start.position, Start.rotation, AxisSize, EventType.Repaint);
+                Gizmos.DrawSphere(start.position, 0.2f * AxisSize);
+                Handles.ArrowHandleCap(0, start.position, start.rotation, AxisSize, EventType.Repaint);
             }
-            if (End)
+            if (end)
             {
-                Gizmos.DrawSphere(End.position, 0.2f * AxisSize);
-                Handles.ArrowHandleCap(0, End.position, End.rotation, AxisSize, EventType.Repaint);
+                Gizmos.DrawSphere(end.position, 0.2f * AxisSize);
+                Handles.ArrowHandleCap(0, end.position, end.rotation, AxisSize, EventType.Repaint);
 
             }
-            if (Start && End)
-                Handles.DrawDottedLine(Start.position, End.position, 5);
+            if (start && end)
+                Handles.DrawDottedLine(start.position, end.position, 5);
         }
 
         private void OnDrawGizmosSelected()
         {
-            if (Start)
+            if (start)
             {
                 Gizmos.color = DebugColor;
-                Gizmos.DrawWireSphere(Start.position, 0.2f * transform.lossyScale.y);
+                Gizmos.DrawWireSphere(start.position, 0.2f * transform.lossyScale.y);
                 Gizmos.color = Color.red;
-                Gizmos.DrawWireSphere(Start.position, StoppingDistance);
+                Gizmos.DrawWireSphere(start.position, StoppingDistance);
                 if (StoppingDistance < SlowingDistance)
                 {
                     Gizmos.color = Color.cyan;
-                    Gizmos.DrawWireSphere(Start.position, SlowingDistance);
+                    Gizmos.DrawWireSphere(start.position, SlowingDistance);
                 }
             }
-            if (End)
+            if (end)
             {
                 Gizmos.color = DebugColor;
-                Gizmos.DrawWireSphere(End.position, 0.2f * transform.lossyScale.y);
+                Gizmos.DrawWireSphere(end.position, 0.2f * transform.lossyScale.y);
                 Gizmos.color = Color.red;
-                Gizmos.DrawWireSphere(End.position, StoppingDistance);
+                Gizmos.DrawWireSphere(end.position, StoppingDistance);
                 if (StoppingDistance < SlowingDistance)
                 {
                     Gizmos.color = Color.cyan;
-                    Gizmos.DrawWireSphere(End.position, SlowingDistance);
+                    Gizmos.DrawWireSphere(end.position, SlowingDistance);
                 }
             }
         }
+
+
+        //        private void Reset()
+        //        {
+        //#if UNITY_6000_0_OR_NEWER
+        //            meshLink = GetComponent<NavMeshLink>();
+        //#else
+        //            meshLink = GetComponent<UnityEngine.AI.OffMeshLink>();
+        //#endif
+        //            if (meshLink)
+        //            {
+        //                start = meshLink.startTransform;
+        //                end = meshLink.endTransform;
+        //                BiDirectional =
+
+        //#if UNITY_6000_0_OR_NEWER
+        //                meshLink.bidirectional;
+        //#else
+        //                meshLink.biDirectional;
+        //#endif
+        //            }
+        //            else
+        //            {
+        //                start = transform;
+        //            }
+        //        }
+
+
+
 #endif
 
 
@@ -223,29 +245,30 @@ namespace MalbersAnimations.Controller.AI
         [CustomEditor(typeof(MAIAnimalLink))]
         public class MAILinkEditor : Editor
         {
-            SerializedProperty StartReaction, EndReaction, Start, End, DebugColor, UseInputAxis, Axis, AlignToLink, AlignTime, debug,
+            SerializedProperty StartReaction, EndReaction, Start, End, DebugColor, UseInputAxis, EndAxis, StartAxis, AlignToLink, AlignTime, debug,
                 StoppingDistance, SlowingLimit, SlowingDistance, BiDirectional;
 
             MAIAnimalLink M;
 
             private void OnEnable()
             {
-                M = (MAIAnimalLink) target;
+                M = (MAIAnimalLink)target;
                 StartReaction = serializedObject.FindProperty("StartReaction");
                 debug = serializedObject.FindProperty("debug");
                 EndReaction = serializedObject.FindProperty("EndReaction");
-                Start = serializedObject.FindProperty("Start");
-                End = serializedObject.FindProperty("End");
+                Start = serializedObject.FindProperty("start");
+                End = serializedObject.FindProperty("end");
                 StoppingDistance = serializedObject.FindProperty("StoppingDistance");
                 SlowingLimit = serializedObject.FindProperty("SlowingLimit");
                 SlowingDistance = serializedObject.FindProperty("SlowingDistance");
                 DebugColor = serializedObject.FindProperty("DebugColor");
                 UseInputAxis = serializedObject.FindProperty("UseInputAxis");
-                Axis = serializedObject.FindProperty("Axis");
+                StartAxis = serializedObject.FindProperty("StartAxis");
+                EndAxis = serializedObject.FindProperty("EndAxis");
                 BiDirectional = serializedObject.FindProperty("BiDirectional");
                 AlignToLink = serializedObject.FindProperty("AlignToLink");
                 AlignTime = serializedObject.FindProperty("AlignTime");
-            } 
+            }
             public override void OnInspectorGUI()
             {
                 //base.OnInspectorGUI();
@@ -255,7 +278,7 @@ namespace MalbersAnimations.Controller.AI
 
                 EditorGUILayout.BeginHorizontal();
                 EditorGUILayout.PropertyField(StoppingDistance);
-                EditorGUILayout.PropertyField(DebugColor , GUIContent.none, GUILayout.Width(50));
+                EditorGUILayout.PropertyField(DebugColor, GUIContent.none, GUILayout.Width(50));
                 MalbersEditor.DrawDebugIcon(debug);
                 EditorGUILayout.EndHorizontal();
                 EditorGUILayout.PropertyField(SlowingDistance);
@@ -263,19 +286,21 @@ namespace MalbersAnimations.Controller.AI
                 EditorGUILayout.PropertyField(BiDirectional);
                 EditorGUILayout.PropertyField(UseInputAxis);
 
-                if (UseInputAxis.boolValue)
-                {
-                    EditorGUILayout.PropertyField(Axis);
-                }
-                EditorGUILayout.PropertyField(Start);
-                EditorGUILayout.PropertyField(End);
+                //if (UseInputAxis.boolValue)
+                //{
+                //    EditorGUILayout.PropertyField(StartAxis);
+                //    EditorGUILayout.PropertyField(EndAxis);
+                //}
 
 
                 EditorGUILayout.PropertyField(AlignToLink);
 
                 if (AlignToLink.boolValue)
+                {
                     EditorGUILayout.PropertyField(AlignTime);
-
+                    EditorGUILayout.PropertyField(Start);
+                    EditorGUILayout.PropertyField(End);
+                }
 
                 MalbersEditor.DrawSplitter();
                 EditorGUILayout.PropertyField(StartReaction);
@@ -289,30 +314,30 @@ namespace MalbersAnimations.Controller.AI
             {
                 using (var cc = new EditorGUI.ChangeCheckScope())
                 {
-                    if (M.Start && M.Start != M.transform)
+                    if (M.start && M.start != M.transform)
                     {
-                        var start = M.Start.position;
+                        var start = M.start.position;
                         start = Handles.PositionHandle(start, M.transform.rotation);
 
                         if (cc.changed)
                         {
-                            Undo.RecordObject(M.Start, "Move Start AI Link");
-                            M.Start.position = start;
+                            Undo.RecordObject(M.start, "Move Start AI Link");
+                            M.start.position = start;
                         }
                     }
                 }
 
                 using (var cc = new EditorGUI.ChangeCheckScope())
                 {
-                    if (M.End && M.End != M.transform)
+                    if (M.end && M.end != M.transform)
                     {
-                        var end = M.End.position;
+                        var end = M.end.position;
                         end = Handles.PositionHandle(end, M.transform.rotation);
 
                         if (cc.changed)
                         {
-                            Undo.RecordObject(M.End, "Move End AI Link");
-                            M.End.position = end;
+                            Undo.RecordObject(M.end, "Move End AI Link");
+                            M.end.position = end;
                         }
                     }
                 }

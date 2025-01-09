@@ -37,6 +37,7 @@ namespace MalbersAnimations.Controller
         {
             if (DeathID.ID == state)
             {
+                //Respwan the Character
                 this.Delay_Action(RespawnTime, () =>
                 {
                     animal.transform.SetPositionAndRotation(transform.position, transform.rotation);
@@ -44,7 +45,7 @@ namespace MalbersAnimations.Controller
                     animal.enabled = true;
                     animal.OverrideStartState = RespawnState;
                     animal.ResetController();
-                    var allCompo = animal.GetComponents<IRestart>();
+                    var allCompo = animal.GetComponentsInChildren<IRestart>();
                     foreach (var item in allCompo) item.Restart();
                 }
                 );

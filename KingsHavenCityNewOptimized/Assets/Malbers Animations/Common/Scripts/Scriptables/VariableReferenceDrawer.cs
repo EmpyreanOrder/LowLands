@@ -4,11 +4,11 @@ using UnityEngine;
 
 namespace MalbersAnimations.Scriptables
 {
-    [CustomPropertyDrawer(typeof(ReferenceVar),true)]
+    [CustomPropertyDrawer(typeof(ReferenceVar), true)]
     public class VariableReferenceDrawer : PropertyDrawer
     {
         /// <summary>  Options to display in the popup to select constant or variable. </summary>
-        private readonly string[] popupOptions =  { "Use Local", "Use Global" };
+        private readonly string[] popupOptions = { "Use Local", "Use Global" };
 
         /// <summary> Cached style to use to draw the popup button. </summary>
         private GUIStyle popupStyle;
@@ -67,7 +67,7 @@ namespace MalbersAnimations.Scriptables
                 if (!useConstant.boolValue)
                 {
                     if (varIsEmpty)
-                    { 
+                    {
                         propRect.width -= 20;
                     }
                     else
@@ -76,9 +76,9 @@ namespace MalbersAnimations.Scriptables
                         {
                             //propRect.width -= 30;
                             ValueRect.width = (propRect.width / 2 * 0.25f) + 9;
-                            propRect.width = (propRect.width/2 *1.75f)-13;
-                          //  ValueRect.x -= 8;
-                            ValueRect.x =position.x + propRect.width + 8;
+                            propRect.width = (propRect.width / 2 * 1.75f) - 13;
+                            //  ValueRect.x -= 8;
+                            ValueRect.x = position.x + propRect.width + 8;
                         }
                     }
                 }
@@ -96,7 +96,7 @@ namespace MalbersAnimations.Scriptables
                     {
                         if (GUI.Button(AddButtonRect, plus, UnityEditor.EditorStyles.helpBox))
                         {
-                            MTools.CreateScriptableAsset(variable, MTools.GetPropertyType(variable), MTools.GetSelectedPathOrFallback());
+                            MTools.CreateScriptableAsset(variable, MalbersEditor.GetSelectedPathOrFallback());
 #if UNITY_2020_1_OR_NEWER
                             GUIUtility.ExitGUI(); //Unity Bug!
 #endif
@@ -118,8 +118,10 @@ namespace MalbersAnimations.Scriptables
             {
                 if (!ValidObject(variable.objectReferenceValue)) return; //Do not Paint vectors
 
-                SerializedObject objs = new SerializedObject(variable.objectReferenceValue);
+                SerializedObject objs = new(variable.objectReferenceValue);
+
                 var Var = objs.FindProperty("value");
+
                 EditorGUI.BeginChangeCheck();
                 EditorGUI.PropertyField(variableRect, Var, GUIContent.none);
                 if (EditorGUI.EndChangeCheck())
@@ -131,7 +133,7 @@ namespace MalbersAnimations.Scriptables
         }
 
 
-        private static bool ValidObject(Object val) => (val is IntVar) || (val is FloatVar &&  !(val is FloatRangeVar) ) || (val is BoolVar) || (val is StringVar);
+        private static bool ValidObject(Object val) => (val is IntVar) || (val is FloatVar && val is not FloatRangeVar) || (val is BoolVar) /*|| (val is StringVar)*/;
 
         //public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
         //{

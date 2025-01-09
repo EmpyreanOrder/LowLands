@@ -30,7 +30,7 @@ namespace MalbersAnimations.Utilities
             if (Proxies != null)
                 foreach (var p in Proxies)
                 {
-                    if (p != null) p.TriggerExit(m_collider, false);
+                    if (p != null) p.RemoveTrigger(m_collider, false); //False because it will create an infinity loop
                 }
 
             Proxies = new();     //Reset
