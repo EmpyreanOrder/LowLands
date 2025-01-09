@@ -4,14 +4,14 @@
 //
 // Auto-generated shader code, don't hand edit!
 //
-//   Unity Version: 2022.3.16f1
+//   Unity Version: 6000.0.32f1
 //   MicroSplat Version: 3.9
 //   Render Pipeline: URP2022
 //   Platform: WindowsEditor
 ////////////////////////////////////////
 
 
-Shader "Hidden/Terrain_Base441341952"
+Shader "Hidden/Terrain_Base2101494652"
 {
    Properties
    {
@@ -36,7 +36,6 @@ Shader "Hidden/Terrain_Base441341952"
 
       _TerrainHeightmapTexture("", 2D) = "black" {}
       _TerrainNormalmapTexture("", 2D) = "bump" {}
-      _HybridHeightBlendDistance("Hybrid Blend Distance", Float) = 300
 
 
       // distance noise
@@ -45,15 +44,6 @@ Shader "Hidden/Terrain_Base441341952"
       _NoiseHeight("Noise Texture", 2D) = "grey" {}
       _NoiseHeightData("Noise Height Data", Vector) = (1, 0.15, 0, 0)
 
-
-
-
-      
-      [HideInInspector]_TerrainDesc("Terrain Desc", 2D) = "black" {}
-      [HideInInspector]_TerrainBounds("Terrain Bounds", Vector) = (0,0,512,512)
-      [PerRendererData]_TerrainBlendParams("Terrain Blend Distance", Vector) = (1, 0.4, 0, 0)
-      [PerRendererData]_TerrainBlendParams2("Terrain Blend Params2", Vector) = (40, 0, 0, 0)
-      _TerrainHeightmapScale("Terrain Height Map Scale", Vector) = (0,0,100,0)
 
 
 
@@ -142,7 +132,6 @@ Shader "Hidden/Terrain_Base441341952"
             
       #define _MICROSPLAT 1
       #define _MICROTERRAIN 1
-      #define _HYBRIDHEIGHTBLEND 1
       #define _USEGRADMIP 1
       #define _MAX8TEXTURES 1
       #define _PERTEXUVSCALEOFFSET 1
@@ -156,7 +145,6 @@ Shader "Hidden/Terrain_Base441341952"
       #define _BRANCHSAMPLESAGR 1
       #define _DISTANCENOISE 1
       #define _NOISEHEIGHT 1
-      #define _TERRAINBLENDING 1
       #define _PERTEXTESSDISPLACE 1
       #define _STOCHASTIC 1
       #define _PERTEXSTOCHASTIC 1
@@ -6365,7 +6353,6 @@ float3 GetTessFactors ()
             
       #define _MICROSPLAT 1
       #define _MICROTERRAIN 1
-      #define _HYBRIDHEIGHTBLEND 1
       #define _USEGRADMIP 1
       #define _MAX8TEXTURES 1
       #define _PERTEXUVSCALEOFFSET 1
@@ -6379,7 +6366,6 @@ float3 GetTessFactors ()
       #define _BRANCHSAMPLESAGR 1
       #define _DISTANCENOISE 1
       #define _NOISEHEIGHT 1
-      #define _TERRAINBLENDING 1
       #define _PERTEXTESSDISPLACE 1
       #define _STOCHASTIC 1
       #define _PERTEXSTOCHASTIC 1
@@ -12527,7 +12513,6 @@ float3 GetTessFactors ()
             
       #define _MICROSPLAT 1
       #define _MICROTERRAIN 1
-      #define _HYBRIDHEIGHTBLEND 1
       #define _USEGRADMIP 1
       #define _MAX8TEXTURES 1
       #define _PERTEXUVSCALEOFFSET 1
@@ -12541,7 +12526,6 @@ float3 GetTessFactors ()
       #define _BRANCHSAMPLESAGR 1
       #define _DISTANCENOISE 1
       #define _NOISEHEIGHT 1
-      #define _TERRAINBLENDING 1
       #define _PERTEXTESSDISPLACE 1
       #define _STOCHASTIC 1
       #define _PERTEXSTOCHASTIC 1
@@ -18602,7 +18586,6 @@ float3 GetTessFactors ()
             
       #define _MICROSPLAT 1
       #define _MICROTERRAIN 1
-      #define _HYBRIDHEIGHTBLEND 1
       #define _USEGRADMIP 1
       #define _MAX8TEXTURES 1
       #define _PERTEXUVSCALEOFFSET 1
@@ -18616,7 +18599,6 @@ float3 GetTessFactors ()
       #define _BRANCHSAMPLESAGR 1
       #define _DISTANCENOISE 1
       #define _NOISEHEIGHT 1
-      #define _TERRAINBLENDING 1
       #define _PERTEXTESSDISPLACE 1
       #define _STOCHASTIC 1
       #define _PERTEXSTOCHASTIC 1
@@ -24673,7 +24655,6 @@ float3 GetTessFactors ()
             
       #define _MICROSPLAT 1
       #define _MICROTERRAIN 1
-      #define _HYBRIDHEIGHTBLEND 1
       #define _USEGRADMIP 1
       #define _MAX8TEXTURES 1
       #define _PERTEXUVSCALEOFFSET 1
@@ -24687,7 +24668,6 @@ float3 GetTessFactors ()
       #define _BRANCHSAMPLESAGR 1
       #define _DISTANCENOISE 1
       #define _NOISEHEIGHT 1
-      #define _TERRAINBLENDING 1
       #define _PERTEXTESSDISPLACE 1
       #define _STOCHASTIC 1
       #define _PERTEXSTOCHASTIC 1
@@ -30748,7 +30728,6 @@ float3 GetTessFactors ()
             
       #define _MICROSPLAT 1
       #define _MICROTERRAIN 1
-      #define _HYBRIDHEIGHTBLEND 1
       #define _USEGRADMIP 1
       #define _MAX8TEXTURES 1
       #define _PERTEXUVSCALEOFFSET 1
@@ -30762,7 +30741,6 @@ float3 GetTessFactors ()
       #define _BRANCHSAMPLESAGR 1
       #define _DISTANCENOISE 1
       #define _NOISEHEIGHT 1
-      #define _TERRAINBLENDING 1
       #define _PERTEXTESSDISPLACE 1
       #define _STOCHASTIC 1
       #define _PERTEXSTOCHASTIC 1
