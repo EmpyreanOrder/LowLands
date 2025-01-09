@@ -10,9 +10,8 @@ namespace MalbersAnimations.Utilities
     [AddComponentMenu("Malbers/Utilities/Aling/Aligner")]
     public class Aligner : MonoBehaviour, IAlign
     {
-      
         public TransformReference mainPoint = new();
-      
+
         public TransformReference secondPoint = new();
 
         /// <summary>The Target will move close to the Aligner equals to the Radius</summary>
@@ -20,6 +19,9 @@ namespace MalbersAnimations.Utilities
 
         /// <summary>Time needed to do the alignment</summary>
         [Min(0)] public float AlignTime = 0.25f;
+
+        [Tooltip("Minimum Distance needed to activate the alignment. If zero the Minimum distance will be ignored")]
+        [Min(0)] public float AlignMinDistance = 0f;
 
         [Tooltip("Add an offset to the rotation alignment")]
         public float AngleOffset = 0;
@@ -37,7 +39,7 @@ namespace MalbersAnimations.Utilities
         public bool DoubleSided = true;
         /// <summary>Align a gameObject Looking at the Aligner</summary>
         public bool AlignLookAt = false;
-      
+
         ///// <summary>Minimum Distance the animal will move if the Radius is greater than zero</summary>
         //public float LookAtDistance;
         public Color DebugColor = new(1, 0.23f, 0, 1f);
@@ -47,12 +49,15 @@ namespace MalbersAnimations.Utilities
         public Transform MainPoint => mainPoint.Value;
         public Transform SecondPoint => secondPoint.Value;
 
+        public virtual void Set_MainPoint(Transform value) => mainPoint.Value = value;
+        public virtual void Set_SecondPoint(Transform value) => secondPoint.Value = value;
+
         public virtual void Align(GameObject Target) => Align(Target.transform);
 
         public virtual void Align(Component Target) => Align(Target.transform.FindObjectCore());
-        
+
         public virtual void StopAling() => StopAllCoroutines();
-        
+
         public virtual void Align_Self_To(GameObject Target) => Align_Self_To(Target.transform);
 
         public virtual void Align_Self_To(Collider Target) => Align_Self_To(Target.transform);
@@ -70,7 +75,7 @@ namespace MalbersAnimations.Utilities
                 if (AlignLookAt)
                 {
                     StartCoroutine(AlignLookAtTransform(mainPoint, reference, AlignTime, AlignCurve));  //Align Look At the Zone
-                    if (LookAtRadius > 0) StartCoroutine(MTools.AlignTransformRadius(reference, mainPoint.position, AlignTime, LookAtRadius, AlignCurve));  //Align Look At the Zone
+                    if (LookAtRadius > 0) StartCoroutine(MTools.AlignTransformRadius(reference, mainPoint, AlignTime, LookAtRadius, AlignCurve));  //Align Look At the Zone
                 }
                 else
                 {
@@ -96,7 +101,7 @@ namespace MalbersAnimations.Utilities
                         else
                             StartCoroutine(MTools.AlignTransform_Rotation(MainPoint, Side1, AlignTime, AlignCurve));
                     }
-                } 
+                }
             }
         }
 
@@ -106,16 +111,19 @@ namespace MalbersAnimations.Utilities
         {
             if (Active && MainPoint && TargetToAlign != null)
             {
+                //Check if the distance is less than the minimum distance
+                if (AlignMinDistance > 0 && Vector3.Distance(TargetToAlign.position, MainPoint.position) > AlignMinDistance) return;
+
                 deltaRootMotion = TargetToAlign.TryDeltaRootMotion();
 
                 if (AlignLookAt)
                 {
                     StartCoroutine(AlignLookAtTransform(TargetToAlign, mainPoint, AlignTime, AlignCurve));  //Align Look At the Zone
-                    
+
                     //Align Look At the Zone
                     if (LookAtRadius > 0)
-                        StartCoroutine(MTools.AlignTransformRadius(TargetToAlign, mainPoint.position, AlignTime, LookAtRadius, AlignCurve)); 
-                   
+                        StartCoroutine(MTools.AlignTransformRadius(TargetToAlign, mainPoint, AlignTime, LookAtRadius, AlignCurve));
+
                 }
                 else
                 {
@@ -159,7 +167,7 @@ namespace MalbersAnimations.Utilities
 
                             Side1 = Distance2 < Distance1 ? Side2 : Side1;
                         }
-                            
+
                         StartCoroutine(
                             MTools.AlignTransform_Rotation(TargetToAlign.transform, Side1 * Quaternion.Euler(0, AngleOffset, 0), AlignTime, AlignCurve));
                     }
@@ -167,7 +175,7 @@ namespace MalbersAnimations.Utilities
             }
         }
 
-         
+
         /// <summary>
         /// Makes a transform Rotate towards another using LookAt Rotation
         /// </summary>
@@ -208,8 +216,8 @@ namespace MalbersAnimations.Utilities
 
         void Reset()
         {
-            mainPoint =  transform;
-        } 
+            mainPoint = transform;
+        }
 
         void OnDrawGizmos()
         {
@@ -225,10 +233,16 @@ namespace MalbersAnimations.Utilities
                     Handles.DrawWireDisc(MainPoint.position, transform.up, LookAtRadius);
                 }
 
+                if (AlignMinDistance > 0)
+                {
+                    Handles.color = Color.red;
+                    Handles.DrawWireDisc(MainPoint.position, transform.up, AlignMinDistance);
+                }
+
                 if (SecondPoint)
                 {
                     Gizmos.DrawLine(MainPoint.position, SecondPoint.position);
-                    
+
                     Gizmos.DrawCube(SecondPoint.position, Vector3.one * 0.05f);
 
                     if (DoubleSided)
@@ -268,7 +282,8 @@ namespace MalbersAnimations.Utilities
     {
 
         SerializedProperty
-            AlignPos, AlignRot, AlignLookAt, AlingPoint1, AlingPoint2, AlignTime, AlignCurve, DoubleSided, LookAtRadius, DebugColor, LookAtRadiusTime, AngleOffset;
+            AlignPos, AlignRot, AlignLookAt, AlingPoint1, AlingPoint2, AlignTime,
+            AlignCurve, AlignMinDistance, DoubleSided, LookAtRadius, DebugColor, AngleOffset;
 
         // MonoScript script;
         private void OnEnable()
@@ -283,11 +298,12 @@ namespace MalbersAnimations.Utilities
             AlingPoint2 = serializedObject.FindProperty("secondPoint");
             AlignTime = serializedObject.FindProperty("AlignTime");
             AlignCurve = serializedObject.FindProperty("AlignCurve");
+            AlignMinDistance = serializedObject.FindProperty("AlignMinDistance");
             DoubleSided = serializedObject.FindProperty("DoubleSided");
             LookAtRadius = serializedObject.FindProperty("LookAtRadius");
             DebugColor = serializedObject.FindProperty("DebugColor");
             //PosOffset = serializedObject.FindProperty("PosOffset");
-            LookAtRadiusTime = serializedObject.FindProperty("LookAtRadiusTime");
+            // LookAtRadiusTime = serializedObject.FindProperty("LookAtRadiusTime");
         }
 
 
@@ -297,11 +313,11 @@ namespace MalbersAnimations.Utilities
 
             MalbersEditor.DrawDescription("Aligns the Position and Rotation of an Target object relative this gameobject");
 
-            EditorGUI.BeginChangeCheck(); 
-            { 
+            EditorGUI.BeginChangeCheck();
+            {
                 using (new GUILayout.VerticalScope(EditorStyles.helpBox))
                 {
-                    using (new GUILayout.HorizontalScope()) 
+                    using (new GUILayout.HorizontalScope())
                     {
                         var currentGUIColor = GUI.color;
                         var selected = (GUI.color + Color.green) / 2;
@@ -323,7 +339,7 @@ namespace MalbersAnimations.Utilities
 
                         EditorGUILayout.PropertyField(DebugColor, GUIContent.none, GUILayout.MaxWidth(40));
 
-                    } 
+                    }
 
                     if (AlignRot.boolValue || AlignPos.boolValue)
                         EditorGUILayout.PropertyField(DoubleSided, new GUIContent("Double Sided", "When Rotation is Enabled then It will find the closest Rotation"));
@@ -333,24 +349,24 @@ namespace MalbersAnimations.Utilities
                         EditorGUILayout.PropertyField(LookAtRadius,
                             new GUIContent("Radius", "The Target will move close to the Aligner equals to the Radius. Set it to Zero to ignore moving the character"));
 
-                      // if (LookAtRadius.floatValue > 0)
+                        // if (LookAtRadius.floatValue > 0)
                         //    EditorGUILayout.PropertyField(LookAtRadiusTime, new GUIContent("Look At Align Time", "Time to move The Target to the Aligner "));
                     }
                 }
-                
+
 
 
                 using (new GUILayout.VerticalScope(EditorStyles.helpBox))
                 {
                     EditorGUILayout.PropertyField(AlingPoint1, new GUIContent("Main Point", "The Target GameObject will move to the Position of the Align Point"));
                     if (AlignPos.boolValue)
-                    { 
-                        EditorGUILayout.PropertyField(AlingPoint2, 
+                    {
+                        EditorGUILayout.PropertyField(AlingPoint2,
                             new GUIContent("2nd Point", "If Point End is Active then the Animal will align to the closed position from the 2 align points line"));
                         //EditorGUILayout.PropertyField(PosOffset);
                     }
                 }
-               
+
 
 
                 using (new GUILayout.VerticalScope(EditorStyles.helpBox))
@@ -360,15 +376,13 @@ namespace MalbersAnimations.Utilities
                         EditorGUILayout.PropertyField(AlignTime, new GUIContent("Align Time", "Time needed to make the Aligment"));
                         EditorGUILayout.PropertyField(AlignCurve, GUIContent.none, GUILayout.MaxWidth(75));
                     }
+                    EditorGUILayout.PropertyField(AlignMinDistance);
 
-                if (AlignRot.boolValue || AlignLookAt.boolValue)
-                    EditorGUILayout.PropertyField(AngleOffset);
-
-                 }
-
-
+                    if (AlignRot.boolValue || AlignLookAt.boolValue)
+                        EditorGUILayout.PropertyField(AngleOffset);
+                }
             }
-        //    EditorGUILayout.EndVertical();
+            //    EditorGUILayout.EndVertical();
 
             if (EditorGUI.EndChangeCheck())
             {

@@ -1,7 +1,5 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
 using MalbersAnimations.Events;
+using UnityEngine;
 
 namespace MalbersAnimations.Utilities
 {
@@ -35,6 +33,13 @@ namespace MalbersAnimations.Utilities
                 Invoke.Invoke(animator);
                 MessageSent = true;
             }
+        }
+
+
+        public void Pause()
+        {
+            Debug.Log("Pause Editor", this);
+            Debug.Break();
         }
     }
 }

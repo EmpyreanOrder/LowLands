@@ -62,7 +62,7 @@ namespace MalbersAnimations.Controller.Reactions
                 if (Check(StatValues.RegenerationWaitTime)) s.RegenWaitTime = (RegenWaitTime.RandomValue);
                 if (Check(StatValues.DegenerationRate)) s.DegenRate = (DegenRate.RandomValue);
                 if (Check(StatValues.DegenerationWaitTime)) s.DegenWaitTime = (DegenWaitTime.RandomValue);
-                if (Check(StatValues.InmuneTime)) s.InmuneTime = (InmuneTime.RandomValue);
+                if (Check(StatValues.InmuneTime)) s.ImmuneTime = (InmuneTime.RandomValue);
             }
         }
 

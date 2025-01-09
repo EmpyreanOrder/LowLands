@@ -243,7 +243,7 @@ namespace MalbersAnimations.Controller
             return Ability;
         }
 
-        public override void OnModeMove(Mode mode, AnimatorStateInfo stateinfo, Animator anim, int LayerIndex)
+        public override void OnModeMove(Mode mode)
         {
             if (MoveDodge)
             {

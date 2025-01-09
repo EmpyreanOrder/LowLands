@@ -1,13 +1,12 @@
 ﻿namespace MalbersAnimations.Conditions
 {
     [System.Serializable]
+    [AddTypeMenu("Animal/General")]
     public class C_AnimalGeneral : MAnimalCondition
     {
-        public override string DisplayName => "Animal/General";
+        public enum AnimalCondition
+        { Grounded, RootMotion, FreeMovement, AlwaysForward, Sleep, AdditivePosition, AdditiveRotation, InZone, InGroundChanger }
 
-        public enum AnimalCondition 
-        { Grounded, RootMotion, FreeMovement, AlwaysForward, Sleep, AdditivePosition, AdditiveRotation,InZone, InGroundChanger }
-        
         public AnimalCondition Condition;
 
         public override bool _Evaluate()
@@ -23,8 +22,8 @@
                     case AnimalCondition.Sleep: return Target.Sleep;
                     case AnimalCondition.AdditivePosition: return Target.UseAdditivePos;
                     case AnimalCondition.AdditiveRotation: return Target.UseAdditiveRot;
-                    case AnimalCondition.InZone: return Target.InZone != null;
-                    case AnimalCondition.InGroundChanger: return Target.GroundChanger != null;
+                    case AnimalCondition.InZone: return Target.InZone;
+                    case AnimalCondition.InGroundChanger: return Target.GroundChanger != null && Target.GroundChanger.Lerp > 0;
                 }
             }
             return false;

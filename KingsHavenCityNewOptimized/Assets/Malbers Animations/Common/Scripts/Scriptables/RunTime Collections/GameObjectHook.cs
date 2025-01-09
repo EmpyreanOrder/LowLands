@@ -15,7 +15,7 @@ namespace MalbersAnimations.Scriptables
 
         private void OnDisable()
         {
-            if (Hook.Value == gameObject) DisableHook(); //Disable it only when is not this gameobject
+            if (Hook && Hook.Value == gameObject) DisableHook(); //Disable it only when is not this gameobject
         }
 
         public virtual void UpdateHook() => Hook.Value = gameObject;

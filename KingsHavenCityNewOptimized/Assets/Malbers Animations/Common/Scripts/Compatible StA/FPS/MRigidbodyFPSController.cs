@@ -24,15 +24,15 @@ namespace MalbersAnimations.SA
         private bool m_Jump, m_PreviouslyGrounded, m_Jumping, m_IsGrounded;
         private float oldYRotation;
 
-        public bool LockMovement { get => lockMovement; set => lockMovement = value;  }
-        public Vector3 Velocity =>  m_RigidBody.linearVelocity;
-      
-        public bool Grounded =>  m_IsGrounded;
+        public bool LockMovement { get => lockMovement; set => lockMovement = value; }
+        public Vector3 Velocity => m_RigidBody.linearVelocity;
+
+        public bool Grounded => m_IsGrounded;
 
         public bool Jumping => m_Jumping;
 
         public bool Running => movementSettings.Running;
- 
+
 
         private void Start()
         {
@@ -48,7 +48,7 @@ namespace MalbersAnimations.SA
         private void Update()
         {
             RotateView();
-            if (Input.GetButtonDown("Jump") && !m_Jump)  m_Jump = true;
+            if (Input.GetButtonDown("Jump") && !m_Jump) m_Jump = true;
         }
 
         public void RestartMouseLook()
@@ -123,7 +123,7 @@ namespace MalbersAnimations.SA
             {
                 if (Mathf.Abs(Vector3.Angle(hitInfo.normal, Vector3.up)) < 85f)
                 {
-                    m_RigidBody.linearVelocity = Vector3.ProjectOnPlane(m_RigidBody.linearVelocity, hitInfo.normal);
+                    if (!m_RigidBody.isKinematic) m_RigidBody.linearVelocity = Vector3.ProjectOnPlane(m_RigidBody.linearVelocity, hitInfo.normal);
                 }
             }
         }
@@ -155,7 +155,10 @@ namespace MalbersAnimations.SA
             {
                 // Rotate the rigidbody velocity to match the new direction that the character is looking
                 Quaternion velRotation = Quaternion.AngleAxis(transform.eulerAngles.y - oldYRotation, Vector3.up);
-                m_RigidBody.linearVelocity = velRotation * m_RigidBody.linearVelocity;
+                if (!m_RigidBody.isKinematic)
+                    m_RigidBody.linearVelocity = velRotation * m_RigidBody.linearVelocity;
+
+
             }
         }
 

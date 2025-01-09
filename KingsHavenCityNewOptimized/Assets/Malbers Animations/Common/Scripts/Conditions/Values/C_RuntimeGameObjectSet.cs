@@ -1,25 +1,24 @@
-﻿using MalbersAnimations.Controller;
-using MalbersAnimations.Scriptables;
-using System.Collections.Generic;
+﻿using MalbersAnimations.Scriptables;
 using UnityEngine;
 
 namespace MalbersAnimations.Conditions
 {
     [System.Serializable]
+    [AddTypeMenu("Values/Runtime GameObject Set")]
     public class C_RuntimeGameObjectSet : MCondition
     {
         public enum RuntimeGameObjectCondition { Empty, Size, HasItem }
 
-        public override string DisplayName => "Values/Runtime GameObject Set";
+        // public override string DisplayName => "Values/Runtime GameObject Set";
 
         [RequiredField]
         public RuntimeGameObjects Target;
         public RuntimeGameObjectCondition Condition = RuntimeGameObjectCondition.Empty;
-        [Hide("Condition",false,true,(int)RuntimeGameObjectCondition.Size)] 
+        [Hide("Condition", false, true, (int)RuntimeGameObjectCondition.Size)]
         public int Size;
         public GameObjectReference item;
         /// <summary>Set target on the Conditions</summary>
-        public override void SetTarget(Object target)
+        protected override void _SetTarget(Object target)
         {
             if (target == null && target is RuntimeGameObjects)
                 Target = target as RuntimeGameObjects;
@@ -40,7 +39,5 @@ namespace MalbersAnimations.Conditions
             }
             return false;
         }
-
-        private void Reset() => Name = "New RuntimeGameObject Set Comparer";
     }
 }

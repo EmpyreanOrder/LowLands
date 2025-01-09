@@ -1,5 +1,5 @@
-﻿using UnityEngine;
-using MalbersAnimations.Scriptables;
+﻿using MalbersAnimations.Scriptables;
+using UnityEngine;
 
 namespace MalbersAnimations.Controller.AI
 {
@@ -47,11 +47,19 @@ namespace MalbersAnimations.Controller.AI
                         break;
                     }
                     break;
+                case PatrolType.LocalRuntimeSet:
+                    var LocalRuntimeSet = brain.GetComponent<GetRuntimeGameObjects>();
+                    if (LocalRuntimeSet != null && LocalRuntimeSet.Collection != null)
+                    {
+                        GameObject go = LocalRuntimeSet.Collection.GetItem(rtype, RTIndex, RTName, brain.Animal.gameObject);
+                        if (go) brain.AIControl.SetTarget(go.transform, true);
+                    }
+                    break;
                 default:
                     break;
             }
 
-            brain.AIControl.LookAtTargetOnArrival = LookAtOnArrival; 
+            brain.AIControl.LookAtTargetOnArrival = LookAtOnArrival;
 
             brain.TaskDone(index);
         }
@@ -65,17 +73,69 @@ namespace MalbersAnimations.Controller.AI
         {
             brain.AIControl.AutoNextTarget = true; //When Patrolling make sure AutoTarget is set to true... 
 
-            if (IgnoreWaitTime)
+            switch (patrolType)
             {
-                brain.AIControl.StopWait(); //Ingore wait time
-                brain.AIControl.SetTarget(brain.AIControl.NextTarget,true);
-            }                        
+                case PatrolType.LastWaypoint:
+                    if (IgnoreWaitTime)
+                    {
+                        brain.AIControl.StopWait(); //Ingore wait time
+                        brain.AIControl.SetTarget(brain.AIControl.NextTarget, true);
+                    }
+                    break;
+                case PatrolType.UseRuntimeSet:
+
+                    GameObject NextTarget = RuntimeSet.GetItem(rtype, RTIndex, RTName, brain.Animal.gameObject);
+
+                    if (NextTarget && brain.AIControl.NextTarget == null)
+                    {
+                        if (IgnoreWaitTime)
+                        {
+                            brain.AIControl.StopWait(); //Ingore wait time
+                            brain.AIControl.SetTarget(NextTarget.transform, true);
+                        }
+                        else
+                        {
+                            brain.AIControl.SetNextTarget(NextTarget);
+                            brain.AIControl.MovetoNextTarget();
+                        }
+                    }
+                    break;
+                case PatrolType.LocalRuntimeSet:
+                    var LocalRuntimeSet = brain.GetComponent<GetRuntimeGameObjects>();
+
+                    if (LocalRuntimeSet != null && LocalRuntimeSet.Collection != null)
+                    {
+                        GameObject NextTarget2 = LocalRuntimeSet.Collection.GetItem(rtype, RTIndex, RTName, brain.Animal.gameObject);
+                        if (NextTarget2) brain.AIControl.SetTarget(NextTarget2.transform, true);
+
+                        if (NextTarget2 && brain.AIControl.NextTarget == null)
+                        {
+                            if (IgnoreWaitTime)
+                            {
+                                brain.AIControl.StopWait(); //Ingore wait time
+                                brain.AIControl.SetTarget(NextTarget2.transform, true);
+                            }
+                            else
+                            {
+                                brain.AIControl.SetNextTarget(NextTarget2);
+                                brain.AIControl.MovetoNextTarget();
+                            }
+                        }
+                    }
+                    break;
+                default:
+                    break;
+            }
         }
 
         void Reset() { Description = "Simple Patrol Logic using the Default AiAnimal Control Movement System"; }
     }
 
-    public enum PatrolType { LastWaypoint, UseRuntimeSet }
+    public enum PatrolType
+    {
+        LastWaypoint, UseRuntimeSet,
+        LocalRuntimeSet
+    }
 
 
 
@@ -83,7 +143,7 @@ namespace MalbersAnimations.Controller.AI
     [UnityEditor.CustomEditor(typeof(PatrolTask))]
     public class PatrolTaskEditor : UnityEditor.Editor
     {
-        UnityEditor.SerializedProperty Description, MessageID, patrolType, RuntimeSet, rtype, RTIndex, RTName, 
+        UnityEditor.SerializedProperty Description, MessageID, patrolType, RuntimeSet, rtype, RTIndex, RTName, UpdateInterval,
             WaitForPreviousTask, LookAtOnArrival, IgnoreWaitTime;
 
         private void OnEnable()
@@ -95,6 +155,7 @@ namespace MalbersAnimations.Controller.AI
             rtype = serializedObject.FindProperty("rtype");
             RTIndex = serializedObject.FindProperty("RTIndex");
             RTName = serializedObject.FindProperty("RTName");
+            UpdateInterval = serializedObject.FindProperty("UpdateInterval");
             RuntimeSet = serializedObject.FindProperty("RuntimeSet");
             LookAtOnArrival = serializedObject.FindProperty("LookAtOnArrival");
             IgnoreWaitTime = serializedObject.FindProperty("IgnoreWaitTime");
@@ -104,6 +165,7 @@ namespace MalbersAnimations.Controller.AI
             serializedObject.Update();
             UnityEditor.EditorGUILayout.PropertyField(Description);
             UnityEditor.EditorGUILayout.PropertyField(MessageID);
+            UnityEditor.EditorGUILayout.PropertyField(UpdateInterval);
             UnityEditor.EditorGUILayout.PropertyField(WaitForPreviousTask);
             UnityEditor.EditorGUILayout.Space();
 
@@ -111,33 +173,30 @@ namespace MalbersAnimations.Controller.AI
 
             var tt = (PatrolType)patrolType.intValue;
 
-            switch (tt)
+            if (tt == PatrolType.LocalRuntimeSet)
             {
-                case PatrolType.LastWaypoint:
-
-                    break;
-                case PatrolType.UseRuntimeSet:
-
-                    UnityEditor.EditorGUILayout.PropertyField(RuntimeSet);
-                    UnityEditor.EditorGUILayout.PropertyField(rtype, new GUIContent("Get"));
-                    var Sel = (RuntimeSetTypeGameObject)rtype.intValue;
-                    switch (Sel)
-                    {
-                        case RuntimeSetTypeGameObject.Index:
-                            UnityEditor.EditorGUILayout.PropertyField(RTIndex, new GUIContent("Element Index"));
-                            break;
-                        case RuntimeSetTypeGameObject.ByName:
-                            UnityEditor.EditorGUILayout.PropertyField(RTName, new GUIContent("Element Name"));
-                            break;
-                        default:
-                            break;
-                    }
-                    break;
-
-                default:
-                    break;
+                UnityEditor.EditorGUILayout.HelpBox("Add a [GetRuntimeGameObjects] to the Brain GameObject to get the set from there", UnityEditor.MessageType.Info);
             }
 
+            if (tt != PatrolType.LastWaypoint)
+            {
+                if (tt == PatrolType.UseRuntimeSet)
+                    UnityEditor.EditorGUILayout.PropertyField(RuntimeSet);
+
+                UnityEditor.EditorGUILayout.PropertyField(rtype, new GUIContent("Get"));
+                var Sel = (RuntimeSetTypeGameObject)rtype.intValue;
+                switch (Sel)
+                {
+                    case RuntimeSetTypeGameObject.Index:
+                        UnityEditor.EditorGUILayout.PropertyField(RTIndex, new GUIContent("Element Index"));
+                        break;
+                    case RuntimeSetTypeGameObject.ByName:
+                        UnityEditor.EditorGUILayout.PropertyField(RTName, new GUIContent("Element Name"));
+                        break;
+                    default:
+                        break;
+                }
+            }
             UnityEditor.EditorGUILayout.PropertyField(LookAtOnArrival);
             UnityEditor.EditorGUILayout.PropertyField(IgnoreWaitTime);
 

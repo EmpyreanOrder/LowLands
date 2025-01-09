@@ -11,10 +11,10 @@ namespace MalbersAnimations.Controller
         public override string StateIDName => "Glide";
 
         [Header("Glide Parameters")]
-        public FloatReference GravityDrag = new FloatReference(3);
+        public FloatReference GravityDrag = new(3);
 
         [Tooltip("Minimun Height required to activate the glide")]
-        public FloatReference StartHeight = new FloatReference(0);
+        public FloatReference StartHeight = new(0);
 
         [Header("Free Movement Parameters")]
         [/*Range(0, 90),*/Tooltip("Bank amount used when turning")]
@@ -31,15 +31,14 @@ namespace MalbersAnimations.Controller
         public float PitchStrafe = 0;
 
         [Tooltip("When Entering the Glide State... The animal will keep the Velocity from the last State if this value is greater than zero")]
-        public FloatReference InertiaLerp = new FloatReference(1);
+        public FloatReference InertiaLerp = new(1);
 
         [Tooltip("The animal will move forward while Gliding, without the need to push the W Key, or Move forward Input")]
-        public BoolReference KeepForward = new BoolReference(false);
+        public BoolReference KeepForward = new(false);
         //private bool LastAlwaysForward;
 
         [Tooltip("The animal will change the Camera Input while the Animal is using this State")]
-        public BoolReference UseCameraInput = new BoolReference(true);
-        private bool LastUseCameraInput;
+        public BoolReference UseCameraInput = new(true);
 
 
         //[Tooltip("If the Animal has a force applied to it Remove the Force with this acceleration")]
@@ -50,12 +49,12 @@ namespace MalbersAnimations.Controller
         [Tooltip("Layers to Land on")]
         public LayerMask LandOn = (1);
         [Tooltip("Ray Length multiplier to check for ground near")]
-        public FloatReference CheckLandDistance = new FloatReference(3f);
+        public FloatReference CheckLandDistance = new(3f);
         [Tooltip("Ray Length multiplier to check for ground and automatically land (increases or decreases the MainPivot Lenght for the Fall Ray")]
-        public FloatReference LandDistance = new FloatReference(1f);
+        public FloatReference LandDistance = new(1f);
         [Tooltip("Minimum Distance to Clamp the State Float")]
-        public FloatReference LowerBlendDistance = new FloatReference(0.5f);
-        public FloatReference LerpDistance = new FloatReference(2);
+        public FloatReference LowerBlendDistance = new(0.5f);
+        public FloatReference LerpDistance = new(2);
 
         protected Vector3 verticalInertia;
         protected Vector3 DownPush;
@@ -65,30 +64,30 @@ namespace MalbersAnimations.Controller
         {
             if (StartHeight <= 0) return true; //if there's no height skip checking Start Height
 
+            var TouchedGround = Physics.Raycast(animal.Main_Pivot_Point, animal.Gravity, out _, animal.Height + StartHeight * ScaleFactor, animal.GroundLayer);
+
+            if (TouchedGround) ResetInputOnFailed();
+
             //if we touch any ground send False. Meaning the Glide cannot play.
-            return !Physics.Raycast(animal.Main_Pivot_Point, animal.Gravity, out _, animal.Height + StartHeight * ScaleFactor, animal.GroundLayer);
+            return !TouchedGround;
         }
 
         public override bool TryActivate()
         {
-            return base.TryActivate() && CheckStartHeight();
+            return base.TryActivate() && TryOverride && CheckStartHeight();
         }
 
         public override bool KeepForwardMovement => KeepForward.Value;
 
-        public override void AwakeState()
-        {
-            base.AwakeState();
-            LastUseCameraInput = animal.UseCameraInput;     //Cache the Last Use Camera Input
-        }
-
         public override void Activate()
         {
             base.Activate();
-            LastUseCameraInput = animal.UseCameraInput;     //Cache the Last Use Camera Input
+
+            // LastUseCameraInput = animal.UseCameraInput;     //Cache the Last Use Camera Input
             animal.UseCameraInput = UseCameraInput;     //Set the NEW Use Camera Input
-            InputValue = true; //Make sure the Input is set to True when the flying is not being activated by an input player
-            if (animal.ExternalForceAcel == 0) animal.Force_Remove(0);
+            InputValue = true; //Make sure the Input is set to True when the glide is not being activated by an input player
+
+            animal.Force_Reset(); //Remove forces
         }
 
         public override void EnterCoreAnimation()
@@ -137,7 +136,7 @@ namespace MalbersAnimations.Controller
             var NormalizedDistance = 1f;
 
             Debug.DrawRay(animal.Main_Pivot_Point, Gravity * Distance, Color.yellow);
-            Debug.DrawRay(animal.Main_Pivot_Point, Gravity * LandDistance * animal.ScaleFactor, Color.green);
+            Debug.DrawRay(animal.Main_Pivot_Point, animal.ScaleFactor * LandDistance * Gravity, Color.green);
 
             if (Physics.Raycast(animal.Main_Pivot_Point, Gravity, out RaycastHit hit, Distance, LandOn, IgnoreTrigger))
             {
@@ -160,7 +159,6 @@ namespace MalbersAnimations.Controller
         }
 
 
-
         public override void ResetStateValues()
         {
             verticalInertia = Vector3.zero;
@@ -172,7 +170,7 @@ namespace MalbersAnimations.Controller
         {
             animal.FreeMovement = false;
             //   animal.AlwaysForward = LastAlwaysForward;
-            animal.UseCameraInput = LastUseCameraInput;
+            animal.ResetCameraInput();
 
             animal.Speed_Lock(false);
             animal.LockUpDownMovement = false;
@@ -199,7 +197,6 @@ namespace MalbersAnimations.Controller
         }
 
 #if UNITY_EDITOR
-
         public override void SetSpeedSets(MAnimal animal)
         {
             var setName = "Glide";

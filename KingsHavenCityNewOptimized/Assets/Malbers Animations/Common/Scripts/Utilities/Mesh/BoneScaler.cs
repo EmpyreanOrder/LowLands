@@ -21,13 +21,13 @@ namespace MalbersAnimations.Utilities
         public Transform Root;
 
         [Delayed]
-        public string[] Filter = new string[19]
+        public string[] Filter = new string[]
         { "Pivot", "Attack", "Track", "Trigger", "Camera", "Target",
             "Fire", "Debug","AI","Look","Appearance","Interaction",
-            "Internal","Mesh","Rotator", "Effect","Stamina","Sound","Cinemachine" };
+            "Internal","Mesh","Rotator", "Effect","Stamina","Sound","Cinemachine" , "Audio", "Particle"};
 
         // public bool rotations;
-        public List<Transform> Bones = new List<Transform>();
+        public List<Transform> Bones = new();
 
 
         [ContextMenu("Refresh Bones")]
@@ -37,7 +37,7 @@ namespace MalbersAnimations.Utilities
             if (Root)
                 Bones = Root.GetComponentsInChildren<Transform>().ToList();
 
-            List<Transform> newbones = new List<Transform>();
+            List<Transform> newbones = new();
             foreach (var b in Bones)
             {
                 bool foundOne = false;
@@ -64,7 +64,7 @@ namespace MalbersAnimations.Utilities
         {
             if (preset)
             {
-                preset.Bones = new List<MiniTransform>();
+                preset.Bones = new ();
 
                 for (int i = 0; i < Bones.Count; i++)
                 {
@@ -98,7 +98,7 @@ namespace MalbersAnimations.Utilities
             {
                 Bones = transform.GetComponentsInChildren<Transform>().ToList(); ;
 
-                List<Transform> newbones = new List<Transform>();
+                List<Transform> newbones = new();
 
                 if (preset.Bones[0].name == "Root")
                 {

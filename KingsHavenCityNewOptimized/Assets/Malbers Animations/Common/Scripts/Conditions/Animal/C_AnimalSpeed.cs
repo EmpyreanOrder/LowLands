@@ -1,24 +1,23 @@
-﻿using MalbersAnimations.Controller;
-using UnityEngine;
-
-namespace MalbersAnimations.Conditions
+﻿namespace MalbersAnimations.Conditions
 {
     [System.Serializable]
+    [AddTypeMenu("Animal/Speeds")]
     public class C_AnimalSpeed : MAnimalCondition
     {
         public enum SpeedCondition { VerticalSpeed, CurrentSpeedSet, CurrentSpeedModifier, ActiveIndex, Sprinting, CanSprint }
 
         public SpeedCondition Condition;
-        [Hide("showCompare", false)]
+
+        [Hide(nameof(Condition), (int)SpeedCondition.CurrentSpeedSet, (int)SpeedCondition.CurrentSpeedModifier)]
         public ComparerInt compare = ComparerInt.Equal;
 
-        [Hide("showValue", false)]
+        [Hide(nameof(Condition), (int)SpeedCondition.CurrentSpeedSet, (int)SpeedCondition.CurrentSpeedModifier)]
         public float Value = 0;
 
-        [Hide("showName", false)]
+        [Hide(nameof(Condition), (int)SpeedCondition.VerticalSpeed)]
         public string SpeedName;
 
-        public override string DisplayName => "Animal/Speeds";
+        //public override string DisplayName => "Animal/Speeds";
 
         public override bool _Evaluate()
         {
@@ -42,23 +41,6 @@ namespace MalbersAnimations.Conditions
 
             }
             return false;
-        }
-
-        [HideInInspector, SerializeField] private bool showName, showValue, showCompare;
-
-        protected override void OnValidate()
-        {
-            base.OnValidate();
-
-            showName = Condition == SpeedCondition.CurrentSpeedModifier || Condition == SpeedCondition.CurrentSpeedSet;
-            showValue = Condition == SpeedCondition.ActiveIndex || Condition == SpeedCondition.VerticalSpeed;
-            showCompare = Condition == SpeedCondition.VerticalSpeed;
-        }
-
-        private void Reset()
-        {
-            Name = "New Animal Speed Condition";
-            Target = this.FindComponent<MAnimal>();
         }
     }
 }

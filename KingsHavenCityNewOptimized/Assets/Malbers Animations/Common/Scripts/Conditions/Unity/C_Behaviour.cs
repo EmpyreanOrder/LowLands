@@ -1,19 +1,20 @@
 ﻿using UnityEngine;
-  
+
 namespace MalbersAnimations.Conditions
 {
-    public enum ComponentCondition {Enabled, ActiveAndEnabled }
+    public enum ComponentCondition { Enabled, ActiveAndEnabled }
 
     [System.Serializable]
+    [AddTypeMenu("Unity/Behavior")]
     public class C_Behaviour : MCondition
     {
-        public override string DisplayName => "Unity/Behavior";
+        //public override string DisplayName => "Unity/Behavior";
 
         [Tooltip("Target to check for the condition ")]
         [RequiredField] public Behaviour Target;
         [Tooltip("Conditions types")]
         public ComponentCondition Condition;
-        
+
 
         public override bool _Evaluate()
         {
@@ -28,10 +29,8 @@ namespace MalbersAnimations.Conditions
             return false;
         }
 
-        public override void SetTarget(Object target)
-        {
-            if (target is Behaviour) this.Target = target as Behaviour;
-        }
+        protected override void _SetTarget(Object target) => VerifyTarget(target, ref Target);
+
         private void Reset() => Name = "New Behaviour Condition";
     }
 }

@@ -1,9 +1,10 @@
 ﻿namespace MalbersAnimations.Conditions
 {
     [System.Serializable]
+    [AddTypeMenu("Animal/Stances")]
     public class C_AnimalStance : MAnimalCondition
     {
-        public override string DisplayName => "Animal/Stances";
+        // public override string DisplayName => "Animal/Stances";
 
         public enum StanceCondition { CurrentStance, DefaultStance }
         public StanceCondition Condition;

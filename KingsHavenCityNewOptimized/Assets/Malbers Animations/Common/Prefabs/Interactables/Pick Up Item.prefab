@@ -28,6 +28,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8942318349578972157}
+  serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0.751, y: 0.177, z: -1.168}
   m_LocalScale: {x: 0.15, y: 0.15, z: 0.15}
@@ -35,7 +36,6 @@ Transform:
   m_Children:
   - {fileID: 3402575032448288703}
   m_Father: {fileID: 0}
-  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!54 &8942318349578972144
 Rigidbody:
@@ -44,10 +44,21 @@ Rigidbody:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8942318349578972157}
-  serializedVersion: 2
+  serializedVersion: 4
   m_Mass: 1
   m_Drag: 2
   m_AngularDrag: 2
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
   m_UseGravity: 1
   m_IsKinematic: 0
   m_Interpolate: 0
@@ -61,9 +72,17 @@ SphereCollider:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8942318349578972157}
   m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
   m_IsTrigger: 0
+  m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 2
+  serializedVersion: 3
   m_Radius: 0.49999997
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!33 &8942318349578972145
@@ -94,7 +113,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 5578bdf27ee7bf743bd72e8e4172913c, type: 2}
+  - {fileID: 2100000, guid: d4082d27720f3074cb96901279733fd8, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -128,7 +147,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b5472d22282f85745834021dd59fc302, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Align: 1
+  Align: 0
   AlignPos: 1
   AlignTime: 0.15
   AlignDistance: 1
@@ -156,11 +175,7 @@ MonoBehaviour:
     UseConstant: 1
     ConstantValue: 0
     Variable: {fileID: 0}
-  SceneRoot:
-    UseConstant: 1
-    ConstantValue: 0
-    Variable: {fileID: 0}
-  m_Value:
+  m_Amount:
     UseConstant: 1
     ConstantValue: 1
     Variable: {fileID: 0}
@@ -172,6 +187,7 @@ MonoBehaviour:
     UseConstant: 1
     ConstantValue: 0
     Variable: {fileID: 0}
+  holder: -1
   OnFocused:
     m_PersistentCalls:
       m_Calls:
@@ -190,50 +206,79 @@ MonoBehaviour:
   OnFocusedBy:
     m_PersistentCalls:
       m_Calls: []
+  OnUnfocusedBy:
+    m_PersistentCalls:
+      m_Calls: []
   OnPicked:
     m_PersistentCalls:
       m_Calls: []
   OnPrePicked:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 11400000, guid: 797619f9b2a1451479af45a1161a24e8, type: 2}
-        m_TargetAssemblyTypeName: 
-        m_MethodName: React
-        m_Mode: 0
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
   OnDropped:
     m_PersistentCalls:
       m_Calls: []
   OnPreDropped:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 11400000, guid: c2c1c34c851e3d845a1cadefbdc409df, type: 2}
-        m_TargetAssemblyTypeName: 
-        m_MethodName: React
-        m_Mode: 0
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
+  FocusedByReaction:
+    rid: -2
+  UnFocusedByReaction:
+    rid: -2
+  PickedReaction:
+    rid: -2
+  PrePickedReaction:
+    rid: 7553353671455801344
+  DroppedReaction:
+    rid: -2
+  PreDroppedReaction:
+    rid: 7553353671455801345
   rb: {fileID: 8942318349578972144}
   m_colliders: []
-  EditorTabs: 0
+  EditorTabs: 2
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 7553353671455801344
+      type: {class: ModeReaction, ns: MalbersAnimations.Reactions, asm: MalbersAnimations}
+      data:
+        Active: 1
+        localComponent:
+          component: {fileID: 0}
+          useLocal: 0
+        delay: 0
+        type: 0
+        ID: {fileID: 11400000, guid: c0d938e24e7fe1f4a8f00633ce81a5b1, type: 2}
+        Ability: 1
+        HasCoolDown: 1
+        coolDown: 0
+        abilityStatus: 0
+        AbilityTime: 3
+        ModePower: 0
+    - rid: 7553353671455801345
+      type: {class: ModeReaction, ns: MalbersAnimations.Reactions, asm: MalbersAnimations}
+      data:
+        Active: 1
+        localComponent:
+          component: {fileID: 0}
+          useLocal: 0
+        delay: 0
+        type: 0
+        ID: {fileID: 11400000, guid: c0d938e24e7fe1f4a8f00633ce81a5b1, type: 2}
+        Ability: 2
+        HasCoolDown: 1
+        coolDown: 0
+        abilityStatus: 0
+        AbilityTime: 3
+        ModePower: 0
 --- !u!1001 &4569458280085826059
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Modification:
+    serializedVersion: 3
     m_TransformParent: {fileID: 8942318349578972147}
     m_Modifications:
     - target: {fileID: 1175903420998626740, guid: 1c7a0f3efad6ffd4898f40074ea5bcc2,
@@ -307,6 +352,9 @@ PrefabInstance:
       value: Pick Up
       objectReference: {fileID: 0}
     m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 1c7a0f3efad6ffd4898f40074ea5bcc2, type: 3}
 --- !u!4 &3402575032448288703 stripped
 Transform:

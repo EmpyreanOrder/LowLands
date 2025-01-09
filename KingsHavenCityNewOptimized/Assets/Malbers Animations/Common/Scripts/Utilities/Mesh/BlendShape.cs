@@ -10,11 +10,10 @@ namespace MalbersAnimations.Utilities
     {
         [CreateScriptableAsset]
         public BlendShapePreset preset;
-        public bool LoadPresetOnStart = true;
         [RequiredField]
         public SkinnedMeshRenderer mesh;
         public SkinnedMeshRenderer[] LODs;
-         
+
         public float[] blendShapes;                    //Value of the Blend Shape
 
         [Tooltip("Min Value to use on the blendshapes")]
@@ -22,6 +21,7 @@ namespace MalbersAnimations.Utilities
         [Tooltip("Max Value to use on the blendshapes")]
         public float Max = 100;
 
+        [Tooltip("Start with a random shape on Start")]
         public bool random;
         public int PinnedShape;
 
@@ -31,7 +31,7 @@ namespace MalbersAnimations.Utilities
 
         private void Start()
         {
-            if (LoadPresetOnStart)
+            if (preset)
                 LoadPreset();
             else if (random)
                 Randomize();
@@ -110,10 +110,10 @@ namespace MalbersAnimations.Utilities
                     blendShapes[i] = preset.blendShapes[i];
                 }
 
-                Debug.Log("Preset: " + preset.name + " Loaded");
+                Debug.Log("Preset: " + preset.name + " Loaded", this);
                 UpdateBlendShapes();
 
-                MTools.SetDirty(preset);
+                if (!Application.isPlaying) MTools.SetDirty(preset);
             }
         }
 
@@ -138,7 +138,21 @@ namespace MalbersAnimations.Utilities
             {
                 for (int i = 0; i < blendShapes.Length; i++)
                 {
-                    blendShapes[i] = Random.Range(0, 100);
+                    blendShapes[i] = Random.Range(Min, Max);
+                    mesh.SetBlendShapeWeight(i, blendShapes[i]);
+                }
+                UpdateLODs();
+            }
+        }
+
+        /// <summary>Set Random Values to the Mesh Blend Shapes</summary>
+        public virtual void ResetToZero()
+        {
+            if (HasBlendShapes)
+            {
+                for (int i = 0; i < blendShapes.Length; i++)
+                {
+                    blendShapes[i] = 0;
                     mesh.SetBlendShapeWeight(i, blendShapes[i]);
                 }
                 UpdateLODs();
@@ -165,15 +179,9 @@ namespace MalbersAnimations.Utilities
                 mesh.SetBlendShapeWeight(PinnedShape = index, value);
         }
 
-        public virtual void _PinShape(string name)
-        {
-            PinnedShape = mesh.sharedMesh.GetBlendShapeIndex(name);
-        }
+        public virtual void _PinShape(string name) => PinnedShape = mesh.sharedMesh.GetBlendShapeIndex(name);
 
-        public virtual void _PinShape(int index)
-        {
-            PinnedShape = index;
-        }
+        public virtual void _PinShape(int index) => PinnedShape = index;
 
         public virtual void _PinnedShapeSetValue(float value)
         {
@@ -229,9 +237,11 @@ namespace MalbersAnimations.Utilities
         void CreateListeners()
         {
 
-            MEventListener listener = this.FindComponent<MEventListener>();
-            if (listener == null) listener = transform.root.gameObject.AddComponent<MEventListener>();
-            if (listener.Events == null) listener.Events = new List<MEventItemListener>();
+            MEventListener listener =
+                (this.FindComponent<MEventListener>()
+                ?? transform.root.GetComponentInChildren<MEventListener>())
+                ?? transform.root.gameObject.AddComponent<MEventListener>();
+            listener.Events ??= new List<MEventItemListener>();
 
             MEvent BlendS = MTools.GetInstance<MEvent>("Blend Shapes");
 

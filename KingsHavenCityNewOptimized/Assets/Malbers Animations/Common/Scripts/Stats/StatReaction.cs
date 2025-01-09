@@ -4,7 +4,7 @@ using UnityEngine;
 namespace MalbersAnimations.Reactions
 {
     [System.Serializable]
-    [AddTypeMenu("Malbers/Stats")]
+    [AddTypeMenu("Malbers/Stats/Stat Modify")]
 
     public class StatReaction : Reaction
     {

@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+﻿/*using System.Collections.Generic;
 using UnityEngine;
 
 #if UNITY_EDITOR
@@ -114,7 +114,7 @@ namespace MalbersAnimations.Weapons
         public static GUIStyle StyleBlue => MTools.Style(new Color(0, 0.5f, 1f, 0.3f));
         public static GUIStyle StyleGreen => MTools.Style(new Color(0f, 1f, 0.5f, 0.3f));
 
-        private SerializedProperty holsters, DefaultHolster, /*m_active_Holster, */HolsterTime;
+        private SerializedProperty holsters, DefaultHolster, /*m_active_Holster, HolsterTime;
         private ReorderableList holsterReordable;
 
         private Holsters m;
@@ -222,4 +222,4 @@ namespace MalbersAnimations.Weapons
     }
 #endif
 #endregion
-}
+}*/

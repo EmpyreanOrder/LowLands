@@ -38,6 +38,7 @@ namespace MalbersAnimations.UI
 
         private List<MDamageableUI> TrackedStats;
 
+        [Tooltip("Change the Scale of the UI if the hit is critical")]
         public Vector3 CriticalScale = Vector3.one;
 
         private Camera MainCamera;

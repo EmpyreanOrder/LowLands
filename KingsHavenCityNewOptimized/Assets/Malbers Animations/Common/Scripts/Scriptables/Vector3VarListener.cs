@@ -10,8 +10,8 @@ namespace MalbersAnimations
     [HelpURL("https://malbersanimations.gitbook.io/animal-controller/secondary-components/variable-listeners-and-comparers")]
     public class Vector3VarListener : VarListener
     {
-        public Vector3Reference value = new Vector3Reference();
-        public Vector3Event OnValue = new Vector3Event();
+        public Vector3Reference value = new();
+        public Vector3Event OnValue = new();
 
         public Vector3 Value
         {
@@ -33,6 +33,19 @@ namespace MalbersAnimations
         {
             if (value.Variable != null) value.Variable.OnValueChanged -= Invoke;
         }
+
+
+        public void TransformUp(Transform tr) => tr.up = Value.normalized;
+        public void TransforDown(Transform tr) => tr.up = -Value.normalized;
+        public void TransforForward(Transform tr) => tr.forward = Value.normalized;
+        public void TransformBackwards(Transform tr) => tr.forward = -Value.normalized;
+        public void TransformRight(Transform tr) => tr.right = Value.normalized;
+        public void TransformLeft(Transform tr) => tr.right = -Value.normalized;
+        public void SetValueDirectionFromObject(Transform Target) => Value = transform.DirectionTo(Target).normalized;
+        public void SetValueDirectionFromObjectInverse(Transform Target) => Value = Target.DirectionTo(transform);
+        public void SetValueDirectionFromObject(GameObject Target) => SetValueDirectionFromObject(Target.transform);
+        public void SetValueDirectionFromObjectInverse(GameObject Target) => SetValueDirectionFromObjectInverse(Target.transform);
+
 
         public virtual void Invoke(Vector3 value)
         {
@@ -68,7 +81,7 @@ namespace MalbersAnimations
             OnTrue = serializedObject.FindProperty("OnValue");
         }
 
-        protected override void DrawEvents()
+        protected override void DrawElemets()
         {
             UnityEditor.EditorGUILayout.PropertyField(OnTrue);
         }

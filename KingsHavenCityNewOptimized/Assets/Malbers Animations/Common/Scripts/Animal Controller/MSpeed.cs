@@ -2,48 +2,56 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+
+#if UNITY_EDITOR
+using UnityEditor;
+using UnityEditorInternal;
+#endif
 using UnityEngine;
 
 namespace MalbersAnimations.Controller
 {
     [System.Serializable]
-    public class MSpeedSet : IComparable,IComparer
+    public class MSpeedSet : IComparable, IComparer
     {
         [Tooltip("Name of the Speed Set")]
         public string name;
-       
+
         [Tooltip("Which Speed the Set will start, This value is the Index for the Speed Modifier List, Starting the first index with (1) instead of (0)")]
         public IntReference StartVerticalIndex;
         [Tooltip("Set the Top Index when Increasing the Speed using SpeedUP")]
         public IntReference TopIndex;
 
         [Tooltip("Index Value of the Sprint Speed")]
-        public IntReference m_SprintIndex = new IntReference(10);
+        public IntReference m_SprintIndex = new(10);
 
         [Tooltip("When the Speed is locked this will be the value s")]
-        public IntReference m_LockIndex = new IntReference(1);
+        public IntReference m_LockIndex = new(1);
 
         [Tooltip("Lock the Speed Set to Certain Value")]
-        public BoolReference m_LockSpeed = new BoolReference(false);
+        public BoolReference m_LockSpeed = new(false);
 
 
         [Tooltip("RootMotion multiplier for the speeds Position. Set it to zero to remove RootMotion movement")]
-        public FloatReference m_RootMotionPos = new FloatReference(1f);
+        public FloatReference m_RootMotionPos = new(1f);
 
         [Tooltip("RootMotion multiplier for the speeds Rotation. Set it to zero to remove RootMotion Rotation")]
-        public FloatReference m_RootMotionRot = new FloatReference(1f);
+        public FloatReference m_RootMotionRot = new(1f);
 
         [Tooltip("Backwards Speed multiplier: When going backwards the speed will be decreased by this value")]
-        public FloatReference BackSpeedMult = new FloatReference(0.5f);
+        public FloatReference BackSpeedMult = new(0.5f);
 
         [Tooltip("Lerp used to Activate the FreeMovement")]
-        public FloatReference PitchLerpOn = new FloatReference(10f);
+        public FloatReference PitchLerpOn = new(10f);
 
         [Tooltip("Lerp used to Deactivate the FreeMovement")]
-        public FloatReference PitchLerpOff = new FloatReference(10f);
+        public FloatReference PitchLerpOff = new(10f);
 
         [Tooltip("Lerp used to for the Banking on FreeMovement")]
-        public FloatReference BankLerp = new FloatReference(10f);
+        public FloatReference BankLerp = new(10f);
+
+        [Tooltip("Up Down Multiplier ")]
+        public FloatReference UpDownMult = new(1);
 
 
         [Tooltip("States that will use the Speed Set")]
@@ -60,7 +68,7 @@ namespace MalbersAnimations.Controller
 
         /// <summary>THis Speed Set has no Stances
         public bool HasStances => stances != null && stances.Count > 0;
-      // public bool HasStates => states != null && states.Count > 0;
+        // public bool HasStates => states != null && states.Count > 0;
 
         /// <summary> Current Active Index of the SpeedSet</summary>
         public int CurrentIndex { get; set; }
@@ -80,9 +88,9 @@ namespace MalbersAnimations.Controller
             set
             {
                 m_LockSpeed.Value = value;
-               
+
                 if (value)
-                    LockedSpeedModifier = Speeds[Mathf.Clamp(LockIndex-1, 0, Speeds.Count - 1)]; //Extract the Lock Speed
+                    LockedSpeedModifier = Speeds[Mathf.Clamp(LockIndex - 1, 0, Speeds.Count - 1)]; //Extract the Lock Speed
             }
         }
 
@@ -94,9 +102,9 @@ namespace MalbersAnimations.Controller
         {
             name = "Set Name";
             states = new List<StateID>();
-            StartVerticalIndex = new IntReference(1);
-            TopIndex = new IntReference(2);
-            Speeds = new List<MSpeed>(1) { new MSpeed("SpeedName", 1, 4, 4) };
+            StartVerticalIndex = new(1);
+            TopIndex = new(2);
+            Speeds = new(1) { new MSpeed("SpeedName", 1, 4, 4) };
         }
 
         public MSpeed this[int index]
@@ -109,11 +117,11 @@ namespace MalbersAnimations.Controller
         /// <param name="name"></param>
         /// <returns></returns>
         public MSpeed this[string name] => Speeds.Find(x => x.name == name);
-       
+
         public bool HasStance(int stance)
         {
             if (!HasStances) return true;
-            else  return stances.Find(s => s.ID == stance);
+            else return stances.Find(s => s.ID == stance);
         }
 
         public int Compare(object x, object y)
@@ -141,24 +149,35 @@ namespace MalbersAnimations.Controller
         }
 
         public MSpeed GetSpeed(string name) => Speeds.Find(x => x.name == name);
+        public int GetSpeedIndex(string name) => Speeds.FindIndex(x => x.name == name);
+
+        internal void SwapSpeed(MSpeed NewSpeed)
+        {
+            //find the SpeedSet
+            var speedIndex = GetSpeedIndex(NewSpeed.Name);
+
+            Debug.Log($"speedIndex : {speedIndex}");
+
+            if (speedIndex != -1)
+            {
+                Speeds[speedIndex] = NewSpeed;
+            }
+        }
+
+        internal void AddSpeed(MSpeed NewSpeed)
+        {
+            Speeds.Add(NewSpeed);
+        }
     }
     [System.Serializable]
     /// <summary>Position, Rotation and Animator Modifiers for the Animals</summary>
-    public struct MSpeed  
+    public struct MSpeed
     {
         /// <summary>Default value for an MSpeed</summary>
         public static readonly MSpeed Default = new MSpeed("Default", 1, 4, 4);
 
         /// <summary>Name of this Speed</summary>
         public string name;
-
-
-
-        ///// <summary>Name of the Speed converted to HashCode, easier to compare</summary>
-        //public int nameHash;
-
-        ///// <summary>Name of this Speed</summary>
-        //public bool active = false;
 
         /// <summary>Vertical Mutliplier for the Animator</summary>
         public FloatReference Vertical;
@@ -175,9 +194,6 @@ namespace MalbersAnimations.Controller
 
         /// <summary>Add Aditional Rotation to the Speed</summary>
         public FloatReference rotation;
- 
-        ///// <summary> Smoothness to change to the Rotation speed, higher value more Responsiveness </summary>
-        //public FloatReference lerpRotation;
 
         /// <summary> Smoothness to change to the Animator Vertical speed, higher value more Responsiveness</summary>
         public FloatReference lerpRotAnim;
@@ -195,7 +211,7 @@ namespace MalbersAnimations.Controller
         /// <summary> Smoothness to change to the Rotation speed, higher value more Responsiveness </summary>
         public FloatReference lerpStrafe;
 
-        public string Name { get => name; set => name = value; }
+        public string Name { readonly get => name; set => name = value; }
 
         public MSpeed(MSpeed newSpeed)
         {
@@ -206,7 +222,7 @@ namespace MalbersAnimations.Controller
             lerpPosAnim = newSpeed.lerpPosAnim;
 
             rotation = newSpeed.rotation;
-          //  lerpRotation = newSpeed.lerpRotation;
+            //  lerpRotation = newSpeed.lerpRotation;
             lerpRotAnim = newSpeed.lerpRotAnim;
 
             animator = newSpeed.animator;
@@ -237,7 +253,7 @@ namespace MalbersAnimations.Controller
 
             animator = 1;
             lerpAnimator = lerpanim;
-           // nameHash = name.GetHashCode();
+            // nameHash = name.GetHashCode();
         }
 
         public MSpeed(string name, float vertical, float lerpPos, float lerpanim)
@@ -251,7 +267,7 @@ namespace MalbersAnimations.Controller
 
             rotation = 0;
             strafeSpeed = 0;
-           // lerpRotation = 4;
+            // lerpRotation = 4;
             lerpRotAnim = 4;
             lerpStrafe = 4;
 
@@ -259,7 +275,7 @@ namespace MalbersAnimations.Controller
             animator = 1;
             lerpAnimator = lerpanim;
 
-           // nameHash = name.GetHashCode();
+            // nameHash = name.GetHashCode();
         }
 
 
@@ -267,7 +283,7 @@ namespace MalbersAnimations.Controller
         {
             this.name = name;
             Vertical = 1;
-            
+
             position = 0;
             lerpPosition = 4;
             lerpPosAnim = 4;
@@ -276,7 +292,7 @@ namespace MalbersAnimations.Controller
             rotation = 0;
             strafeSpeed = 0;
 
-           // lerpRotation = 4;
+            // lerpRotation = 4;
             lerpRotAnim = 4;
             lerpStrafe = 4;
 
@@ -284,7 +300,157 @@ namespace MalbersAnimations.Controller
             animator = 1;
             lerpAnimator = 4;
 
-           // nameHash = name.GetHashCode();
+            // nameHash = name.GetHashCode();
         }
     }
+
+#if UNITY_EDITOR
+    public static class MSpeedEditor
+    {
+        public static void ShowSpeeds(ReorderableList list, List<MSpeedSet> set, int OldSelectedSpeed, ref int SpeedTabs)
+        {
+            // using (new GUILayout.VerticalScope())
+            {
+                EditorGUILayout.HelpBox("For [In Place] animations <Not Root Motion>, Increse [Position] and [Rotation] values for each Speed Set", MessageType.Info);
+                list.DoLayoutList();        //Paint the Reordable List speeds 
+
+                list.index = OldSelectedSpeed;
+
+                if (list.index != -1)
+                {
+                    var SelectedSpeed = list.serializedProperty.GetArrayElementAtIndex(list.index); //?!??!
+
+                    if (SelectedSpeed != null)
+                    {
+                        var Speeds = SelectedSpeed.FindPropertyRelative("Speeds");
+                        using (new GUILayout.VerticalScope(EditorStyles.helpBox))
+                        {
+                            EditorGUI.indentLevel++;
+                            EditorGUILayout.PropertyField(SelectedSpeed, false);
+                            EditorGUI.indentLevel--;
+
+                            if (SelectedSpeed.isExpanded)
+                            {
+                                EditorGUILayout.LabelField("Speed Index Values", EditorStyles.boldLabel);
+
+
+                                var StarSpeed = set[list.index].StartVerticalIndex.Value;
+                                var GCC = GUI.contentColor;
+
+                                using (new GUILayout.VerticalScope(EditorStyles.helpBox))
+                                {
+                                    using (new EditorGUI.DisabledGroupScope(true))
+                                    {
+                                        for (int i = 0; i < Speeds.arraySize; i++)
+                                        {
+
+                                            var speedN = Speeds.GetArrayElementAtIndex(i).FindPropertyRelative("name").stringValue;
+
+                                            if (StarSpeed - 1 == i)
+                                            {
+                                                GUI.contentColor = Color.yellow;
+                                                speedN += " [Start]";
+                                            }
+                                            EditorGUILayout.FloatField(speedN, 1 + i);
+                                            GUI.contentColor = GCC;
+                                        }
+                                    }
+                                }
+
+                                SpeedTabs = GUILayout.Toolbar(SpeedTabs, new string[2] { "General", "Speeds" });
+
+                                using (new GUILayout.VerticalScope(EditorStyles.helpBox))
+                                {
+                                    if (SpeedTabs == 0)
+                                    {
+
+                                        var states = SelectedSpeed.FindPropertyRelative("states");
+                                        var stances = SelectedSpeed.FindPropertyRelative("stances");
+                                        var StartVerticalSpeed = SelectedSpeed.FindPropertyRelative("StartVerticalIndex");
+                                        var TopIndex = SelectedSpeed.FindPropertyRelative("TopIndex");
+                                        var BackSpeedMult = SelectedSpeed.FindPropertyRelative("BackSpeedMult");
+
+
+                                        var PitchLerpOn = SelectedSpeed.FindPropertyRelative("PitchLerpOn");
+                                        var PitchLerpOff = SelectedSpeed.FindPropertyRelative("PitchLerpOff");
+                                        var BankLerp = SelectedSpeed.FindPropertyRelative("BankLerp");
+                                        var UpDownMult = SelectedSpeed.FindPropertyRelative("UpDownMult");
+                                        var m_LockSpeed = SelectedSpeed.FindPropertyRelative("m_LockSpeed");
+                                        var m_SprintIndex = SelectedSpeed.FindPropertyRelative("m_SprintIndex");
+
+                                        var m_LockIndex = SelectedSpeed.FindPropertyRelative("m_LockIndex");
+                                        var m_RootMotionPos = SelectedSpeed.FindPropertyRelative("m_RootMotionPos");
+                                        var m_RootMotionRot = SelectedSpeed.FindPropertyRelative("m_RootMotionRot");
+
+
+
+                                        StartVerticalSpeed.isExpanded = MalbersEditor.Foldout(StartVerticalSpeed.isExpanded, "Indexes");
+                                        if (StartVerticalSpeed.isExpanded)
+                                        {
+                                            EditorGUILayout.PropertyField(StartVerticalSpeed, new GUIContent("Start Index", StartVerticalSpeed.tooltip));
+                                            EditorGUILayout.PropertyField(TopIndex);
+                                            EditorGUILayout.PropertyField(m_SprintIndex);
+                                            EditorGUILayout.PropertyField(BackSpeedMult, new GUIContent("Back Speed Mult", BackSpeedMult.tooltip));
+                                        }
+
+                                        m_RootMotionPos.isExpanded = MalbersEditor.Foldout(m_RootMotionPos.isExpanded, "RootMotion");
+                                        if (m_RootMotionPos.isExpanded)
+                                        {
+                                            EditorGUILayout.PropertyField(m_RootMotionPos);
+                                            EditorGUILayout.PropertyField(m_RootMotionRot);
+                                        }
+
+
+
+                                        m_LockSpeed.isExpanded = MalbersEditor.Foldout(m_LockSpeed.isExpanded, "Lock Speed");
+                                        if (m_LockSpeed.isExpanded)
+                                        {
+                                            EditorGUILayout.PropertyField(m_LockSpeed);
+                                            EditorGUILayout.PropertyField(m_LockIndex);
+                                        }
+
+
+                                        PitchLerpOn.isExpanded = MalbersEditor.Foldout(PitchLerpOn.isExpanded, "Free Movement Lerp Values");
+
+                                        if (PitchLerpOn.isExpanded)
+                                        {
+                                            EditorGUILayout.PropertyField(PitchLerpOn);
+                                            EditorGUILayout.PropertyField(PitchLerpOff);
+                                            EditorGUILayout.PropertyField(BankLerp);
+                                            EditorGUILayout.PropertyField(UpDownMult);
+                                        }
+
+
+                                        BankLerp.isExpanded = MalbersEditor.Foldout(BankLerp.isExpanded, "Limits");
+
+                                        if (BankLerp.isExpanded)
+                                        {
+                                            // EditorGUILayout.Space();
+                                            EditorGUI.indentLevel++;
+                                            EditorGUI.indentLevel++;
+                                            EditorGUILayout.PropertyField(states, new GUIContent("States", "States that will activate these Speeds"), true);
+                                            EditorGUILayout.PropertyField(stances, new GUIContent("Stances", "Stances that will activate these Speeds"), true);
+                                            EditorGUI.indentLevel--;
+                                            EditorGUI.indentLevel--;
+                                        }
+
+                                    }
+                                    else
+                                    {
+
+                                        // EditorGUILayout.Space();
+                                        EditorGUI.indentLevel++;
+                                        EditorGUILayout.PropertyField(Speeds, new GUIContent("Speeds", "Speeds for this speed Set"), true);
+                                        EditorGUI.indentLevel--;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            //DisplayActiveSpeed();
+        }
+    }
+#endif
 }

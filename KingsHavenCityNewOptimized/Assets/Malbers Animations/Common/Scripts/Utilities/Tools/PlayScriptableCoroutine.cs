@@ -6,8 +6,8 @@ namespace MalbersAnimations.Utilities
 {
     public class PlayScriptableCoroutine : MonoBehaviour
     {
-        public FloatReference time = new FloatReference(0.5f);
-        public AnimationCurve curve = new AnimationCurve(new Keyframe[] { new Keyframe(0, 0), new Keyframe(1, 1) });
+        public FloatReference time = new(0.5f);
+        public AnimationCurve curve = new(new Keyframe[] { new(0, 0), new(1, 1) });
 
 
         public List<PresetItem> presets;

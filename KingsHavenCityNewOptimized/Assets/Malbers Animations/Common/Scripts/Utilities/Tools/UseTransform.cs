@@ -1,8 +1,9 @@
-﻿using UnityEngine;
+﻿using MalbersAnimations.Utilities;
+using UnityEngine;
 
 namespace MalbersAnimations
 {
-    [AddComponentMenu("Malbers/Utilities/Tools/Use Transform")]
+    [AddComponentMenu("Malbers/Utilities/Tools/Use (Follow) Transform")]
 
     public class UseTransform : MonoBehaviour
     {
@@ -14,47 +15,95 @@ namespace MalbersAnimations
         }
 
 
+        public enum XYZEnum { X = 1, Y = 2, Z = 4 }
+
+
         [Tooltip("Transform to use the Position as Reference")]
         public Transform Reference;
-        [Tooltip("Use the Reference's Rotation")]
-        public bool rotation = true;  
-        public UpdateMode RotationUpdate = UpdateMode.LateUpdate;
+
         [Tooltip("Use the Reference's Position")]
         public bool position = true;
+        [Hide(nameof(position))]
         public UpdateMode PositionUpdate = UpdateMode.FixedUpdate;
 
+        [Hide(nameof(position))]
+        [Flag]
+        public XYZEnum posAxis = XYZEnum.X | XYZEnum.Y | XYZEnum.Z;
+        [Hide(nameof(position))]
+        [Min(0)] public float lerpPos = 0f;
 
+        [Tooltip("Use the Reference's Rotation")]
+        public bool rotation = true;
+        [Hide(nameof(rotation))]
+        public UpdateMode RotationUpdate = UpdateMode.LateUpdate;
+
+
+        [Hide(nameof(rotation))]
+        [Min(0)] public float lerpRot = 0f;
+
+
+        //private void OnEnable()
+        //{
+        //    if (Reference != null)
+        //    {
+
+        //    }
+        //}
+
+        //IEnumerator C_UpdatePos()
+        //{
+        //    while (true)
+        //    {
+        //        SetPositionReference(Time.deltaTime);
+        //        yield return null;
+        //    }
+        //}
 
         // Update is called once per frame
         void Update()
         {
-            if (PositionUpdate == UpdateMode.Update) SetPositionReference();
-            if (RotationUpdate == UpdateMode.Update) SetRotationReference();
+            if (Reference == null) return;
+
+            if (PositionUpdate == UpdateMode.Update) SetPositionReference(Time.deltaTime);
+            if (RotationUpdate == UpdateMode.Update) SetRotationReference(Time.deltaTime);
         }
 
         void LateUpdate()
         {
-            if (PositionUpdate == UpdateMode.LateUpdate) SetPositionReference();
-            if (RotationUpdate == UpdateMode.LateUpdate) SetRotationReference();
+            if (Reference == null) return;
+
+            if (PositionUpdate == UpdateMode.LateUpdate) SetPositionReference(Time.deltaTime);
+            if (RotationUpdate == UpdateMode.LateUpdate) SetRotationReference(Time.deltaTime);
         }
 
         void FixedUpdate()
         {
-            if (PositionUpdate == UpdateMode.FixedUpdate) SetPositionReference();
-            if (RotationUpdate == UpdateMode.FixedUpdate) SetRotationReference();
+            if (Reference == null) return;
+
+            if (PositionUpdate == UpdateMode.FixedUpdate) SetPositionReference(Time.fixedDeltaTime);
+            if (RotationUpdate == UpdateMode.FixedUpdate) SetRotationReference(Time.fixedDeltaTime);
         }
 
-        private void SetPositionReference()
+        private void SetPositionReference(float delta)
         {
-            if (!Reference) return;
-            if (position) transform.position = Reference.position;
+            if (position)
+            {
+                var newPos = transform.position;
+
+                if ((posAxis & XYZEnum.X) == XYZEnum.X) newPos.x = Reference.position.x;
+                if ((posAxis & XYZEnum.Y) == XYZEnum.Y) newPos.y = Reference.position.y;
+                if ((posAxis & XYZEnum.Z) == XYZEnum.Z) newPos.z = Reference.position.z;
+
+
+                transform.position = Vector3.Lerp(transform.position, newPos, lerpPos == 0 ? 1 : delta * lerpPos);
+            }
         }
 
 
-        private void SetRotationReference()
+        private void SetRotationReference(float delta)
         {
-            if (!Reference) return;
-            if (rotation) transform.rotation = Reference.rotation;
+            if (rotation)
+                transform.rotation = Quaternion.Lerp(transform.rotation, Reference.rotation, lerpRot == 0 ? 1 : delta * lerpRot);
         }
     }
 }

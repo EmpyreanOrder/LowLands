@@ -13,29 +13,30 @@ namespace MalbersAnimations.Controller
         public float Multiplier;
     }
 
-    [CreateAssetMenu(menuName = "Malbers Animations/Modifier/Mode/Directional Dodge")]
+    [CreateAssetMenu(menuName = "Malbers Animations/Modifier/Mode/Force")]
     public class ModifierForce : ModeModifier
     {
         [HelpBox]
         public string Desc = "Applies a Force to the Animal when the Mode starts. Remove the force when the mode ends";
 
         [Tooltip("Direction of the Force")]
-        public Vector3Reference Direction = new Vector3Reference(Vector3.forward);
+        public Vector3Reference Direction = new(Vector3.forward);
 
         [Tooltip("Use the Raw Input Axis Instead of the Direction Value")]
-        public BoolReference UseInputAxis = new BoolReference();
+        public BoolReference UseInputAxis = new();
 
         [Tooltip("Amount of force to apply to the Animal")]
-        public FloatReference Force = new FloatReference(2);
+        public FloatReference Force = new(2);
         [Tooltip("Time the Force will be applied to the Animal. if is set to Zero then it will be applied during the whole Animation")]
-        public FloatReference m_Time = new FloatReference(0);
+        public FloatReference m_Time = new(0);
         [Tooltip("Start Acceleration of the force")]
-        public FloatReference EnterAceleration = new FloatReference(5);
+        public FloatReference EnterAceleration = new(5);
         [Tooltip("Exit Acceleration of the force")]
-        public FloatReference ExitAceleration = new FloatReference(5);
+        public FloatReference ExitAceleration = new(5);
         [Tooltip("When the Force is applied the Gravity will be Reseted")]
-        public BoolReference ResetGravity = new BoolReference(true);
-
+        public BoolReference ResetGravity = new(true);
+        [Tooltip("Remove Y value from the Additive position")]
+        public BoolReference NoY = new();
         [Header("Check States")]
 
         [Tooltip("Increase the Force applied depending which state the Animal is playing")]
@@ -58,18 +59,25 @@ namespace MalbersAnimations.Controller
             var Direction = UseInputAxis.Value ? mode.Animal.RawInputAxis : this.Direction;
 
             mode.Animal.Force_Add(mode.Animal.transform.TransformDirection(Direction), Force * multiplier, EnterAceleration, ResetGravity);
+
+
+            mode.Animal.UpInertia_Clear();
         }
 
-        public override void OnModeMove(Mode mode, AnimatorStateInfo stateinfo, Animator anim, int Layer)
+        public override void OnModeMove(Mode mode)
         {
-            if (m_Time > 0 &&
-                m_Time < Time.time - mode.ActivationTime &&
-                mode.Animal.ExternalForce != Vector3.zero)
+            if (m_Time > 0 && MTools.ElapsedTime(mode.ActivationTime, m_Time)
+                && mode.Animal.ExternalForce != Vector3.zero)
             {
                 mode.Animal.Force_Remove(ExitAceleration);
             }
 
-            if (ResetGravity) { mode.Animal.GravityOffset = Vector3.zero; }
+            if (NoY) mode.Animal.additivePosition.y = 0;
+            if (ResetGravity)
+            {
+                mode.Animal.GravityOffset = Vector3.zero;
+                mode.Animal.GravityTime--;
+            }
         }
 
         public override void OnModeExit(Mode mode) => mode.Animal.Force_Remove(ExitAceleration);

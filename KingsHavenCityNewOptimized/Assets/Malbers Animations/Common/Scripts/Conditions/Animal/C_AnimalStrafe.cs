@@ -1,9 +1,10 @@
 ﻿namespace MalbersAnimations.Conditions
 {
     [System.Serializable]
+    [AddTypeMenu("Animal/Strafe")]
     public class C_AnimalStrafe : MAnimalCondition
     {
-        public override string DisplayName => "Animal/Strafe";
+        //public override string DisplayName => "Animal/Strafe";
 
         public enum StrafeCondition { Strafing, CanSrafe }
         public StrafeCondition Condition;

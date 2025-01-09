@@ -1,55 +1,69 @@
-﻿using MalbersAnimations.Utilities;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace MalbersAnimations.Controller
 {
     [HelpURL("https://docs.google.com/document/d/1QBLQVWcDSyyWBDrrcS2PthhsToWkOayU0HUtiiSWTF8/edit#heading=h.kraxblx9518t")]
     public class Death : State
     {
-        public override string StateName => "Death";
+        public override string StateName => "Death/Death (Animation)";
+
         public override string StateIDName => "Death";
 
-        [Header("Death Parameters")]
-
+        [Tooltip("Disable all components when the animal dies. Use this when your animal will not respawn")]
         public bool DisableAllComponents = true;
-        public bool RemoveAllColliders = false;
-        public bool RemoveAllTriggers = true;
+        [Tooltip("Disable the main collider when the animal dies. Use this when your animal will not respawn")]
+        public bool DisableMainCollider = true;
+        [Tooltip("Disable the internal collider when the animal dies. Use this when your animal will not respawn")]
+        public bool DisableInternalColliders = false;
+        // public bool RemoveAllTriggers = true;
         public bool IsKinematic = true;
-        public bool DisableModes = true;
+        //public bool DisableModes = true;
         public int DelayFrames = 2;
         public float RigidbodyDrag = 5;
         public float RigidbodyAngularDrag = 15;
 
         [Space]
         public bool disableAnimal = true;
-        
-        [Hide("disableAnimal")] 
+
+        [Hide("disableAnimal")]
         public float disableAnimalTime = 5f;
-
-
 
         public override void EnterCoreAnimation()
         {
             animal.Mode_Interrupt();
-            if (IsKinematic)
+
+            if (animal.RB && IsKinematic)
             {
                 animal.RB.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative; //For Kinematic!!
                 animal.RB.isKinematic = true;
             }
+
             animal.StopMoving();
-            animal.InputSource?.Enable(false);
+            animal.InputSource?.Enable(false); //Disable the Input Source
             animal.Mode_Stop();
+            animal.SetModeStatus(0);
             animal.Delay_Action(DelayFrames, () => DisableAll()); //Wait 2 frames
-            if (DisableModes) animal.Mode_Disable_All();
+        }
+
+        public override void OnStateMove(float deltatime)
+        {
+            if (!animal.Grounded)
+            {
+                animal.CheckIfGrounded();
+                animal.UseGravity = false;
+            }
         }
 
         void DisableAll()
         {
             SetEnterStatus(0);
 
+            if (DisableMainCollider && animal.MainCollider != null) { animal.MainCollider.enabled = false; }
+
             if (DisableAllComponents)
             {
                 var AllComponents = animal.GetComponentsInChildren<MonoBehaviour>();
+
                 foreach (var comp in AllComponents)
                 {
                     if (comp == animal) continue;
@@ -57,17 +71,11 @@ namespace MalbersAnimations.Controller
                 }
             }
 
-            var AllTriggers = animal.GetComponentsInChildren<Collider>();
+            if (DisableInternalColliders)
+                foreach (var c in animal.colliders) c.SetEnable(false);
 
-            foreach (var trig in AllTriggers)
-            {
-                if (RemoveAllColliders || (RemoveAllTriggers && trig.isTrigger))
-                {
-                    Destroy(trig);
-                }
-            }
 
-            animal.SetCustomSpeed(new MSpeed("Death"));
+            animal.SetCustomSpeed(new MSpeed("Death")); //Clear the Current Speed
 
             if (animal.RB)
             {
@@ -92,6 +100,8 @@ namespace MalbersAnimations.Controller
             base.Reset();
 
             ID = MTools.GetInstance<StateID>("Death");
+
+            noModes.Value = true;
 
             General = new AnimalModifier()
             {

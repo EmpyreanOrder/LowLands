@@ -1,6 +1,7 @@
 ﻿using MalbersAnimations.Events;
 using System.Collections.Generic;
 using UnityEngine;
+
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -18,27 +19,28 @@ namespace MalbersAnimations
         public WayPointType pointType = WayPointType.Ground;
         [Tooltip("Distance for AI driven animals to stop when arriving to this gameobject. When is set as the AI Target.")]
         [Min(0)] public float stoppingDistance = 1f;
-       
-        
+
+
         [Tooltip("Distance for AI driven animals to start slowing its speed when arriving to this gameobject. If its set to zero or lesser than the Stopping distance, the Slowing Movement Logic will be ignored")]
         [Min(0)] public float slowingDistance = 0;
-
 
         [Tooltip(" When the AI animal arrives to the target, do we Rotate the Animal so it looks at the center of the waypoint?")]
         [SerializeField] private bool m_arriveLookAt = false;
 
         [Tooltip("Default Height for the Waypoints")]
-        [Min(0)] [SerializeField] private float m_height = 0.5f;
+        [Min(0)][SerializeField] private float m_height = 0.5f;
+
         public float Height => m_height;
 
         [MinMaxRange(0, 60), Tooltip("Waytime range to go to the next destination")]
-        public RangedFloat m_WaitTime = new RangedFloat(1, 5);
+        public RangedFloat m_WaitTime = new(1, 5);
 
         public Color DebugColor = Color.red;
         public float WaitTime => m_WaitTime.RandomValue;
 
         public WayPointType TargetType => pointType;
 
+        public virtual Vector3 GetCenterPosition(int Index) => transform.position;
         public virtual Vector3 GetCenterPosition() => transform.position;
         public Vector3 GetCenterY() => transform.position + transform.up * Height;
         public virtual float StopDistance() => stoppingDistance * transform.localScale.y; //IMPORTANT For Scaled objects like the ball
@@ -52,13 +54,12 @@ namespace MalbersAnimations
         public bool ArriveLookAt => m_arriveLookAt;
 
         [Space]
-        public GameObjectEvent OnTargetArrived = new GameObjectEvent();
+        public GameObjectEvent OnTargetArrived = new();
 
 
-
-       protected virtual void OnEnable()
+        protected virtual void OnEnable()
         {
-            if (WayPoints == null) WayPoints = new List<MWayPoint>();
+            WayPoints ??= new List<MWayPoint>();
             WayPoints.Add(this);
         }
 
@@ -96,6 +97,20 @@ namespace MalbersAnimations
             return null;
         }
 
+
+        public int CurrentTargetLimit { get; set; }
+
+
+        public float GetRadiusTargeter(int index)
+        {
+            return StopDistance();
+        }
+
+
+
+
+
+
 #if UNITY_EDITOR
         /// <summary>DebugOptions</summary>
 
@@ -114,8 +129,8 @@ namespace MalbersAnimations
             }
             else
             {
-                MDebug.GizmoCircle(base.transform.position, Quaternion.FromToRotation( transform.forward,transform.up), stoppingDistance, DebugColor);
-               
+                MDebug.GizmoCircle(base.transform.position, Quaternion.FromToRotation(transform.forward, transform.up), stoppingDistance, DebugColor);
+
                 if (stoppingDistance < slowingDistance)
                 {
                     MDebug.GizmoCircle(base.transform.position, Quaternion.FromToRotation(transform.forward, transform.up), slowingDistance, Color.cyan);
@@ -123,15 +138,15 @@ namespace MalbersAnimations
             }
 
             Gizmos.color = DebugColor;
-           
+
             Gizmos.DrawRay(transform.position, transform.up * Height);
-            Gizmos.DrawWireSphere(transform.position,   Height * 0.1f);
+            Gizmos.DrawWireSphere(transform.position, Height * 0.1f);
             Gizmos.DrawWireSphere(transform.position + transform.up * Height, Height * 0.1f);
-          
+
             var col = DebugColor;
             col.a = 0.333f;
             Gizmos.color = col;
-            Gizmos.DrawSphere(transform.position,  Height * 0.1f);
+            Gizmos.DrawSphere(transform.position, Height * 0.1f);
             Gizmos.DrawSphere(transform.position + transform.up * Height, Height * 0.1f);
 
 
@@ -149,7 +164,7 @@ namespace MalbersAnimations
 
         private void OnDrawGizmosSelected()
         {
-            Gizmos.color =  Color.yellow;
+            Gizmos.color = Color.yellow;
             Gizmos.DrawRay(transform.position, transform.up * Height);
             Gizmos.DrawWireSphere(transform.position, Height * 0.1f);
             Gizmos.DrawWireSphere(transform.position + transform.up * Height, Height * 0.1f);
@@ -182,11 +197,13 @@ namespace MalbersAnimations
 
 
 #if UNITY_EDITOR
-    [UnityEditor.CustomEditor(typeof(MWayPoint)),CanEditMultipleObjects]
-    public class MWayPointEditor : UnityEditor.Editor
+    [UnityEditor.CustomEditor(typeof(MWayPoint)), CanEditMultipleObjects]
+    public class MWayPointEditor : Editor
     {
         UnityEditor.SerializedProperty
-            pointType, stoppingDistance, slowingDistance, WaitTime, nextWayPoints, DebugColor, OnTargetArrived, m_height, m_arriveLookAt;
+            pointType, stoppingDistance, slowingDistance, WaitTime, nextWayPoints,
+            //m_targetDistance, m_TargetLimit,
+            DebugColor, OnTargetArrived, m_height, m_arriveLookAt;
 
         MWayPoint M;
 
@@ -199,10 +216,11 @@ namespace MalbersAnimations
 
 
             //Get all WP Names
-            var allWP = UnityEngine.Object.FindObjectsOfType<MWayPoint>();
+            var allWP = FindObjectsByType<MWayPoint>(FindObjectsSortMode.None);
+
             uniquenames = new string[allWP.Length];
             for (int i = 0; i < allWP.Length; i++) uniquenames[i] = allWP[i].name;
-            
+
 
             pointType = serializedObject.FindProperty("pointType");
             stoppingDistance = serializedObject.FindProperty("stoppingDistance");
@@ -213,6 +231,8 @@ namespace MalbersAnimations
             OnTargetArrived = serializedObject.FindProperty("OnTargetArrived");
             m_height = serializedObject.FindProperty("m_height");
             m_arriveLookAt = serializedObject.FindProperty("m_arriveLookAt");
+            //  m_targetDistance = serializedObject.FindProperty("m_targetDistance");
+            // m_TargetLimit = serializedObject.FindProperty("m_TargetLimit");
         }
 
         public override void OnInspectorGUI()
@@ -220,19 +240,21 @@ namespace MalbersAnimations
             serializedObject.Update();
 
             MalbersEditor.DrawDescription("Uses this Transform position as the destination point for AI Driven characters");
-          //  EditorGUILayout.BeginVertical(MTools.StyleGray);
+            //  EditorGUILayout.BeginVertical(MTools.StyleGray);
             {
                 UnityEditor.EditorGUILayout.BeginVertical(UnityEditor.EditorStyles.helpBox);
                 {
-                    UnityEditor.EditorGUILayout.BeginHorizontal();
-                    UnityEditor.EditorGUILayout.PropertyField(pointType);
-                    UnityEditor.EditorGUILayout.PropertyField(DebugColor, GUIContent.none, GUILayout.Width(40));
-                    UnityEditor.EditorGUILayout.EndHorizontal();
-                    UnityEditor.EditorGUILayout.PropertyField(m_height);
-                    UnityEditor.EditorGUILayout.PropertyField(m_arriveLookAt);
-                    UnityEditor.EditorGUILayout.PropertyField(stoppingDistance);
-                    UnityEditor.EditorGUILayout.PropertyField(slowingDistance);
-                    UnityEditor.EditorGUILayout.PropertyField(WaitTime);
+                    EditorGUILayout.BeginHorizontal();
+                    EditorGUILayout.PropertyField(pointType);
+                    EditorGUILayout.PropertyField(DebugColor, GUIContent.none, GUILayout.Width(40));
+                    EditorGUILayout.EndHorizontal();
+                    EditorGUILayout.PropertyField(m_height);
+                    EditorGUILayout.PropertyField(m_arriveLookAt);
+                    EditorGUILayout.PropertyField(stoppingDistance);
+                    EditorGUILayout.PropertyField(slowingDistance);
+                    // EditorGUILayout.PropertyField(m_TargetLimit);
+                    // EditorGUILayout.PropertyField(m_targetDistance);
+                    EditorGUILayout.PropertyField(WaitTime);
                 }
                 UnityEditor.EditorGUILayout.EndVertical();
 
@@ -241,8 +263,8 @@ namespace MalbersAnimations
                     UnityEditor.EditorGUI.indentLevel++;
                     if (GUILayout.Button("Create Next Waypoint"))
                     {
-                        var nextWayP =  UnityEngine.Object.Instantiate(M.gameObject);
-                        nextWayP.transform.position += M.gameObject.transform.forward*2;
+                        var nextWayP = UnityEngine.Object.Instantiate(M.gameObject);
+                        nextWayP.transform.position += M.gameObject.transform.forward * 2;
                         nextWayP.name = UnityEditor.ObjectNames.GetUniqueName(uniquenames, M.name);
 
                         System.Array.Resize(ref uniquenames, uniquenames.Length + 1);
@@ -264,7 +286,7 @@ namespace MalbersAnimations
                 UnityEditor.EditorGUILayout.EndVertical();
                 UnityEditor.EditorGUILayout.PropertyField(OnTargetArrived);
             }
-           // UnityEditor.EditorGUILayout.EndVertical();
+            // UnityEditor.EditorGUILayout.EndVertical();
             serializedObject.ApplyModifiedProperties();
         }
     }

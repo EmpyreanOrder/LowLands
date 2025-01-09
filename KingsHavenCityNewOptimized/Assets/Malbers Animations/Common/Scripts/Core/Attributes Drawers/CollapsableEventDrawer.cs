@@ -8,7 +8,7 @@ using UnityEngine;
 using UnityEngine.Events;
 
 namespace MalbersAnimations
-{
+{/*
     [CustomPropertyDrawer(typeof(UnityEvent))]
     [CustomPropertyDrawer(typeof(IntEvent))]
     [CustomPropertyDrawer(typeof(Int2Event))]
@@ -201,5 +201,6 @@ namespace MalbersAnimations
             return (ReorderableList)_stateReorderableListFieldInfo.GetValue(state);
         }
     }
+    */
 }
 #endif
