@@ -55,7 +55,7 @@ namespace MalbersAnimations
                         NewMono.transform.ResetLocal();
                     }
 
-                    var mono = NewMono.AddComponent(MTools.GetPropertyType(property));
+                    var mono = NewMono.AddComponent(MSerializedTools.GetPropertyType(property));
                     property.objectReferenceValue = mono;
                     property.serializedObject.ApplyModifiedProperties();
                     property.serializedObject.Update();

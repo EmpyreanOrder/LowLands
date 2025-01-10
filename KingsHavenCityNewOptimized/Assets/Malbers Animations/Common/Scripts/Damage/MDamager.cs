@@ -5,6 +5,8 @@ using MalbersAnimations.Reactions;
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.Events;
+
 
 #if UNITY_EDITOR
 using UnityEditorInternal;
@@ -27,9 +29,17 @@ namespace MalbersAnimations.Controller
         protected BoolReference m_Active = new(true);
 
 
-        [SerializeField, Tooltip("Hit Layer to interact with Objects"), ContextMenuItem("Get Layer from Root", "GetLayerFromRoot")]
-        protected LayerReference m_hitLayer = new(-1);
+        [Tooltip("Hit Layer to interact with Objects"), ContextMenuItem("Get Layer from Root", "GetLayerFromRoot")]
+        public LayerReference m_hitLayer = new(-1);
 
+        [Tooltip("Search only Tags")]
+        public Tag[] Tags;
+
+        public virtual bool CanCauseDamage { get; set; }
+
+
+        [Tooltip("True: the Attack Direction is calculated using the movement.\nFalse: The Attact Direction is the Character Forward Direction")]
+        public bool AttackDirection = false;
 
         [SerializeField, Tooltip("What to do with Triggers")]
         protected QueryTriggerInteraction triggerInteraction = QueryTriggerInteraction.Ignore;
@@ -83,6 +93,11 @@ namespace MalbersAnimations.Controller
         [ContextMenuItem("Set Default Damage", "Set_DefaultDamage")]
         public StatModifier statModifier = new();
 
+
+        /// <summary>Miss Change (0 - 1)</summary>
+        [SerializeField, Tooltip("Miss Chance (0 - 1)\n1 means it will always Miss")]
+        protected FloatReference m_MissChance = new(0);
+
         /// <summary>Critical Change (0 - 1)</summary>
         [SerializeField, Tooltip("Critical Change (0 - 1)\n1 means it will be always critical")]
         protected FloatReference m_cChance = new(0);
@@ -102,13 +117,26 @@ namespace MalbersAnimations.Controller
 
 
         [Tooltip("Stores the Direction of the Attack. Used to apply the Force and to know the Direction of the Hit from the Damager")]
-        protected Vector3 Direction = Vector3.forward;
+        protected Vector3 Direction { get; set; }
+        //{
+        //    get => direction;
+        //    set {
+        //        direction = value;
+        //      //  Debug.Log($"direction -> {direction}");
+        //    }
+        //}
+        //Vector3 direction;
+        /// <summary>Point of of Contact</summary>
+        public Vector3 HitPosition { get; protected set; }
+
+        /// <summary>Rotation of the Point of contact (Normal)</summary>
+        public Quaternion HitRotation { get; protected set; }
 
         public TransformEvent OnHit = new();
         public Vector3Event OnHitPosition = new();
         public IntEvent OnHitInteractable = new();
-        public IntEvent OnProfileChanged = new ();
-
+        public IntEvent OnProfileChanged = new();
+        public UnityEvent OnAttackMissed = new();
 
         //[Tooltip("When the Attack Trigger Touches a valid collider, it will stop the animator to give an extra effect")]
         //public BoolReference StopAnimator = new BoolReference(false);
@@ -163,6 +191,7 @@ namespace MalbersAnimations.Controller
 
         public AudioSource m_audio;
         protected bool playingSound;
+
         protected void PlaySound(AudioClip newSound)
         {
             if (m_audio && !playingSound && gameObject.activeInHierarchy)
@@ -170,16 +199,24 @@ namespace MalbersAnimations.Controller
                 playingSound = true;
 
                 //HACK FOR THE SOUND
-                this.Delay_Action(2, () =>
+                // this.Delay_Action(2, () =>
                 {
                     m_audio.clip = newSound;
                     m_audio.Play();
+
                     playingSound = false;
                 }
-                );
+                //  );
             }
         }
 
+
+        protected virtual bool MissAttack()
+        {
+            var MissedAttack = m_MissChance >= UnityEngine.Random.value;  //Calculate if is critical  
+            if (MissedAttack) OnAttackMissed.Invoke();
+            return MissedAttack;
+        }
 
         protected void CheckAudioSource()
         {
@@ -194,6 +231,10 @@ namespace MalbersAnimations.Controller
         /// <summary>>Critical Change (0 - 1)</summary>
         public float CriticalChance { get => m_cChance.Value; set => m_cChance.Value = value; }
 
+
+        /// <summary>>Miss Change (0 - 1)</summary>
+        public float MissChance { get => m_MissChance.Value; set => m_MissChance.Value = value; }
+
         /// <summary>>Index of the Damager</summary>
         public virtual int Index => index;
         public virtual int ID => interactorID.Value;
@@ -206,16 +247,37 @@ namespace MalbersAnimations.Controller
         }
 
 
-        /// <summary>Point of of Contact</summary>
-        public Vector3 HitPosition { get; private set; }
+        protected IEnumerator C_Direction;
+        protected IEnumerator I_CalculateDirection(Collider Trigger)
+        {
+            var lastPos = Trigger.bounds.center;
 
-        /// <summary>Rotation of the Point of contact (Normal)</summary>
-        public Quaternion HitRotation { get; private set; }
+            var debColor = (Color.red + Color.yellow) / 2;
+            debColor.a = 0.7f;
+
+
+            while (CanCauseDamage)
+            {
+                // Debug.Log("CANCAUSE");
+                var newDir = (Trigger.bounds.center - lastPos).normalized;                    //Calculate the direction of the attack
+                if (newDir != Vector3.zero) Direction = newDir;
+                //Direction = Owner.transform.forward;
+                lastPos = Trigger.bounds.center;
+                if (debug) MDebug.Draw_Arrow(Trigger.bounds.center, Direction, debColor, .5f);
+                yield return null;
+            }
+        }
+
         #endregion
 
         /// <summary>  The Damagee does not have all the conditions to apply the Damage  </summary>
         public virtual bool IsInvalid(Collider damagee)
         {
+            if (Tags != null && Tags.Length > 0)
+            {
+                if (!damagee.gameObject.HasMalbersTagInParent(Tags)) return true;
+            }
+
             if (damagee.isTrigger && TriggerInteraction == QueryTriggerInteraction.Ignore) return true;    //just collapse when is a collider what we are hitting
             if (!MTools.Layer_in_LayerMask(damagee.gameObject.layer, Layer)) { return true; }        //Just hit what is on the HitMask Layer
             if (dontHitOwner && Owner != null && damagee.transform.IsChildOf(Owner.transform)) { return true; }   //Dont hit yourself!
@@ -224,17 +286,21 @@ namespace MalbersAnimations.Controller
         }
 
 
-
         /// <summary>  Applies the Damage to the Game object  </summary>
         /// <returns>is False if the other gameobject didn't had a IMDamage component attached</returns>
         protected virtual bool TryDamage(IMDamage damagee, StatModifier stat)
         {
-            if (damagee != null && !stat.IsNull)
+            if (damagee != null)
             {
-                var criticalStat = CheckCriticalCheckMultiplier(stat);
-                damagee.ReceiveDamage(Direction, Owner, criticalStat, IsCritical, react.Value, CustomReaction, pureDamage.Value, element);
-                Debugging($"Do Damage to [{damagee.Damagee.name}]", damagee.Damagee);
-                return true;
+                damagee.LastForceMode = forceMode; //Save the last force mode applied
+
+                if (!stat.IsNull)
+                {
+                    var criticalStat = CheckCriticalCheckMultiplier(stat);
+                    damagee.ReceiveDamage(Direction, HitPosition, Owner, criticalStat, IsCritical, react.Value, CustomReaction, pureDamage.Value, element);
+                    Debugging($"Do Damage to [{damagee.Damagee.name}]", damagee.Damagee);
+                    return true;
+                }
             }
             return false;
         }
@@ -248,7 +314,7 @@ namespace MalbersAnimations.Controller
             HitRotation = Quaternion.FromToRotation(Vector3.up, col.bounds.center - DamageCenter);
             OnHitPosition.Invoke(HitPosition);
 
-          if (debug)   MDebug.DrawWireSphere(HitPosition, Color.red, 0.175f, 1);
+            if (debug) MDebug.DrawWireSphere(HitPosition, Color.red, 0.175f, 1);
 
             var HitEffect = this.HitEffect;
             var hitSound = this.hitSound;
@@ -265,13 +331,12 @@ namespace MalbersAnimations.Controller
                 }
             }
 
-
             if (HitEffect != null)
             {
                 if (HitEffect.IsPrefab())
                 {
                     var instance = Instantiate(HitEffect, HitPosition, HitRotation);
-                   // instance.transform.parent = col.transform;
+                    // instance.transform.parent = col.transform;
                     //Reset the gameobject visibility 
 
                     CheckHitEffect(instance);
@@ -304,13 +369,11 @@ namespace MalbersAnimations.Controller
                 isDamager.TriggerInteraction = TriggerInteraction;
             }
 
-            //Next Frame Reset the GameObject visibility why!?!?!
-            this.Delay_Action(() =>
+            if (!hit.IsPrefab())
             {
                 hit.SetActive(false);
                 hit.SetActive(true);
             }
-            );
         }
 
         protected virtual bool TryDamage(GameObject other, StatModifier stat) => TryDamage(other.FindInterface<IMDamage>(), stat);
@@ -319,7 +382,7 @@ namespace MalbersAnimations.Controller
         /// <param name="value"> Value used on a Child class to enable or disable the Damager</param>
         /// <param name="profileIndex">The profile needed for the Damage</param>
         /// <param name="multiplier"></param>
-        public virtual void DoDamage(bool value, int profileIndex) 
+        public virtual void DoDamage(bool value, int profileIndex)
         {
             if (Profiles == null) return; //Do nothing if the profiles are null
 
@@ -346,7 +409,7 @@ namespace MalbersAnimations.Controller
 
         protected void TryStopAnimator()
         {
-            if (animator && C_StopAnim == null)
+            if (animator != null && C_StopAnim == null)
             {
                 C_StopAnim = C_StopAnimator();
                 StartCoroutine(C_StopAnim);
@@ -360,7 +423,9 @@ namespace MalbersAnimations.Controller
         {
             animator.speed = AnimatorSpeed;
             yield return new WaitForSeconds(AnimatorStopTime.Value);
-            animator.speed = defaultAnimatorSpeed;
+
+            if (animator)
+                animator.speed = defaultAnimatorSpeed;
 
             C_StopAnim = null;
         }
@@ -398,7 +463,7 @@ namespace MalbersAnimations.Controller
                 item.Focused = false;
                 item.CurrentInteractor = null;
             }
-        }  
+        }
 
         /// <summary> Interact locally  </summary>
         public virtual bool Interact(IInteractable interactable)
@@ -418,31 +483,35 @@ namespace MalbersAnimations.Controller
 
 
         /// <summary> Restart method from Interactor </summary>
-        public virtual void Restart() { } 
-            
+        public virtual void Restart() { }
+
         /// <summary>Apply Physics to the Damageee </summary>
-        protected virtual bool TryPhysics(Rigidbody rb, Collider col,Vector3 Origin ,Vector3 Direction, float force)
+        protected virtual bool TryPhysics(Rigidbody rb, Collider col, Vector3 Origin, float force)
         {
             if (rb && force > 0)
             {
-                if (debug) MDebug.Draw_Arrow(Origin, Direction, Color.red, 1);
+                // if (debug) MDebug.Draw_Arrow(Origin, Direction, Color.red,0.25f,0.1f);
 
+                this.Direction *= force;
+
+                // Debug.Log($"TryPhysics {Direction * force}  {force}");
 
                 if (col) //When using collider
                 {
                     var HitPoint = col.ClosestPoint(Origin);
-                    rb.AddForceAtPosition(Direction * force, HitPoint, forceMode);
+                    rb.AddForceAtPosition(Direction, HitPoint, forceMode);
 
                     if (debug)
                     {
                         MDebug.DrawWireSphere(HitPoint, Color.red, 0.1f, 2f);
-                        MDebug.Draw_Arrow(HitPoint, Direction * force, Color.red, 2f);
+                        MDebug.Draw_Arrow(HitPoint, Direction, Color.red, 2f);
                     }
                 }
                 else
-                    rb.AddForce(Direction * force, forceMode);
+                    rb.AddForce(Direction, forceMode);
 
                 Debugging($"Apply Force to [{rb.name}]", this);
+
 
                 return true;
             }
@@ -463,7 +532,7 @@ namespace MalbersAnimations.Controller
             {
                 modifier.Value = mod.Value * CriticalMultiplier;        //apply the Critical Damage and Animation Multiplier
             }
-            
+
             modifier.MinValue.Value *= DamageMultiplier;
             modifier.MaxValue.Value *= DamageMultiplier;
 
@@ -472,12 +541,11 @@ namespace MalbersAnimations.Controller
             return modifier;
         }
 
- 
         protected void Find_Owner()
         {
-            if (Owner == null) 
+            if (Owner == null)
                 Owner = transform.root.gameObject;
-           
+
             MTools.SetDirty(this);
         }
 
@@ -493,7 +561,8 @@ namespace MalbersAnimations.Controller
             MTools.SetDirty(this);
         }
 
-        //
+        public virtual void Stat_SetMaxValue(float value) => statModifier.MaxValue = value;
+        public virtual void Stat_SetMinValue(float value) => statModifier.MinValue = value;
 
         /// <summary> Cache all the default values of a Damager  </summary>
         protected virtual void SetDefaultProfile()
@@ -522,7 +591,7 @@ namespace MalbersAnimations.Controller
                 pureDamage = new BoolReference(this.pureDamage),
                 statModifier = new StatModifier(this.statModifier),
                 modify = (DamagerProfile.DamageProfileModif)(-1)//Set to modify everything
-        };
+            };
 
             return newProfile;
         }
@@ -545,13 +614,16 @@ namespace MalbersAnimations.Controller
             m_hitLayer.Variable = MTools.GetInstance<LayerVar>("Hit Layer");
             m_hitLayer.UseConstant = false;
 
-            var core = transform.FindInterface<IObjectCore>();
-            if (core != null) owner = core.transform.gameObject;
-            owner = transform.root.gameObject;
+            var core = transform.GetComponentInParent<IObjectCore>();
+
+            owner = core != null ? core.transform.gameObject : transform.root.gameObject;
         }
+
+
 
         public static void DrawTriggers(Transform transform, Collider Trigger, Color DebugColor, bool selected = false)
         {
+#if MALBERS_DEBUG
             if (Trigger == null) return;
 
             Gizmos.color = DebugColor;
@@ -590,20 +662,16 @@ namespace MalbersAnimations.Controller
                     Gizmos.DrawWireSphere(_C.center, _C.radius);
                 }
             }
-
-            //Trigger.enabled = isen;
-
+#endif
         }
-
-
 
 #endif
 
-        public void Debugging(string value, Object obj)
+        public void Debugging(string value, Object obj, string m_color = "yellow")
         {
 #if UNITY_EDITOR
             if (debug)
-                Debug.Log($"<color=yellow><B>[{name}]</B> → {value} </color>", obj);
+                Debug.Log($"<B>[{name}]</B> → <color={m_color}> <B>[{value}]</B> </color>", obj);
 #endif
         }
     }
@@ -618,7 +686,8 @@ namespace MalbersAnimations.Controller
             Reaction = 4,
             CriticalChance = 8,
             Force = 16,
-            ElementalDamage = 32
+            ElementalDamage = 32,
+            MissChance = 64
         }
 
         [Tooltip("Name of the Profile")]
@@ -644,6 +713,9 @@ namespace MalbersAnimations.Controller
 
         [Tooltip("Critical Change (0 - 1)\n1 means it will be always critical")]
         public FloatReference m_cChance;
+
+        [Tooltip("Miss Chance (0 - 1)\n1 means it will always Miss")]
+        public FloatReference m_MissChance;
 
         [Tooltip("If the Damage is critical, the Stat modifier value will be multiplied by the Critical Multiplier")]
         public FloatReference cMultiplier;
@@ -714,18 +786,21 @@ namespace MalbersAnimations.Controller
     ///--------------------------------INSPECTOR-------------------
     ///
 #if UNITY_EDITOR
-    [CustomEditor(typeof(MDamager)),CanEditMultipleObjects]
+    [CustomEditor(typeof(MDamager)), CanEditMultipleObjects]
     public class MDamagerEd : Editor
     {
         protected MDamager MD;
-        protected SerializedProperty Force, minForce, forceMode, index, statModifier, onhit, OnHitPosition, OnHitInteractable, OnProfileChanged, dontHitOwner, owner, m_Active, debug, m_audio,
-            hitLayer, triggerInteraction, m_cChance, cMultiplier, element,  pureDamage, react, CustomReaction, interact ,
+        protected SerializedProperty Force, minForce, forceMode, index, Tags,
+            statModifier, onhit, OnAttackMissed,
+            OnHitPosition, OnHitInteractable, OnProfileChanged, dontHitOwner, owner, m_Active, debug, m_audio,
+            hitLayer, triggerInteraction, AttackDirection,
+            m_cChance, cMultiplier, element, pureDamage, react, CustomReaction, interact, m_MissChance,
             m_HitEffect, HitEffects, hitSound,
             interactorID, DestroyHitEffect, Profiles,
             StopAnimator, AnimatorSpeed, AnimatorStopTime, animator;
 
 
-       private ReorderableList Reo_Profiles; 
+        private ReorderableList Reo_Profiles;
 
         private void OnEnable() => FindBaseProperties();
 
@@ -734,6 +809,7 @@ namespace MalbersAnimations.Controller
             MD = (MDamager)target;
             index = serializedObject.FindProperty("index");
             hitSound = serializedObject.FindProperty("hitSound");
+
             m_HitEffect = serializedObject.FindProperty("m_HitEffect");
             HitEffects = serializedObject.FindProperty("hitEffects");
             OnHitPosition = serializedObject.FindProperty("OnHitPosition");
@@ -741,6 +817,9 @@ namespace MalbersAnimations.Controller
             hitLayer = serializedObject.FindProperty("m_hitLayer");
             triggerInteraction = serializedObject.FindProperty("triggerInteraction");
             dontHitOwner = serializedObject.FindProperty("dontHitOwner");
+
+
+            AttackDirection = serializedObject.FindProperty("AttackDirection");
             owner = serializedObject.FindProperty("owner");
             interactorID = serializedObject.FindProperty("interactorID");
             DestroyHitEffect = serializedObject.FindProperty("DestroyHitEffect");
@@ -757,13 +836,17 @@ namespace MalbersAnimations.Controller
             m_cChance = serializedObject.FindProperty("m_cChance");
             cMultiplier = serializedObject.FindProperty("cMultiplier");
 
+            m_MissChance = serializedObject.FindProperty("m_MissChance");
+
             minForce = serializedObject.FindProperty("minForce");
             Force = serializedObject.FindProperty("m_Force");
             forceMode = serializedObject.FindProperty("forceMode");
+            Tags = serializedObject.FindProperty("Tags");
 
             statModifier = serializedObject.FindProperty("statModifier");
 
             onhit = serializedObject.FindProperty("OnHit");
+            OnAttackMissed = serializedObject.FindProperty("OnAttackMissed");
             OnHitInteractable = serializedObject.FindProperty("OnHitInteractable");
             OnProfileChanged = serializedObject.FindProperty("OnProfileChanged");
             debug = serializedObject.FindProperty("debug");
@@ -786,7 +869,7 @@ namespace MalbersAnimations.Controller
                     serializedObject.ApplyModifiedProperties();
 
                     var newPro = MD.GetProfile();
-                    newPro.Name = $"New Profile [{count+1}]";
+                    newPro.Name = $"New Profile [{count + 1}]";
                     MD.Profiles[count] = newPro;
                     MTools.SetDirty(target);
                 },
@@ -803,7 +886,7 @@ namespace MalbersAnimations.Controller
                     var ModifyRect = new Rect(elementRect);
                     IndexRect.width = 25;
                     elementRect.x += 30;
-                    elementRect.width = rect.width*0.6f - 30;
+                    elementRect.width = rect.width * 0.6f - 30;
                     ModifyRect.width = rect.width * 0.4f - 10;
                     ModifyRect.x += elementRect.width + 40;
 
@@ -889,6 +972,11 @@ namespace MalbersAnimations.Controller
                                     EditorGUIUtility.labelWidth = 0;
                                 }
                             }
+
+                            using (new GUILayout.VerticalScope(EditorStyles.helpBox))
+                            {
+                                EditorGUILayout.PropertyField(e.FindPropertyRelative("m_MissChance"));
+                            }
                         }
 
                         if (((m & DamagerProfile.DamageProfileModif.Force) == DamagerProfile.DamageProfileModif.Force))
@@ -899,7 +987,7 @@ namespace MalbersAnimations.Controller
                                 EditorGUILayout.PropertyField(e.FindPropertyRelative("maxForce"));
                             }
                         }
-                        
+
                         if (((m & DamagerProfile.DamageProfileModif.ElementalDamage) == DamagerProfile.DamageProfileModif.ElementalDamage))
                         {
                             using (new GUILayout.VerticalScope(EditorStyles.helpBox))
@@ -917,7 +1005,7 @@ namespace MalbersAnimations.Controller
         {
             serializedObject.Update();
             DrawDescription("Damager Core Logic");
-           // DrawScript();
+            // DrawScript();
             DrawGeneral();
             DrawPhysics();
             DrawCriticalDamage();
@@ -929,9 +1017,10 @@ namespace MalbersAnimations.Controller
 
         protected void DrawEvents()
         {
-            using (new GUILayout.VerticalScope(EditorStyles.helpBox))   
+            using (new GUILayout.VerticalScope(EditorStyles.helpBox))
             {
                 EditorGUILayout.PropertyField(onhit);
+                EditorGUILayout.PropertyField(OnAttackMissed);
                 EditorGUILayout.PropertyField(OnHitPosition);
                 EditorGUILayout.PropertyField(OnHitInteractable);
                 EditorGUILayout.PropertyField(OnProfileChanged);
@@ -939,7 +1028,7 @@ namespace MalbersAnimations.Controller
             }
         }
 
-        protected virtual void DrawCustomEvents()  { }
+        protected virtual void DrawCustomEvents() { }
 
 
         protected virtual void DrawMisc(bool drawbox = true)
@@ -947,7 +1036,6 @@ namespace MalbersAnimations.Controller
             if (drawbox) EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
             react.isExpanded = MalbersEditor.Foldout(react.isExpanded, "Interactions");
-
             if (react.isExpanded)
             {
                 EditorGUILayout.PropertyField(react);
@@ -959,15 +1047,20 @@ namespace MalbersAnimations.Controller
 
                 if (MD.interact.Value)
                     EditorGUILayout.PropertyField(interactorID);
+            }
 
+            HitEffects.isExpanded = MalbersEditor.Foldout(HitEffects.isExpanded, "Effects");
 
+            if (HitEffects.isExpanded)
+            {
                 var p = " [Prefab]";
                 if (MD.HitEffect == null
                     || !MD.HitEffect.IsPrefab()) p = "";
 
-                EditorGUILayout.PropertyField(m_HitEffect, new GUIContent(m_HitEffect.displayName + p));
+                EditorGUILayout.PropertyField(m_audio, new GUIContent("Audio Source"));
                 EditorGUILayout.PropertyField(hitSound);
 
+                EditorGUILayout.PropertyField(m_HitEffect, new GUIContent(m_HitEffect.displayName + p));
                 EditorGUI.indentLevel++;
                 EditorGUILayout.PropertyField(HitEffects);
                 EditorGUI.indentLevel--;
@@ -976,8 +1069,8 @@ namespace MalbersAnimations.Controller
 
                 if (MD.HitEffect != null)
                 {
-                    if (MD.HitEffect.IsPrefab())
-                        EditorGUILayout.PropertyField(DestroyHitEffect);
+                    //if (MD.HitEffect.IsPrefab())
+                    //    EditorGUILayout.PropertyField(DestroyHitEffect);
 
                     EditorGUILayout.HelpBox(
                         MD.HitEffect.IsPrefab() ?
@@ -1000,9 +1093,6 @@ namespace MalbersAnimations.Controller
                     EditorGUILayout.PropertyField(animator);
                 }
             }
-
-            EditorGUILayout.PropertyField(m_audio);
-
             if (drawbox) EditorGUILayout.EndVertical();
         }
 
@@ -1015,20 +1105,24 @@ namespace MalbersAnimations.Controller
                 EditorGUILayout.PropertyField(m_Active);
                 MalbersEditor.DrawDebugIcon(debug);
             }
-           
-            
+
+
             EditorGUILayout.PropertyField(index);
             EditorGUILayout.PropertyField(hitLayer);
+            EditorGUI.indentLevel++;
+            EditorGUILayout.PropertyField(Tags);
+            EditorGUI.indentLevel--;
             EditorGUILayout.PropertyField(triggerInteraction);
+            EditorGUILayout.PropertyField(AttackDirection);
 
             EditorGUILayout.PropertyField(dontHitOwner, new GUIContent("Don't hit Owner"));
             if (MD.dontHitOwner.Value)
             {
                 EditorGUILayout.PropertyField(owner);
-               // Debug.Log("MD = " + MD.Owner);
+                // Debug.Log("MD = " + MD.Owner);
             }
 
-            if (drawbox) EditorGUILayout.EndVertical();  
+            if (drawbox) EditorGUILayout.EndVertical();
         }
 
         protected virtual void DrawPhysics(bool drawbox = true)
@@ -1052,7 +1146,7 @@ namespace MalbersAnimations.Controller
         {
             if (drawbox) EditorGUILayout.BeginVertical(EditorStyles.helpBox);
             EditorGUILayout.LabelField("Critical Damage", EditorStyles.boldLabel);
-           
+
             using (new GUILayout.HorizontalScope())
             {
                 EditorGUILayout.PropertyField(m_cChance, new GUIContent("Chance [0-1]"), GUILayout.MinWidth(50));
@@ -1060,7 +1154,10 @@ namespace MalbersAnimations.Controller
                 EditorGUILayout.PropertyField(cMultiplier, new GUIContent("Mult"), GUILayout.MinWidth(50));
                 EditorGUIUtility.labelWidth = 0;
             }
-           
+
+
+            EditorGUILayout.PropertyField(m_MissChance);
+
             if (drawbox) EditorGUILayout.EndVertical();
         }
 
@@ -1068,8 +1165,8 @@ namespace MalbersAnimations.Controller
         protected virtual void DrawStatModifier(bool drawbox = true)
         {
             if (drawbox) EditorGUILayout.BeginVertical(EditorStyles.helpBox);
-                EditorGUILayout.PropertyField(statModifier,
-                    new GUIContent("Stat Modifier","Which Stat will be affected on the Object to hit after Impact"), true);
+            EditorGUILayout.PropertyField(statModifier,
+                new GUIContent("Stat Modifier", "Which Stat will be affected on the Object to hit after Impact"), true);
             EditorGUILayout.PropertyField(pureDamage);
 
             DrawElement();

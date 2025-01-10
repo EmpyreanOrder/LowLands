@@ -26,12 +26,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5742624148600615645}
+  serializedVersion: 2
   m_LocalRotation: {x: -0.1962202, y: -0.7540252, z: 0.2582489, w: 0.57118404}
   m_LocalPosition: {x: 1.7540634, y: -1.4411793, z: 5.7044945}
   m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 5742624148959299887}
-  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &5742624148600615457
 MonoBehaviour:
@@ -126,13 +127,14 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5742624148959299881}
+  serializedVersion: 2
   m_LocalRotation: {x: -0.06666866, y: 0.47826353, z: 0.0364434, w: 0.8749236}
   m_LocalPosition: {x: -8.320289, y: -0.71519065, z: -5.336386}
   m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5742624148600615458}
   m_Father: {fileID: 0}
-  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &5742624148959299886
 MonoBehaviour:
@@ -163,10 +165,11 @@ MonoBehaviour:
     ModeOverride: 0
     LensShift: {x: 0, y: 0}
     GateFit: 2
+    FocusDistance: 10
     m_SensorSize: {x: 1, y: 1}
   m_Transitions:
-    m_BlendHint: 0
-    m_InheritPosition: 0
+    m_BlendHint: 2
+    m_InheritPosition: 1
     m_OnCameraLive:
       m_PersistentCalls:
         m_Calls: []
@@ -287,7 +290,7 @@ MonoBehaviour:
     InvertBool: 0
     multiplier: 1
   - Event: {fileID: 11400000, guid: 2a60c9d3a0ea68e47b30753459e3042b, type: 2}
-    useInt: 1
+    useInt: 0
     useFloat: 0
     useVoid: 0
     useString: 0
@@ -311,7 +314,7 @@ MonoBehaviour:
           m_Arguments:
             m_ObjectArgument: {fileID: 0}
             m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-            m_IntArgument: 0
+            m_IntArgument: -1
             m_FloatArgument: 0
             m_StringArgument: 
             m_BoolArgument: 0
@@ -359,7 +362,7 @@ MonoBehaviour:
           m_Arguments:
             m_ObjectArgument: {fileID: 0}
             m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-            m_IntArgument: 10
+            m_IntArgument: 20
             m_FloatArgument: 0
             m_StringArgument: 
             m_BoolArgument: 0
@@ -381,3 +384,5 @@ MonoBehaviour:
     AdvancedBool: 0
     InvertBool: 0
     multiplier: 1
+  ShowEvents: 1
+  SelectedEvent: 1

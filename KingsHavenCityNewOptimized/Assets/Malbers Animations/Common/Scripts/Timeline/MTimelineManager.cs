@@ -11,9 +11,8 @@ namespace MalbersAnimations.Controller
     {
         [RequiredField]
         public PlayableDirector Director;
-
-        public UnityEvent OnTimelinePlay = new UnityEvent();
-        public UnityEvent OnTimelineStop = new UnityEvent();
+        public UnityEvent OnTimelinePlay = new();
+        public UnityEvent OnTimelineStop = new();
 
         private void Start()
         {
@@ -33,8 +32,8 @@ namespace MalbersAnimations.Controller
         {
             Director.played -= Director_played;
             Director.stopped -= Director_stopped;
-        }  
-        
+        }
+
         private void Director_played(PlayableDirector obj)
         {
             OnTimelinePlay.Invoke();

@@ -1,7 +1,7 @@
 fileFormatVersion: 2
 guid: abc00000000008373585483758989590
 ModelImporter:
-  serializedVersion: 21300
+  serializedVersion: 22200
   internalIDToNameTable:
   - first:
       1: 100000
@@ -76,8 +76,6 @@ ModelImporter:
     optimizeGameObjects: 0
     removeConstantScaleCurves: 0
     motionNodeName: 
-    rigImportErrors: 
-    rigImportWarnings: 
     animationImportErrors: 
     animationImportWarnings: 
     animationRetargetingWarnings: 
@@ -103,6 +101,7 @@ ModelImporter:
     addColliders: 0
     useSRGBMaterialColor: 1
     sortHierarchyByName: 1
+    importPhysicalCameras: 1
     importVisibility: 1
     importBlendShapes: 1
     importCameras: 1
@@ -130,6 +129,7 @@ ModelImporter:
     secondaryUVMinObjectScale: 1
     secondaryUVPackMargin: 4
     useFileScale: 1
+    strictVertexDataChecks: 0
   tangentSpace:
     normalSmoothAngle: 60
     normalImportMode: 0
@@ -138,32 +138,7 @@ ModelImporter:
     legacyComputeAllNormalsFromSmoothingGroupsWhenMeshHasBlendShapes: 0
     blendShapeNormalImportMode: 1
     normalSmoothingSource: 0
-  referencedClips:
-  - abc00000000017291355127567654276
-  - abc00000000015648285849233414828
-  - abc00000000013819749801330924329
-  - abc00000000002115511399683213656
-  - abc00000000005458110748685267860
-  - abc00000000017310172145411375880
-  - abc00000000007785819275022336698
-  - abc00000000017706177423816626278
-  - abc00000000011178796184099476708
-  - abc00000000012356006743786732962
-  - abc00000000012865973815168554570
-  - abc00000000016300340288105317589
-  - abc00000000012078281445076734509
-  - abc00000000018270294037156051256
-  - abc00000000002471456951852621491
-  - abc00000000003615179005402532363
-  - abc00000000008849226567995767598
-  - abc00000000009921211138477092486
-  - abc00000000005522182215143958577
-  - abc00000000009153166152152677657
-  - abc00000000008275101348969782881
-  - abc00000000001696547643020526671
-  - abc00000000016512307779721359207
-  - abc00000000008946679661115446170
-  - abc00000000005132548233187143602
+  referencedClips: []
   importAnimation: 1
   humanDescription:
     serializedVersion: 3
@@ -187,6 +162,7 @@ ModelImporter:
   humanoidOversampling: 1
   avatarSetup: 1
   addHumanoidExtraRootOnlyWhenUsingAvatar: 0
+  importBlendShapeDeformPercent: 0
   remapMaterialsIfMaterialImportModeIsNone: 1
   additionalBone: 0
   userData: 

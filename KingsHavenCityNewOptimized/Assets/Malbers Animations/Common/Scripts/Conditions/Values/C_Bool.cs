@@ -4,12 +4,13 @@ using UnityEngine;
 namespace MalbersAnimations.Conditions
 {
     [System.Serializable]
+    [AddTypeMenu("Values/Boolean")]
     public class C_Bool : MCondition
     {
-        public override string DisplayName => "Values/Boolean";
+        // public override string DisplayName => "Values/Boolean";
 
-        public BoolReference Target;
-        public BoolReference Value;
+        public BoolReference Target = new();
+        public BoolReference Value = new();
 
         public void SetTarget(bool targ) => Target.Value = targ;
         public void SetValue(bool targ) => Value.Value = targ;
@@ -19,12 +20,9 @@ namespace MalbersAnimations.Conditions
 
         public override bool _Evaluate() => Target.Value == Value.Value;
 
+        protected override void _SetTarget(Object target) => VerifyTarget(target, ref Target.Variable);
 
-        public override void SetTarget(Object target)
-        {
-            if (target is BoolVar) this.Target.Value = target as BoolVar;
-        }
 
-        private void Reset() => Name = "New Bool Comparer";
+        // private void Reset() => Name = "New Bool Comparer";
     }
 }

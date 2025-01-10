@@ -1,8 +1,6 @@
 ﻿using UnityEngine;
 using System;
-using System.Linq;
-using System.Collections.Generic;
-using System.Reflection;
+
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -10,8 +8,10 @@ using UnityEditor;
 
 namespace MalbersAnimations
 {
-    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property |
+    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property | AttributeTargets.Enum |
         AttributeTargets.Class | AttributeTargets.Struct, Inherited = true)]
+
+    //[AttributeUsage(AttributeTargets.All  ,  AllowMultiple = true, Inherited = true)]
     public sealed class HideAttribute : PropertyAttribute
     {
         public string Variable = "";
@@ -92,8 +92,7 @@ namespace MalbersAnimations
             HideAttribute condHAtt = (HideAttribute)attribute;
 
             enabled = GetConditionalHideAttributeResult(condHAtt, property);
-
-          //  CachePropertyDrawer(property);
+            //  CachePropertyDrawer(property);
 
             bool wasEnabled = GUI.enabled;
             GUI.enabled = enabled;
@@ -101,11 +100,10 @@ namespace MalbersAnimations
             if (!condHAtt.hide || enabled)
             {
 
-               // if (!CustomDrawerUsed())
-                    EditorGUI.PropertyField(position, property, label, true);
+                // if (!CustomDrawerUsed())
+                EditorGUI.PropertyField(position, property, label, true);
 
-               // EditorGUI.PropertyField(position, property, label, true);
-
+                // EditorGUI.PropertyField(position, property, label, true);
 
                 //bool CustomDrawerUsed()
                 //{
@@ -153,7 +151,7 @@ namespace MalbersAnimations
             SerializedProperty sourcePropertyValue;
 
             //Get the full relative property path of the sourcefield so we can have nested hiding.Use old method when dealing with arrays
-            if (!property.isArray)
+            //  if (!property.isArray)
             {
                 //returns the property path of the property we want to apply the attribute to
                 string propertyPath = property.propertyPath;
@@ -170,11 +168,11 @@ namespace MalbersAnimations
                     sourcePropertyValue = property.serializedObject.FindProperty(condHAtt.Variable);
                 }
             }
-            else
-            {
-                //original implementation (doens't work with nested serializedObjects)
-                sourcePropertyValue = property.serializedObject.FindProperty(condHAtt.Variable);
-            }
+            //else
+            //{
+            //    //original implementation (doens't work with nested serializedObjects)
+            //    sourcePropertyValue = property.serializedObject.FindProperty(condHAtt.Variable);
+            //}
 
 
             if (sourcePropertyValue != null)
@@ -194,6 +192,10 @@ namespace MalbersAnimations
             {
                 case SerializedPropertyType.Boolean:
                     return sourcePropertyValue.boolValue;
+                case SerializedPropertyType.Float:
+                    return sourcePropertyValue.floatValue == 0;
+                case SerializedPropertyType.Integer:
+                    return sourcePropertyValue.intValue == 0;
                 case SerializedPropertyType.ObjectReference:
                     return sourcePropertyValue.objectReferenceValue != null;
                 case SerializedPropertyType.ManagedReference:
@@ -224,45 +226,45 @@ namespace MalbersAnimations
             }
         }
 
-  //      private bool _initialized;
-  //      private PropertyDrawer _customPropertyDrawer;
+        //      private bool _initialized;
+        //      private PropertyDrawer _customPropertyDrawer;
 
-  //      /// <summary>
-		///// Try to find and cache any PropertyDrawer or PropertyAttribute on the field
-		///// </summary>
-		//private void CachePropertyDrawer(SerializedProperty property)
-  //      {
-  //          if (_initialized) return;
-  //          _initialized = true;
-  //          if (fieldInfo == null) return;
+        //      /// <summary>
+        ///// Try to find and cache any PropertyDrawer or PropertyAttribute on the field
+        ///// </summary>
+        //private void CachePropertyDrawer(SerializedProperty property)
+        //      {
+        //          if (_initialized) return;
+        //          _initialized = true;
+        //          if (fieldInfo == null) return;
 
-  //          var customDrawer = CustomDrawerUtility.GetPropertyDrawerForProperty(property, fieldInfo, attribute);
-  //          if (customDrawer == null) customDrawer = TryCreateAttributeDrawer();
+        //          var customDrawer = CustomDrawerUtility.GetPropertyDrawerForProperty(property, fieldInfo, attribute);
+        //          if (customDrawer == null) customDrawer = TryCreateAttributeDrawer();
 
-  //          _customPropertyDrawer = customDrawer;
-
-
-  //          // Try to get drawer for any other Attribute on the field
-  //          PropertyDrawer TryCreateAttributeDrawer()
-  //          {
-  //              var secondAttribute = TryGetSecondAttribute();
-  //              if (secondAttribute == null) return null;
-
-  //              var attributeType = secondAttribute.GetType();
-  //              var customDrawerType = CustomDrawerUtility.GetPropertyDrawerTypeForFieldType(attributeType);
-  //              if (customDrawerType == null) return null;
-
-  //              return CustomDrawerUtility.InstantiatePropertyDrawer(customDrawerType, fieldInfo, secondAttribute);
+        //          _customPropertyDrawer = customDrawer;
 
 
-  //              //Get second attribute if any
-  //              Attribute TryGetSecondAttribute()
-  //              {
-  //                  return (PropertyAttribute)fieldInfo.GetCustomAttributes(typeof(PropertyAttribute), false)
-  //                      .FirstOrDefault(a => !(a is HideAttribute));
-  //              }
-  //          }
-  //      }
+        //          // Try to get drawer for any other Attribute on the field
+        //          PropertyDrawer TryCreateAttributeDrawer()
+        //          {
+        //              var secondAttribute = TryGetSecondAttribute();
+        //              if (secondAttribute == null) return null;
+
+        //              var attributeType = secondAttribute.GetType();
+        //              var customDrawerType = CustomDrawerUtility.GetPropertyDrawerTypeForFieldType(attributeType);
+        //              if (customDrawerType == null) return null;
+
+        //              return CustomDrawerUtility.InstantiatePropertyDrawer(customDrawerType, fieldInfo, secondAttribute);
+
+
+        //              //Get second attribute if any
+        //              Attribute TryGetSecondAttribute()
+        //              {
+        //                  return (PropertyAttribute)fieldInfo.GetCustomAttributes(typeof(PropertyAttribute), false)
+        //                      .FirstOrDefault(a => !(a is HideAttribute));
+        //              }
+        //          }
+        //      }
     }
 
 
@@ -291,8 +293,8 @@ namespace MalbersAnimations
 
     //        var targetType = fieldInfo.FieldType;
     //        var drawerType = GetPropertyDrawerTypeForFieldType(targetType);
-          
-            
+
+
     //        if (drawerType != null)
     //        {
     //           // Debug.Log("sasdasd");

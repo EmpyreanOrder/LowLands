@@ -1,9 +1,7 @@
 ﻿using MalbersAnimations.Reactions;
 using MalbersAnimations.Scriptables;
 using System.Collections.Generic;
-using System.Security.Cryptography;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 namespace MalbersAnimations.Controller
 {
@@ -12,6 +10,8 @@ namespace MalbersAnimations.Controller
     {
         public override string StateName => "Swim";
         public override string StateIDName => "Swim";
+
+        #region Public Variables    
 
         [Header("Swim Paramenters")]
         public LayerMask WaterLayer = 16;
@@ -101,6 +101,9 @@ namespace MalbersAnimations.Controller
         /// <summary>Water Collider used on the Sphere Cast</summary>
         protected Collider[] WaterCollider;
 
+        #endregion
+
+
         public override void InitializeState()
         {
             WaterPivot = animal.pivots.Find(p => p.name.ToLower().Contains("water"));      //Find the Water Pivot
@@ -141,7 +144,6 @@ namespace MalbersAnimations.Controller
             animal.SetPlatform(null);//IMPORTANT
         }
 
-
         /// <summary>  Check if the animal is inside a Water Trigger  </summary>
         public bool CheckWater()
         {
@@ -156,17 +158,18 @@ namespace MalbersAnimations.Controller
         /// <summary>Check if the Animal in a water surface </summary>
         public bool FindWaterLevel2()
         {
-            var UpPoint = WaterPivotPoint + Vector3.up * (UpSearch);
-            var RayLenght = UpSearch + WaterPivot.position.y;
+            var UpPoint = WaterPivotPoint + (Vector3.up * (UpSearch * ScaleFactor));
+            var RayLength = (UpSearch + WaterPivot.position.y) * ScaleFactor;
+            var rad = m_Radius * ScaleFactor;
 
             if (GizmoDebug)
             {
-                MDebug.DrawWireSphere(UpPoint, Color.cyan, m_Radius);
-                MDebug.DrawWireSphere(WaterPivotPoint, Color.cyan, m_Radius);
-                MDebug.DrawWireSphere(UpPoint + (Gravity * RayLenght), Color.cyan, m_Radius);
+                MDebug.DrawWireSphere(UpPoint, Color.cyan, rad);
+                MDebug.DrawWireSphere(WaterPivotPoint, Color.cyan, rad);
+                MDebug.DrawWireSphere(UpPoint + (Gravity * RayLength), Color.cyan, rad);
             }
 
-            if (Physics.Raycast(UpPoint, Gravity, out RaycastHit WaterHit, RayLenght, WaterLayer, QueryTriggerInteraction.Collide))
+            if (Physics.Raycast(UpPoint, Gravity, out RaycastHit WaterHit, RayLength, WaterLayer, QueryTriggerInteraction.Collide))
             {
                 WaterLevel = WaterHit.point;  //Find the water Level
                 WaterNormal = WaterHit.normal;
@@ -189,8 +192,8 @@ namespace MalbersAnimations.Controller
 
                 if (GizmoDebug)
                 {
-                    Debug.DrawLine(UpPoint, WaterLevel, Color.cyan);
-                    MDebug.DrawWireSphere(WaterLevel, Color.white, m_Radius);
+                    Debug.DrawLine(UpPoint, WaterLevel, Color.blue + Color.cyan);
+                    MDebug.DrawWireSphere(WaterLevel, Color.white, rad);
                     Debug.DrawRay(WaterLevel, WaterPivot.position.y * HeightMult * Gravity, Color.white);
                 }
                 return IsInWater;
@@ -203,7 +206,7 @@ namespace MalbersAnimations.Controller
                     OnTouchedWaterExit?.React(animal);
                     TryLoop = TryLoopOriginal; //Reset TryLoop
                 }
-                if (GizmoDebug) Debug.DrawRay(UpPoint, Gravity * UpSearch, Color.cyan);
+                if (GizmoDebug) Debug.DrawRay(UpPoint, ScaleFactor * UpSearch * Gravity, Color.cyan);
 
                 IsInWater = false;
                 return IsInWater;
@@ -211,9 +214,7 @@ namespace MalbersAnimations.Controller
         }
 
 
-        /// <summary>
-        /// The animal cast a ray to the ground and if the ground is hitted then is not longer in the water
-        /// </summary>
+        /// <summary> The animal cast a ray to the ground and if the ground is hitted then is not longer in the water</summary>
         public bool CheckNearGround()
         {
             var length = HeightMult * WaterPivot.position.y * ScaleFactor;
@@ -266,7 +267,7 @@ namespace MalbersAnimations.Controller
 
             BounceEnteringWater(deltatime);
 
-             
+
             var rayColor = (Color.blue + Color.cyan) / 2;
 
             //HACK so it does not come out of the water on incline deep slopes
@@ -281,22 +282,24 @@ namespace MalbersAnimations.Controller
                 {
                     rayColor = Color.black;
                     {
-                        Position +=  WaterLine_Difference;
+                        Position += WaterLine_Difference;
                         animal.ResetUPVector();
                     }
                 }
             }
             else
             {
-
-                if (AlignSmooth > 0)
+                if (IsInWater)
                 {
-                    Position += Vector3.Lerp(Vector3.zero, WaterLine_Difference, (deltatime * AlignSmooth));
-                }
-                else
-                {
-                    Position += WaterLine_Difference;
-                    animal.ResetUPVector();
+                    if (AlignSmooth > 0)
+                    {
+                        Position += Vector3.Lerp(Vector3.zero, WaterLine_Difference, (deltatime * AlignSmooth));
+                    }
+                    else
+                    {
+                        Position += WaterLine_Difference;
+                        animal.ResetUPVector();
+                    }
                 }
 
             }
@@ -319,7 +322,7 @@ namespace MalbersAnimations.Controller
 
                 var NextPos = WaterPivotPoint + (BounceUp) * (delta * bounceLerp);
 
-                 if (GizmoDebug)  MDebug.DrawWireSphere(NextPos, Color.green, m_Radius);
+                if (GizmoDebug) MDebug.DrawWireSphere(NextPos, Color.green, m_Radius);
 
                 Vector3 PointAvobe = NextPos - WaterLevel;
                 PivotAboveWater = Vector3.Dot(PointAvobe, Gravity) < 0; //Check if the next position will be above water
@@ -408,26 +411,27 @@ namespace MalbersAnimations.Controller
 
         public override void StateGizmos(MAnimal animal)
         {
-            if (Application.isPlaying) { return; } //Show only when is not playing
-
-            var scale = animal.ScaleFactor;
-            var cyan = Color.cyan;
-            cyan.a = 0.5f;
-
-            var Pivot = Application.isPlaying ? WaterPivot : animal.pivots.Find(x => x.name == "Water");
-
-            if (Pivot != null)
+            if (!Application.isPlaying)
             {
-                var UPsearch = animal.transform.position + Vector3.up * (UpSearch);
+                var scale = animal.ScaleFactor;
+                var cyan = Color.cyan;
+                cyan.a = 0.5f;
 
-                Gizmos.color = cyan;
-                Gizmos.DrawSphere(Pivot.World(animal.transform), m_Radius * scale);
-                Gizmos.DrawSphere(UPsearch, m_Radius * scale);
-                Gizmos.color = Color.cyan;
-                Gizmos.DrawWireSphere(Pivot.World(animal.transform), m_Radius * scale);
-                Gizmos.DrawWireSphere(UPsearch, m_Radius * scale);
-                Gizmos.DrawRay(UPsearch, animal.Gravity * UpSearch);
-            }
+                var Pivot = Application.isPlaying ? WaterPivot : animal.pivots.Find(x => x.name == "Water");
+
+                if (Pivot != null)
+                {
+                    var UPsearch = animal.transform.position + Vector3.up * (UpSearch);
+
+                    Gizmos.color = cyan;
+                    Gizmos.DrawSphere(Pivot.World(animal.transform), m_Radius * scale);
+                    Gizmos.DrawSphere(UPsearch, m_Radius * scale);
+                    Gizmos.color = Color.cyan;
+                    Gizmos.DrawWireSphere(Pivot.World(animal.transform), m_Radius * scale);
+                    Gizmos.DrawWireSphere(UPsearch, m_Radius * scale);
+                    Gizmos.DrawRay(UPsearch, animal.Gravity * UpSearch);
+                }
+            } //Show only when is not playing
         }
 #endif
     }

@@ -3,10 +3,10 @@ using System.Collections;
 using System.Collections.Generic;
 using MalbersAnimations.Utilities;
 using MalbersAnimations.Reactions;
-using MalbersAnimations.Scriptables; 
+using MalbersAnimations.Scriptables;
 using UnityEngine.Events;
 using System;
-using MalbersAnimations.Events; 
+using MalbersAnimations.Events;
 
 
 
@@ -29,22 +29,24 @@ namespace MalbersAnimations.PathCreation
         public IPath Path;
 
         [Tooltip("The Animal will align automatically when is near the Path ")]
-        public BoolReference Automatic = new BoolReference(true);
+        public BoolReference Automatic = new(true);
 
         [Tooltip("If the Animal is already on another Path then change to the new path. Else use the Path Input on your character")]
-        public BoolReference AutoChangePath = new BoolReference(true);
+        public BoolReference AutoChangePath = new(true);
 
         //[Tooltip("Resolution to find the closest point on the path")]
         //public int m_SearchResolution = 50;
 
         [Tooltip("Radius to check if the Character can Enter this path")]
         [Min(0)] public float SearchRadius = 0.5f;
+        [Tooltip("Orient Smothness per path")]
+        [Min(0)] public float OrientSmoothness = 1f;
 
         [Tooltip("Offset of the Radius on the Path")]
-        public Vector3 SearchOffset = new Vector3(0, 0.5f, 0);
+        public Vector3 SearchOffset = new(0, 0.5f, 0);
 
         [Tooltip("Local Offset of the Animal Position with the Path")]
-        public Vector3 AlignmentOffset = new Vector3(0, 0, 0);
+        public Vector3 AlignmentOffset = new(0, 0, 0);
 
         [Tooltip("Time needed so the animal can enter the same path again")]
         [Min(0)] public float pathCooldown = 1f;
@@ -72,11 +74,11 @@ namespace MalbersAnimations.PathCreation
         [RequiredField, Tooltip("This trigger will activate the search when any animal had entered the trigger")]
         public BoxCollider PathBounds;
 
-        [Min(0),Tooltip("Expand the Bounds this amount")]
+        [Min(0), Tooltip("Expand the Bounds this amount")]
         public float expand = 1f;
 
         [Tooltip("Layer to find the Animals")]
-        public LayerReference Layer = new LayerReference(1048576);
+        public LayerReference Layer = new(1048576);
 
 
         [Tooltip("When the Animal Enters the Path, it will activate this State")]
@@ -101,14 +103,14 @@ namespace MalbersAnimations.PathCreation
         [Tooltip("Modes that can be used to exit early the Path")]
         public List<ModeID> IgnoreModes;
         [Tooltip("The Animal Exit/Ignore the path if is on any Mode")]
-        public BoolReference exitAnyMode = new BoolReference(false);
+        public BoolReference exitAnyMode = new(false);
 
-        [SerializeField,HideInInspector] private TriggerProxy BoundsProxy;
+        [SerializeField, HideInInspector] private TriggerProxy BoundsProxy;
 
-       // private static int m_SearchRadius = -1;
+        // private static int m_SearchRadius = -1;
         private float m_PathPosition;
         private float m_PreviousPathPosition;
-        
+
 
         /// <summary> The path is closed/Looped </summary>
         public bool IsClosed => Path.IsClosed;
@@ -161,7 +163,7 @@ namespace MalbersAnimations.PathCreation
 
         public BoolEvent IsOnEndOfPath = new();
         public BoolEvent IsOnStartOfPath = new();
-         
+
 
         public bool ReachEnd { get; internal set; }
         public bool ReachStart { get; internal set; }
@@ -172,7 +174,7 @@ namespace MalbersAnimations.PathCreation
 
 
         // [HideInInspector]
-        public HashSet<MPathConstraint> ActivePathContraints = new HashSet<MPathConstraint>();
+        public HashSet<MPathConstraint> ActivePathContraints = new();
 
         public bool debug;
 
@@ -185,14 +187,12 @@ namespace MalbersAnimations.PathCreation
 
         private void Awake()
         {
-            if (BoundsProxy == null)
+            if (BoundsProxy == null && PathBounds != null)
             {
-                BoundsProxy = PathBounds.GetComponent<TriggerProxy>();
-                if (BoundsProxy == null) BoundsProxy = PathBounds.gameObject.AddComponent<TriggerProxy>();
+                if (!PathBounds.TryGetComponent(out BoundsProxy)) 
+                    BoundsProxy = PathBounds.gameObject.AddComponent<TriggerProxy>();
             }
-
-
-
+             
             BoundsProxy.Layer = Layer;
             PathBounds.isTrigger = true;
         }
@@ -202,14 +202,13 @@ namespace MalbersAnimations.PathCreation
 
         private void OnEnable()
         {
-            if (Paths == null) Paths = new List<MPath>();
+            Paths ??= new List<MPath>();
             Paths.Add(this);
 
             BoundsProxy?.OnGameObjectEnter.AddListener(_OnBoundsTriggerEnter);
             BoundsProxy?.OnGameObjectExit.AddListener(_OnBoundsTriggerExit);
-            Path = GetComponent<IPath>();
-
-            if (Path == null)
+            
+            if (!TryGetComponent(out Path))
             {
                 Debugging("Path Not found. Disable All");
 
@@ -223,12 +222,12 @@ namespace MalbersAnimations.PathCreation
             BoundsProxy?.OnGameObjectEnter.RemoveListener(_OnBoundsTriggerEnter);
             BoundsProxy?.OnGameObjectExit.RemoveListener(_OnBoundsTriggerExit);
 
-            if (Paths != null) Paths.Remove(this);
+            Paths?.Remove(this);
         }
 
         private void _OnBoundsTriggerEnter(GameObject gameObject)
         {
-           // Debug.Log($"{name}.OnBoundsEnter [{gameObject.name}]");
+            // Debug.Log($"{name}.OnBoundsEnter [{gameObject.name}]");
 
             var constraint = gameObject.FindComponent<MPathConstraint>();
 
@@ -254,7 +253,7 @@ namespace MalbersAnimations.PathCreation
 
             if (constraint)
             {
-               // Debug.Log($"{name}.OnBoundsExit [{gameObject.name}]");
+                // Debug.Log($"{name}.OnBoundsExit [{gameObject.name}]");
 
                 ActivePathContraints.Remove(constraint);
                 OnExitBounds.Invoke(constraint);
@@ -290,14 +289,14 @@ namespace MalbersAnimations.PathCreation
         {
             Path ??= GetComponent<IPath>();
 
-            
-            if (!TryGetComponent<BoxCollider>(out PathBounds))
+
+            if (!TryGetComponent(out PathBounds))
                 PathBounds = gameObject.AddComponent<BoxCollider>();
 
 
             if (BoundsProxy == null)
             {
-                if (!PathBounds.TryGetComponent<TriggerProxy>(out BoundsProxy)) 
+                if (!PathBounds.TryGetComponent(out BoundsProxy))
                     BoundsProxy = PathBounds.gameObject.AddComponent<TriggerProxy>();
             }
 
@@ -308,33 +307,27 @@ namespace MalbersAnimations.PathCreation
 
             var newPathPosition = new GameObject("PathPosition");
             newPathPosition.transform.parent = transform;
-            newPathPosition.transform.ResetLocal(); 
+            newPathPosition.transform.ResetLocal();
             PathPosition.Value = newPathPosition.transform;
         }
 
         private void OnValidate()
         {
-            if (Path == null)
-            {
-                Path = GetComponent<IPath>();
-            }
+            Path ??= GetComponent<IPath>();
         }
 
         internal void CalculateBounds()
         {
             OnValidate();
+
             if (Path == null) return;
-            
             Bounds bounds = Path.bounds;
 
             bounds.Expand(2f);
-
             bounds.center = new Vector3(bounds.center.x, bounds.center.y + 1, bounds.center.z);
-
 
             PathBounds.size = bounds.size;
             PathBounds.center = bounds.center;
-
             MTools.SetDirty(PathBounds);
         }
 
@@ -348,7 +341,7 @@ namespace MalbersAnimations.PathCreation
                 var Char_Pos = item.transform.position;
 
                 m_PreviousPathPosition = Mathf.Clamp(m_PreviousPathPosition, 0, m_PathPosition);
-                m_PathPosition = Path.GetClosestTimeOnPath(Char_Pos); 
+                m_PathPosition = Path.GetClosestTimeOnPath(Char_Pos);
 
                 // Quaternion newPathOrientation = m_Path.EvaluateOrientationAtUnit(m_PathPosition, t);
                 Vector3 PathPos = Path.GetPointAtTime(m_PathPosition) + SearchOffset;   // Apply the offset to get the new position
@@ -363,7 +356,7 @@ namespace MalbersAnimations.PathCreation
                 {
                     //Meaning the Path Constraint has already this path as the active one, so skip!
                     if (item.LastPath.Contains(this)) continue;
-                    
+
                     if (Automatic.Value)
                     {
                         //Change to the new path
@@ -375,7 +368,7 @@ namespace MalbersAnimations.PathCreation
                         {
                             item.NextPath = this; //store the Next Path the animal can be
                         }
-                       
+
                     }
                     else
                     {
@@ -394,7 +387,7 @@ namespace MalbersAnimations.PathCreation
                     if (InsidePathSphere)
                     {
                         CanEnterPath.Invoke(false);
-                        InsidePathSphere= false;
+                        InsidePathSphere = false;
                     }
 
                     //Reset the Last Past on since is not near enough clear the LastPath
@@ -439,7 +432,7 @@ namespace MalbersAnimations.PathCreation
                 }
             }
 
-           
+
         }
 
 
@@ -460,10 +453,10 @@ namespace MalbersAnimations.PathCreation
     [CustomEditor(typeof(MPath)), CanEditMultipleObjects]
     public class MPathEditor : Editor
     {
-        string[] Tabs = new string[] { "Path", "Animal" , "Reactions","Events" };
+        string[] Tabs = new string[] { "Path", "Animal", "Reactions", "Events" };
 
         SerializedProperty Editor_Tabs1, Layer, //m_Path, 
-            PathBounds, usePathRotation, LockRotation, FollowDirection, Automatic, AutoChangePath, ExitOnMiddle,
+            PathBounds, usePathRotation, LockRotation, FollowDirection, Automatic, AutoChangePath, ExitOnMiddle, OrientSmoothness,
             ActivateState, DisableStates, IgnoreStates, IgnoreModes, IgnoreGrounded, pathCooldown, AlignmentOffset, IgnoreVertical, PathPosition,
             SearchOffset, interval, SearchRadius, ExitOnStart, ExitOnEnd, NoExitPathReactions, //m_SearchResolution,
             EnterReaction, ExitReaction, debug, exitAnyMode;
@@ -480,12 +473,13 @@ namespace MalbersAnimations.PathCreation
             AutoChangePath = serializedObject.FindProperty("AutoChangePath");
             exitAnyMode = serializedObject.FindProperty("exitAnyMode");
             Editor_Tabs1 = serializedObject.FindProperty("Editor_Tabs1");
-           // m_Path = serializedObject.FindProperty("m_Path");
+            // m_Path = serializedObject.FindProperty("m_Path");
             SearchOffset = serializedObject.FindProperty("SearchOffset");
             pathCooldown = serializedObject.FindProperty("pathCooldown");
             FollowDirection = serializedObject.FindProperty("FollowDirection");
+            OrientSmoothness = serializedObject.FindProperty("OrientSmoothness");
             SearchRadius = serializedObject.FindProperty("SearchRadius");
-           // m_SearchResolution = serializedObject.FindProperty("m_SearchResolution");
+            // m_SearchResolution = serializedObject.FindProperty("m_SearchResolution");
             PathBounds = serializedObject.FindProperty("PathBounds");
             Layer = serializedObject.FindProperty("Layer");
             interval = serializedObject.FindProperty("interval");
@@ -538,8 +532,8 @@ namespace MalbersAnimations.PathCreation
 
             switch (Editor_Tabs1.intValue)
             {
-                case 0: DrawPath();break; 
-                case 1: DrawAnimal(); break; 
+                case 0: DrawPath(); break;
+                case 1: DrawAnimal(); break;
                 case 2: DrawReactions(); break;
                 case 3: DrawEvents(); break;
 
@@ -552,7 +546,7 @@ namespace MalbersAnimations.PathCreation
 
         private void DrawReactions()
         {
-             using (new GUILayout.VerticalScope(EditorStyles.helpBox))
+            using (new GUILayout.VerticalScope(EditorStyles.helpBox))
             {
                 Layer.isExpanded = MalbersEditor.Foldout(Layer.isExpanded, "Reactions");
                 if (Layer.isExpanded)
@@ -573,7 +567,7 @@ namespace MalbersAnimations.PathCreation
             }
         }
         private void DrawEvents()
-        { 
+        {
             using (new GUILayout.VerticalScope(EditorStyles.helpBox))
             {
                 OnEnterBounds.isExpanded = MalbersEditor.Foldout(OnEnterBounds.isExpanded, "Events");
@@ -590,8 +584,6 @@ namespace MalbersAnimations.PathCreation
                     EditorGUILayout.PropertyField(OnEndOfPath);
                 }
             }
-
-          
         }
 
         private void DrawPath()
@@ -614,8 +606,8 @@ namespace MalbersAnimations.PathCreation
                         }
                         MalbersEditor.DrawDebugIcon(debug);
                     }
-                        EditorGUILayout.PropertyField(Automatic);
-                       // EditorGUILayout.PropertyField(m_Path);
+                    EditorGUILayout.PropertyField(Automatic);
+                    // EditorGUILayout.PropertyField(m_Path);
                     EditorGUILayout.PropertyField(AutoChangePath);
 
 
@@ -626,31 +618,29 @@ namespace MalbersAnimations.PathCreation
 
                     EditorGUILayout.PropertyField(usePathRotation);
 
-                 
                     EditorGUILayout.PropertyField(AlignmentOffset);
                     EditorGUILayout.PropertyField(PathPosition);
-
-
+                    EditorGUILayout.PropertyField(OrientSmoothness);
                 }
             }
-                using (new GUILayout.VerticalScope(EditorStyles.helpBox))
+            using (new GUILayout.VerticalScope(EditorStyles.helpBox))
+            {
+                ExitOnEnd.isExpanded = MalbersEditor.Foldout(ExitOnEnd.isExpanded, "Exit  Path");
+                if (ExitOnEnd.isExpanded)
                 {
-                    ExitOnEnd.isExpanded = MalbersEditor.Foldout(ExitOnEnd.isExpanded, "Exit  Path");
-                    if (ExitOnEnd.isExpanded)
-                    {
-                        EditorGUILayout.PropertyField(NoExitPathReactions);
-                        EditorGUILayout.PropertyField(ExitOnStart);
-                        EditorGUILayout.PropertyField(ExitOnEnd);
-                        EditorGUILayout.PropertyField(ExitOnMiddle);
-                    }
+                    EditorGUILayout.PropertyField(NoExitPathReactions);
+                    EditorGUILayout.PropertyField(ExitOnStart);
+                    EditorGUILayout.PropertyField(ExitOnEnd);
+                    EditorGUILayout.PropertyField(ExitOnMiddle);
                 }
+            }
 
             using (new GUILayout.VerticalScope(EditorStyles.helpBox))
             {
                 interval.isExpanded = MalbersEditor.Foldout(interval.isExpanded, "Search");
                 if (interval.isExpanded)
                 {
-                  //  EditorGUILayout.PropertyField(m_SearchResolution);
+                    //  EditorGUILayout.PropertyField(m_SearchResolution);
                     EditorGUILayout.PropertyField(interval);
                     EditorGUILayout.PropertyField(pathCooldown);
                     EditorGUILayout.PropertyField(SearchRadius);
@@ -673,6 +663,7 @@ namespace MalbersAnimations.PathCreation
                             var path = (MPath)target;
                             path.CalculateBounds();
                             EditorUtility.SetDirty(target);
+                            EditorUtility.SetDirty(M.PathBounds);
                         }
                     }
                     EditorGUILayout.PropertyField(Layer);
@@ -704,11 +695,11 @@ namespace MalbersAnimations.PathCreation
                 {
                     EditorGUILayout.PropertyField(ActivateState);
 
-           
+
                     EditorGUILayout.PropertyField(IgnoreVertical);
                     EditorGUILayout.PropertyField(IgnoreGrounded);
-                   
-                 
+
+
                     EditorGUI.indentLevel++;
                     EditorGUILayout.PropertyField(DisableStates);
                     EditorGUI.indentLevel--;

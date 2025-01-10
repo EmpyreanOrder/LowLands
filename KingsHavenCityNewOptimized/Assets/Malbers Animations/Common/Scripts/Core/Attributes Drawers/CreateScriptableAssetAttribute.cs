@@ -47,9 +47,9 @@ namespace MalbersAnimations
                 if (GUI.Button(AddButtonRect, plus, UnityEditor.EditorStyles.helpBox))
                 {
                     if (attr.isAsset)
-                        MTools.CreateScriptableAsset(property, MTools.GetPropertyType(property), MTools.GetSelectedPathOrFallback());
+                        MTools.CreateScriptableAsset(property, MalbersEditor.GetSelectedPathOrFallback());
                     else
-                        MTools.CreateScriptableAssetInternal(property, MTools.GetPropertyType(property));
+                        MTools.CreateScriptableAssetInternal(property);
 
                     GUIUtility.ExitGUI();
                 }

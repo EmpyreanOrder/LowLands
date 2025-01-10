@@ -1,4 +1,4 @@
-﻿using MalbersAnimations.Scriptables; 
+﻿using MalbersAnimations.Scriptables;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -11,44 +11,43 @@ namespace MalbersAnimations.Controller
 
         private int JumpEndHash = Animator.StringToHash("JumpEnd");
         private int JumpStartHash = Animator.StringToHash("JumpStart");
-        //  private int DoubleJumpHash = Animator.StringToHash("DoubleJump");
+        //private int DoubleJumpHash = Animator.StringToHash("DoubleJump");
 
 
         [Header("Jump Parameters")]
         //[Tooltip("Can the Animal be Rotated while Jumping?")]
         //public BoolReference AirControl = new(true);
-        [Tooltip("How much Rotation the Animal can do while Jumping")]
+        [Tooltip("How much Rotation the character can do while Jumping")]
         public FloatReference AirRotation = new(10);
-        [Tooltip("States that will Reset the Jump Count. By Default Idle and Locomotion Reset the value")]
+        [Tooltip("How much movement is allowed when the character is on the air")]
         public FloatReference AirMovement = new(5);
         [Tooltip("Smooth Value for Changing Speed Movement on the Air")]
         public FloatReference AirSmooth = new(5);
 
-      
+        [Tooltip("Keep the  Up Inertia from platforms or going upwards to keep the height of the jump")]
+        public BoolReference KeepUPIntertia = new(true);
 
-        [Tooltip("Amount of jumps the Animal can do (Double and Triple Jumps)")]
+        [Tooltip("Amount of jumps the character can do (Double and Triple Jumps)")]
         public IntReference Jumps = new(1);
 
         [Tooltip("Time needed to use the Double Jump again, so you don't have jumps to close to each other")]
         public FloatReference DoubleJumpTime = new(0.3f);
 
 
-        //[Tooltip("For Multiple Jumps, time needed to activate the next jump logic")]
-        //public FloatReference JumpTime = new FloatReference(0.3f);
-
-        /// <summary>If the Jump input is pressed, the Animal will keep going Up while the Jump Animation is Playing</summary>
-        [Space, Tooltip("If the Jump input is pressed, the Animal will keep going Up while the Jump Animation is Playing")]
-        public BoolReference JumpPressed = new(false);
-        [Tooltip("Lerp Value for Pressing Jump. THis will smooth out exiting the height of the jump ")]
-        public FloatReference JumpPressedLerp = new(5);
-
-
-
         [Tooltip("The Jump can be interrupted if a ground is found in the middle of the jump. This is the multiplier to cast the Ray using the Animal Height.")]
         // [Range(0,99)]
         public FloatReference JumpInterruptRay = new(0.9f);
 
-        [Space, Tooltip("How much Movement the Animal can do while Jumping")]
+        //[Tooltip("For Multiple Jumps, time needed to activate the next jump logic")]
+        //public FloatReference JumpTime = new FloatReference(0.3f);
+
+        ///// <summary>If the Jump input is pressed, the Animal will keep going Up while the Jump Animation is Playing</summary>
+        //[Space, Tooltip("If the Jump input is pressed, the Animal will keep going Up while the Jump Animation is Playing")]
+        //public BoolReference JumpPressed = new(false);
+        [Tooltip("Lerp Value for Pressing Jump. THis will smooth out exiting the height of the jump ")]
+        public FloatReference JumpPressedLerp = new(5);
+
+        [Space, Tooltip("Which states will reset the Jump Count. Idle and Locomotion are set by default. E.g. Swim can Reset the Jump State and the character can jump while swimming ")]
         public List<StateID> ResetJump;
 
         public List<JumpBasicProfile> profiles = new();
@@ -73,6 +72,20 @@ namespace MalbersAnimations.Controller
         //}
         //private bool activateJumpLogic;
 
+        public override bool InputValue
+        {
+            get => base.InputValue;
+            set
+            {
+                base.InputValue = value;
+                if (!value) { CanMultipleJump = true; } //This allows to Double jump after the input is released!
+            }
+        }
+
+        public Vector3 StartingSpeedDirection { get; private set; }
+
+        public override bool KeepForwardMovement => !activeJump.AirControl.Value;
+
         public int JumpsPerformanced { get; set; }
         //{
         //    get => jumpsPerformanced;
@@ -94,7 +107,18 @@ namespace MalbersAnimations.Controller
         private float JumpPressHeight_Value = 1;
 
 
-         
+        /// <summary>  Only Activate the Multiple jump if the Input is False (meaning the Input was released ) </summary>
+        public bool CanMultipleJump { get; internal set; }
+        //{
+        //    get => canMultipleJump;
+        //    set
+        //    {
+        //        canMultipleJump = value;
+        //         Debug.Log(" canMultipleJump = " + canMultipleJump);
+        //    }
+        //}
+        //private bool canMultipleJump;
+
         public override void AwakeState()
         {
             base.AwakeState();
@@ -114,42 +138,49 @@ namespace MalbersAnimations.Controller
             StartedJumpLogicTime = 0;
             JumpStartTime = Time.time;
             IsDoubleJump = false;
-
-          
+            StartingSpeedDirection = Vector3.zero;
             //Debugging("Reset Jump Values");
         }
 
 
-        //Do not use the Try Activate
-        //  public override bool TryActivate() => false;
-        public override bool TryActivate() => InputValue && (JumpsPerformanced < Jumps);
+        //Do not use the Try Activate Jump is a non Try State 
+        // public override bool TryActivate() => false;
 
+        //I use these for pressing and jumping???
+        public override bool TryActivate()
+        {
+            if (animal.LockInput) return false; //Parche
+            return InputValue && (JumpsPerformanced < Jumps) && CanMultipleJump;
+        }
 
-        //public override void StatebyInput()
-        //{
-        //    Debug.Log("StatebyInput = " + InputValue);
-
-        //    if (InputValue) Activate();
-        //}
-
+        public override void StatebyInput()
+        {
+            if (InputValue && (JumpsPerformanced < Jumps) && CanMultipleJump) Activate();
+        }
 
         public void ActivateJump()
         {
             ActivateJumpLogic = true;
             justJumpPressed = true;
             animal.Grounded = false;
+
             StartedJumpLogicTime = 0;
             JumpStartTime = Time.time;
             animal.GravityTime = activeJump.StartGravityTime;
             StartingSpeedDirection = animal.HorizontalVelocity;            //Store the Starting SpeedDirection
+
             Debugging("[Basic Jump] Activate JumpLogic");
+
+            animal.platform = null;
+            LastPlatform = null;
         }
 
         public override void Activate()
         {
             if (JumpsPerformanced < Jumps && MTools.ElapsedTime(JumpStartTime, DoubleJumpTime))
             {
-              //  Debug.Log("ENTERING = " );
+                CanMultipleJump = false; //It Cannot multiple jump unless the input is released
+
                 base.Activate();
                 animal.State_SetFloat(0);
 
@@ -160,10 +191,31 @@ namespace MalbersAnimations.Controller
                 IsPersistent = true;                                //IMPORTANT!!!!! DO NOT ELIMINATE!!!!!  causing issues
 
                 animal.currentSpeedModifier.animator = 1;
-                animal.ResetGravityValues();                        //Reset the Gravity
+                animal.Gravity_ResetValues();                        //Reset the Gravity
                 StartingSpeedDirection = animal.HorizontalVelocity;            //Store the Starting SpeedDirection
                 FindJumpProfile();
+
             }
+
+            LastPlatform = animal.platform;
+
+
+            animal.UpInertia_Clear(); //Clear the Up Intertia
+                                      // if (Vector3.Dot(animal.Inertia, animal.UpVector) > 0)
+            if (animal.platform != null)
+                animal.UpInertia_Store(); //This is used for Jumping on a platform to get the inertia from the platform
+        }
+
+
+        private Transform LastPlatform;
+
+        /// <summary> Use this to lock jumps profiles and not use the Vertical to check which is the valid profile </summary>
+        public void LockJumpProfile(int index)
+        {
+            index = Mathf.Clamp(index, 0, profiles.Count - 1);
+            activeJump = profiles[index];
+            animal.VerticalSmooth = activeJump.VerticalSpeed;
+            animal.SetAnimParameter(animal.hash_Vertical, animal.VerticalSmooth);
         }
 
         private void FindJumpProfile()
@@ -189,10 +241,14 @@ namespace MalbersAnimations.Controller
 
             var JumpNumber = 0;
 
+            //if (!CanMultipleJump) return;
+
             //Search again if the Character can perform multiple jumps
             if (Jumps > 1 && JumpsPerformanced > 1 && multipleJumps != null && multipleJumps.Count > 0)
             {
                 var PosibleJump = new JumpDoubleProfile() { JumpNumber = -1 };
+
+
 
                 foreach (var j in multipleJumps)                          //Save/Search the Current Jump Profile by the Lowest Speed available
                 {
@@ -212,11 +268,8 @@ namespace MalbersAnimations.Controller
                     IsDoubleJump = true;
                 }
             }
-
             SetEnterStatus(JumpNumber);
         }
-
-
 
 
         public override void EnterCoreAnimation()
@@ -228,7 +281,12 @@ namespace MalbersAnimations.Controller
 
             var Speed = animal.HorizontalSpeed / ScaleFactor;
 
-            //  Debug.Log($"Speed JUMP: {Speed}");
+            if (activeJump.JumpInterruptRay == 0) activeJump.JumpInterruptRay = 1; //Make sure is set to 1 if is not configured
+
+            //Debug.Log($"Speed: {Speed}");
+            if (activeJump.ClampForward > 0) Speed = Mathf.Clamp(Speed, 0, activeJump.ClampForward); //Clamp the Speed Forward to avoid Acceleration
+                                                                                                     // Debug.Log($"Speed After Clamp: {Speed}");
+                                                                                                     //  Debug.Log($"Speed JUMP: {Speed}");
             if (animal.HasExternalForce)
             {
                 var HorizontalForce = Vector3.ProjectOnPlane(animal.ExternalForce, animal.UpVector);    //Remove Horizontal Force
@@ -239,14 +297,13 @@ namespace MalbersAnimations.Controller
                 Speed = HorizontalSpeed.magnitude / ScaleFactor; //Remove the scaleFactor since it will be added later 
             }
 
-
             //Remove all Speed if the External Force does not allows it
-            if (!animal.ExternalForceAirControl) Speed = 0; 
-             
+            if (!animal.ExternalForceAirControl) Speed = 0;
+
 
             JumpSpeed = new MSpeed(animal.CurrentSpeedModifier) //Inherit the Vertical and the Lerps
             {
-                name = "Jump Basic Speed",
+                name = $"Jump [{activeJump.name}] Speed",
                 position = General.RootMotion ? 0 : Speed, //Inherit the Horizontal Speed you have from the last state
                 strafeSpeed = General.RootMotion ? 0 : Speed,
                 lerpPosition = AirSmooth.Value,
@@ -258,28 +315,34 @@ namespace MalbersAnimations.Controller
             animal.SetCustomSpeed(JumpSpeed, false);                     //Set the Current Speed to the Jump Speed Modifier
 
             animal.GravityExtraPower = activeJump.GravityPower.Value;    //Send the Gravity ExtraPower value.
-
+            //Debug.Log($"animal.GravityExtraPower {animal.GravityExtraPower}");
 
             //Mean is doing a double jump!
             if (IsDoubleJump)
             {
                 ActivateJump();
+                animal.UpInertia_Clear(); //Clear the Up Intertia on Double Jump
             }
             //if it does not require to Wait for the Animator to call
             else if (!activeJump.WaitForAnimation)
             {
                 ActivateJump();
             }
+            else
+            {
+                var PlatLastPos = animal.Last_Platform_Pos;
+                animal.SetPlatform(LastPlatform); //No Code Involved
+                animal.Last_Platform_Pos = PlatLastPos;
+            }
         }
 
         public override Vector3 Speed_Direction()
         {
-           if (GizmoDebug)
-                MDebug.Draw_Arrow(transform.position, StartingSpeedDirection * 2, Color.red);
+            if (GizmoDebug)
+                MDebug.Draw_Arrow(Position, StartingSpeedDirection * 2, Color.red);
             return activeJump.AirControl.Value ? base.Speed_Direction() : StartingSpeedDirection;
         }
 
-        private Vector3 StartingSpeedDirection;  
         public override void EnterTagAnimation()
         {
             if (CurrentAnimTag == JumpStartHash && !animal.RootMotion)
@@ -316,16 +379,23 @@ namespace MalbersAnimations.Controller
                 Debugging("[EnterTag-JumpEnd]");
                 AllowExit();
             }
-        } 
-        public override bool KeepForwardMovement => !activeJump.AirControl.Value;
+        }
 
         public override void OnStateMove(float deltaTime)
         {
             if (InCoreAnimation)
             {
+                StartedJumpLogicTime += deltaTime;
+
                 if (ActivateJumpLogic)
                 {
-                    if (JumpPressed.Value)
+                    //Keep the Up Momentum
+                    if (KeepUPIntertia.Value/* && Vector3.Dot(animal.UpInertia, animal.UpVector) > 0*/)
+                    {
+                        animal.UpInertia_Apply();
+                    }
+
+                    if (activeJump.JumpPressed.Value)
                     {
                         if (!InputValue) justJumpPressed = false;
 
@@ -341,14 +411,12 @@ namespace MalbersAnimations.Controller
                         CurrentSpeedPos = Mathf.Lerp(CurrentSpeedPos, AirMovement, (AirSmooth != 0 ? (deltaTime * AirSmooth) : 1));
                     }
 
-                    StartedJumpLogicTime += deltaTime;
                     Vector3 ExtraJumpHeight = (UpVector * activeJump.Height.Value);
                     animal.AdditivePosition += deltaTime * JumpPressHeight_Value * ScaleFactor * ExtraJumpHeight;     //Up Movement
 
                     //If we still can apply movement
                     if (StartedJumpLogicTime < activeJump.JumpTime)
                         IsPersistent = false; //Let other High Priority States to play
-
 
                     //Apply Fake Gravity
                     if (!animal.IgnoreModeGravity)
@@ -358,8 +426,6 @@ namespace MalbersAnimations.Controller
                         animal.GravityOffset = (JumpPressHeight_Value * ScaleFactor * ExtraJumpHeight);     //Send the Values of the Height to stored 
                         animal.GravityTime++;
                     }
-
-                  
                 }
                 else //Keep RootMotion
                 {
@@ -371,28 +437,46 @@ namespace MalbersAnimations.Controller
             }
         }
 
+
+
         public override void TryExitState(float deltaTime)
         {
             if (!ActivateJumpLogic) return; //The Jump logic has not being activated yet
 
-            Debug.DrawRay(animal.Main_Pivot_Point, Height * JumpInterruptRay * Gravity, Color.white);
+            // var GoingDown = Vector3.Dot(DeltaPos, Gravity) > 0; //Check if is falling down
 
-            if (Physics.Raycast(animal.Main_Pivot_Point, Gravity, out var Hit, Height * JumpInterruptRay, GroundLayer, IgnoreTrigger))
-            {
-                //IMPORTANT HACk FOR when the Animal is falling to fast
-                var GroundedPos = Vector3.Project(Hit.point - animal.transform.position, Gravity);
+            //  Debug.Log($"TryExitState  StartedJumpLogicTime: {StartedJumpLogicTime:F2}   GoingDown {GoingDown}");
 
-                Debugging("[Allow Exit] - Interrupt Ray Touched Ground");
-                animal.Teleport_Internal(animal.transform.position + GroundedPos);
-                animal.ResetUPVector();
-                animal.Grounded = true; //IMPORTANT!
-                AllowExit();
-            }
-            else if (StartedJumpLogicTime >= activeJump.JumpTime)
+            //Debug.DrawRay(animal.Main_Pivot_Point, Height * activeJump.JumpInterruptRay * Gravity, Color.white);
+
+            //if (Physics.Raycast(animal.Main_Pivot_Point, Gravity, out var Hit, Height * activeJump.JumpInterruptRay, GroundLayer, IgnoreTrigger))
+            //{
+            //    if (Hit.distance < Height)
+            //    {
+            //        if (GoingDown)
+            //        {
+            //            //SUPER IMPORTANT!!! this is when the Animal is falling from a great height
+            //            animal.Teleport_Internal(Hit.point);
+            //            //var GroundedPos = Vector3.Project(Hit.point - animal.transform.position, Gravity);
+            //            //animal.Teleport_Internal(animal.transform.position + GroundedPos);
+            //            animal.ResetUPVector();
+            //            Debugging("[Allow Exit] - Interrupt Ray Touched Ground FORCE ALIGMENT");
+            //        }
+            //        else
+            //        {
+            //            Debugging("[Allow Exit] - Interrupt Ray Touched Smooth align");
+            //        }
+
+            //        animal.Grounded = true; //IMPORTANT!
+            //        AllowExit();
+            //    }
+            //}
+
+
+            if (StartedJumpLogicTime >= activeJump.JumpTime)
             {
-                AllowExit(3,0); //Force Fall State
+                AllowExit(3, 0); //Force Fall State
                 Debugging("[Allow Exit]");
-              
             }
         }
 
@@ -405,17 +489,18 @@ namespace MalbersAnimations.Controller
             if (newState <= 1 || ResetJump.Contains(newState))
             {
                 JumpsPerformanced = 0;          //Reset the amount of jumps performanced
+                CanMultipleJump = true; //Can jump again
             }
             //If we were not jumping then increase the Double Jump factor when falling from locomotion
-            else if (newState == StateEnum.Fall && animal.LastState.ID != ID)
+            else if (newState == StateEnum.Fall && animal.LastState && animal.LastState.ID != ID)
             {
                 JumpsPerformanced++; //If we are in fall animation then increase a Jump perfomanced
             }
         }
 
 
-#if UNITY_EDITOR
 
+#if UNITY_EDITOR
         public override void SetSpeedSets(MAnimal animal)
         {
             //Do nothing... the Fall is an automatic State, the Fall Speed is created internally
@@ -449,10 +534,10 @@ namespace MalbersAnimations.Controller
 
             // ExitFrame = false;
 
-            profiles = new List<JumpBasicProfile>(1) { new JumpBasicProfile()
+            profiles = new List<JumpBasicProfile>(1) { new ()
             {
-                Height = new FloatReference(6),
-                GravityPower = new FloatReference(1),
+                Height = new(6),
+                GravityPower = new(1),
                 JumpTime = 0.3f,
                 VerticalSpeed = 0,
                 name = "Default",
@@ -460,10 +545,10 @@ namespace MalbersAnimations.Controller
                 LastState = null,
             }
             };
-
         }
 #endif
     }
+
 
 
     /// <summary>Different Jump parameters on different speeds</summary>
@@ -480,6 +565,7 @@ namespace MalbersAnimations.Controller
         [Tooltip("Minimal Vertical Speed to Activate this Profile")]
         public float VerticalSpeed;
 
+        [Tooltip("Extra Force to push the animal forward ??")]
         public float ForwardPush;
 
         //  [Header("Values")]
@@ -492,6 +578,9 @@ namespace MalbersAnimations.Controller
         [Tooltip("Multiplier for the Gravity")]
         public FloatReference GravityPower;
 
+        [Tooltip("The Jump can be interrupted if a ground is found in the middle of the jump. This is the multiplier to cast the Ray using the Animal Height.")]
+        public FloatReference JumpInterruptRay;
+
         [Tooltip("Higher value makes the Jump more Arcady")]
         public int StartGravityTime;
 
@@ -500,6 +589,13 @@ namespace MalbersAnimations.Controller
 
         [Tooltip("Wait for the Animation to Activate the Jump Logic\n Use [void ActivateJump()] on the Animator with a Messsage Behavior")]
         public bool WaitForAnimation;
+
+        [Tooltip("If the Jump input is pressed, the Animal will keep going Up while the Jump Animation is Playing")]
+        public BoolReference JumpPressed;
+
+
+        [Tooltip("Clamp the Speed Forward when jumping (Jumping Often Causes the character to accelerate)")]
+        public float ClampForward;
     }
 
 
@@ -510,10 +606,10 @@ namespace MalbersAnimations.Controller
         [Tooltip("Name to identify the Jump Profile")]
         public string name;
 
-        [Tooltip("Multiple Jump Number (Is it a Double or a Triple Jump. Default is 0. This is the Value for the [Enter State Status]")]
+        [Header("Double Jump")]
+        [Tooltip("Multiple Jump Number (Is it a Double or a Triple Jump. Default is 2 for Double Jump. This is the Value for the [Enter State Status]")]
         public int JumpNumber;
 
-        [Header("Values")]
         [Tooltip("Duration of the Jump logic")]
         public float JumpTime;
 
@@ -523,6 +619,8 @@ namespace MalbersAnimations.Controller
         [Tooltip("Multiplier for the Gravity")]
         public FloatReference GravityPower;
 
+
+
         [Tooltip("Higher value makes the Jump more Arcady")]
         public int StartGravityTime;
 
@@ -531,5 +629,7 @@ namespace MalbersAnimations.Controller
 
         [Space, Tooltip("Wait for the Animation to Activate the Jump Logic\n Use [void ActivateJump()] on the Animator with a Messsage Behavior")]
         public bool WaitForAnimation;
+
+
     }
 }

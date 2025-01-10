@@ -1,6 +1,6 @@
-﻿using UnityEngine;
+﻿using MalbersAnimations.Events;
 using MalbersAnimations.Scriptables;
-using MalbersAnimations.Events;
+using UnityEngine;
 
 namespace MalbersAnimations.Utilities
 {
@@ -8,7 +8,7 @@ namespace MalbersAnimations.Utilities
     public class LockOnTarget : MonoBehaviour
     {
         [Tooltip("The Lock On Target will activate automatically if any target is stored on the list")]
-        public BoolReference Auto =  new(false);
+        public BoolReference Auto = new(false);
 
 
         [Tooltip("The Lock On Target requires an Aim Component")]
@@ -17,35 +17,42 @@ namespace MalbersAnimations.Utilities
         [Tooltip("Set of the focused 'potential' Targets")]
         [RequiredField] public RuntimeGameObjects Targets;
 
-       // public BoolReference UseAimTargets = new BoolReference(false);
+        [Tooltip("Time needed to change to the next or previous target")]
+        public FloatReference NextTargetTime = new(0f);
+
+        private float CurrentNextTime;
 
         private int CurrentTargetIndex = -1;
         public bool debug;
-        
+
 
         [Header("Events")]
-        public TransformEvent OnTargetChanged = new TransformEvent();
-        public BoolEvent OnLockingTarget = new BoolEvent();
+        public TransformEvent OnTargetChanged = new();
+        public TransformEvent OnTargetAimAssist = new();
+        public BoolEvent OnLockingTarget = new();
 
         /// <summary> </summary>
         public Transform LockedTarget
-        { get => locketTarget;
+        {
+            get => locketTarget;
 
             private set
             {
                 locketTarget = value;
                 aim.SetTarget(value);
                 OnTargetChanged.Invoke(value);
+
+                IsAimTarget = value != null ? value.FindComponent<AimTarget>() : null;
+
+                OnTargetAimAssist.Invoke(IsAimTarget != null ? IsAimTarget.AimPoint : value);
             }
         }
         private Transform locketTarget;
 
 
-      //  private Transform DefaultAimTarget;
+        //  private Transform DefaultAimTarget;
 
         public bool LockingOn { get; private set; }
-        
-
 
         public AimTarget IsAimTarget { get; private set; }
         public GameObject Owner => transform.root.gameObject;
@@ -53,6 +60,9 @@ namespace MalbersAnimations.Utilities
         private void Awake()
         {
             Targets.Clear();
+
+            if (aim != null) aim.FindComponent<Aim>();
+
 
             //DefaultAimTarget = null;
             //if (aim != null) DefaultAimTarget = aim.AimTarget;
@@ -69,7 +79,7 @@ namespace MalbersAnimations.Utilities
             ResetLockOn();
         }
 
-       
+
 
 
         private void OnDisable()
@@ -105,7 +115,7 @@ namespace MalbersAnimations.Utilities
             LookingTarget();
         }
 
-        private void LookingTarget() 
+        private void LookingTarget()
         {
             if (LockingOn)
             {
@@ -149,26 +159,57 @@ namespace MalbersAnimations.Utilities
             }
         }
 
+
+        public void Target_Scroll(Vector2 value)
+        {
+            if (value.y > 0 || value.x > 0)
+                Target_Next();
+            else if (value.y < 0 || value.x < 0)
+                Target_Previous();
+        }
+
+
+        public void Target_Scroll(float value)
+        {
+            if (value > 0) Target_Next();
+            else if (value < 0) Target_Previous();
+        }
+
         public void Target_Next()
         {
+            if (CurrentNextTime > 0 && !MTools.ElapsedTime(CurrentNextTime, NextTargetTime)) return;
+
+
             if (Targets != null && LockedTarget != null && CurrentTargetIndex != -1) //Check everything is working
             {
                 CurrentTargetIndex++;
                 CurrentTargetIndex %= Targets.Count; //Cycle to the first in case we are on the last item on the list
                 LockedTarget = Targets.Item_Get(CurrentTargetIndex).transform;     //Store the Next Target
+
+                //  Debug.Log(" Target_Next()");
+
                 Debugging($"Locked Next Target: {LockedTarget.name}");
+
+
+                CurrentNextTime = Time.time;
             }
         }
 
         public void Target_Previous()
         {
+            if (CurrentNextTime > 0 && !MTools.ElapsedTime(CurrentNextTime, NextTargetTime)) return;
+
             if (Targets != null && LockedTarget != null && CurrentTargetIndex != -1) //Check everything is working
             {
                 CurrentTargetIndex--;
                 if (CurrentTargetIndex == -1) CurrentTargetIndex = Targets.Count - 1;
                 LockedTarget = Targets.Item_Get(CurrentTargetIndex).transform;     //Store the Next Target
 
+                //Debug.Log(" Target_Previous()");
+
                 Debugging($"Locked Previous Target: {LockedTarget.name}");
+
+                CurrentNextTime = Time.time;
             }
         }
 
@@ -213,7 +254,7 @@ namespace MalbersAnimations.Utilities
         //[ContextMenu("Create Input")]
         //private void CreateInput()
         //{
-            
+
         //}
 #endif
     }

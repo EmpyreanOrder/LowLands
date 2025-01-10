@@ -6,13 +6,12 @@ using UnityEditor;
 using UnityEditor.IMGUI.Controls;
 using UnityEngine;
 
-namespace MalbersAnimations.SerializeReferenceExtensions.Editor
+namespace MalbersAnimations
 {
-
     [CustomPropertyDrawer(typeof(SubclassSelectorAttribute))]
     public class SubclassSelectorDrawer : PropertyDrawer
     {
-        struct TypePopupCache
+        readonly struct TypePopupCache
         {
             public AdvancedTypePopup TypePopup { get; }
             public AdvancedDropdownState State { get; }
@@ -35,12 +34,28 @@ namespace MalbersAnimations.SerializeReferenceExtensions.Editor
 
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
+            var boxRect = new Rect(position);
+
+            boxRect.width -= EditorGUIUtility.labelWidth;
+            boxRect.height += -3;
+            boxRect.y += 2;
+            boxRect.x -= 12;
+
+            position.y += 2;
+
+            GUIStyle d = new(EditorStyles.label)
+            {
+                imagePosition = ImagePosition.TextOnly
+            };
+
+            GUI.Box(boxRect, GUIContent.none, d);
+
             label = EditorGUI.BeginProperty(position, label, property);
             {
                 if (property.propertyType == SerializedPropertyType.ManagedReference)
                 {
-                    if (label.text.Contains("Element"))
-                    { label.text = label.text.Replace("Element", "Reaction"); } //????
+                    //if (label.text.Contains("Element"))
+                    //{ label.text = label.text.Replace("Element", property.name); } //????
 
                     // Draw the subclass selector popup.
                     Rect popupPosition = new(position);
@@ -54,9 +69,10 @@ namespace MalbersAnimations.SerializeReferenceExtensions.Editor
                     var hasActive = property.FindPropertyRelative("Active");
                     var delay = property.FindPropertyRelative("delay");
 
-                    if (hasActive != null)
+
+                    if (hasActive != null) //Draw the Active Toggle if it has the active property
                     {
-                        var pos = EditorGUI.PrefixLabel(position, label);
+                        var pos = EditorGUI.PrefixLabel(position, new GUIContent(" "));
                         Rect buttonRect = new(pos)
                         {
                             width = 20f,
@@ -68,26 +84,22 @@ namespace MalbersAnimations.SerializeReferenceExtensions.Editor
                         hasActive.boolValue = GUI.Toggle(buttonRect, hasActive.boolValue, GUIContent.none);
                     }
 
-
                     if (delay != null)
                     {
-                        var pos = EditorGUI.PrefixLabel(position, label);
-                        popupPosition.width -= 30;
-                        Rect buttonRect = new(pos)
+                        var w = 50f;
+
+                        Rect DelayRect = new(popupPosition)
                         {
-                            width = 30f-4,
-                            height = EditorGUIUtility.singleLineHeight,
-                           // x = popupPosition.x + popupPosition.width + 2,
-                            x = position.width-5,
-                              
+                            width = w,
+                            x = popupPosition.x + popupPosition.width - w,
                         };
 
-                        //  hasActive.boolValue = GUI.Toggle(buttonRect, hasActive.boolValue,new GUIContent(""));
-                        delay.floatValue = EditorGUI.FloatField(buttonRect, GUIContent.none, delay.floatValue);
+                        EditorGUIUtility.labelWidth = 10;
+                        delay.floatValue = EditorGUI.FloatField(DelayRect, new GUIContent("D", "Delay the Reaction for this amount of seconds"), delay.floatValue);
+                        EditorGUIUtility.labelWidth = 0;
 
+                        popupPosition.width -= (w + 3);
                     }
-
-
 
                     if (EditorGUI.DropdownButton(popupPosition, GetTypeName(property), FocusType.Keyboard))
                     {
@@ -96,16 +108,9 @@ namespace MalbersAnimations.SerializeReferenceExtensions.Editor
                         popup.TypePopup.Show(popupPosition);
                     }
 
-                  
-
-
-                   
-
-
                     // Draw the managed reference property.
                     EditorGUI.PropertyField(position, property, label, true);
 
-                     
                     EditorGUI.indentLevel = indent;
                 }
                 else
@@ -125,7 +130,7 @@ namespace MalbersAnimations.SerializeReferenceExtensions.Editor
             {
                 var state = new AdvancedDropdownState();
 
-                Type baseType = ManagedReferenceUtility.GetType(managedReferenceFieldTypename);
+                Type baseType = MSerializedTools.GetType(managedReferenceFieldTypename);
                 var popup = new AdvancedTypePopup(
                     TypeCache.GetTypesDerivedFrom(baseType).Append(baseType).Where(p =>
                         (p.IsPublic || p.IsNestedPublic) &&
@@ -134,9 +139,8 @@ namespace MalbersAnimations.SerializeReferenceExtensions.Editor
                         !k_UnityObjectType.IsAssignableFrom(p) &&
                         Attribute.IsDefined(p, typeof(SerializableAttribute))
                     ),
-                    k_MaxTypePopupLineCount,
-                    state
-                );
+                    k_MaxTypePopupLineCount, state);
+
                 popup.OnItemSelected += item =>
                 {
                     Type type = item.Type;
@@ -166,7 +170,7 @@ namespace MalbersAnimations.SerializeReferenceExtensions.Editor
                 return cachedTypeName;
             }
 
-            Type type = ManagedReferenceUtility.GetType(managedReferenceFullTypename);
+            Type type = MSerializedTools.GetType(managedReferenceFullTypename);
             string typeName = null;
 
             AddTypeMenuAttribute typeMenu = TypeMenuUtility.GetAttribute(type);
@@ -184,16 +188,15 @@ namespace MalbersAnimations.SerializeReferenceExtensions.Editor
                 typeName = ObjectNames.NicifyVariableName(type.Name);
             }
 
-            GUIContent result = new GUIContent(typeName);
+            GUIContent result = new(typeName);
             m_TypeNameCaches.Add(managedReferenceFullTypename, result);
             return result;
         }
 
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
         {
-            return EditorGUI.GetPropertyHeight(property, true);
+            return EditorGUI.GetPropertyHeight(property, true) + 8;
         }
-
     }
 
     public static class TypeMenuUtility
@@ -217,7 +220,7 @@ namespace MalbersAnimations.SerializeReferenceExtensions.Editor
                 int splitIndex = type.FullName.LastIndexOf('.');
                 if (splitIndex >= 0)
                 {
-                    return new string[] { type.FullName.Substring(0, splitIndex), type.FullName.Substring(splitIndex + 1) };
+                    return new string[] { type.FullName[..splitIndex], type.FullName[(splitIndex + 1)..] };
                 }
                 else
                 {

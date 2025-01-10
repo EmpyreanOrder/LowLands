@@ -1,5 +1,5 @@
-﻿using MalbersAnimations.Scriptables;
-using MalbersAnimations.Events;
+﻿using MalbersAnimations.Events;
+using MalbersAnimations.Scriptables;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -9,12 +9,12 @@ namespace MalbersAnimations
     [HelpURL("https://malbersanimations.gitbook.io/animal-controller/secondary-components/variable-listeners-and-comparers")]
     public class IntComparer : IntVarListener
     {
-        public List<AdvancedIntegerEvent> compare = new List<AdvancedIntegerEvent>();
+        public List<AdvancedIntegerEvent> compare = new();
 
         /// <summary>Set the first value on the comparer </summary>
         public int SetCompareFirstValue { get => compare[0].Value.Value; set => compare[0].Value.Value = value; }
 
-        public IntEvent OnValueChanged = new IntEvent();
+        public IntEvent OnValueChanged = new();
 
         /// <summary>Pin a Comparer</summary>
         private AdvancedIntegerEvent Pin;
@@ -70,9 +70,9 @@ namespace MalbersAnimations
 
         private void Reset()
         {
-              compare = new List<AdvancedIntegerEvent>() 
-              {  
-                  new AdvancedIntegerEvent() { Value = new IntReference(0), active = true, comparer = ComparerInt.Equal, name = "Compare"},
+            compare = new()
+              {
+                  new() { Value = new(0), active = true, comparer = ComparerInt.Equal, name = "Compare"},
               };
         }
         public void Value_Add(int value) => Value += value;
@@ -116,8 +116,6 @@ namespace MalbersAnimations
     [UnityEditor.CustomEditor(typeof(IntComparer))]
     public class IntCompareEditor : VarListenerEditor
     {
-
-
         private UnityEditor.SerializedProperty compare, OnValueChanged;
         private UnityEditorInternal.ReorderableList reo_compare;
 
@@ -138,6 +136,7 @@ namespace MalbersAnimations
                     var Value = element.FindPropertyRelative("Value");
                     var active = element.FindPropertyRelative("active");
 
+
                     rect.y += 1;
                     var height = UnityEditor.EditorGUIUtility.singleLineHeight;
                     var split = rect.width / 3;
@@ -151,9 +150,9 @@ namespace MalbersAnimations
 
                     var def = GUI.color;
 
-                    if (isActive)  GUI.color = Color.yellow;
+                    if (isActive) GUI.color = Color.yellow;
                     if (!active.boolValue) GUI.color = Color.gray;
-                
+
                     UnityEditor.EditorGUI.PropertyField(rectActveName, active, GUIContent.none);
                     UnityEditor.EditorGUI.PropertyField(rectName, name, GUIContent.none);
                     UnityEditor.EditorGUI.PropertyField(rectComparer, comparer, GUIContent.none);
@@ -175,16 +174,15 @@ namespace MalbersAnimations
                     UnityEditor.EditorGUI.LabelField(rectName, "Active   Name");
                     UnityEditor.EditorGUI.LabelField(rectComparer, " Compare");
                     UnityEditor.EditorGUI.LabelField(rectValue, " Value");
-                } 
+                }
             };
         }
-        
-        protected override void DrawEvents()
+
+        protected override void DrawElemets()
         {
             reo_compare.DoLayoutList();
 
             int SelectedItem = reo_compare.index;
-
             if (SelectedItem != -1 && SelectedItem < reo_compare.count)
             {
                 var element = compare.GetArrayElementAtIndex(SelectedItem);
@@ -192,7 +190,8 @@ namespace MalbersAnimations
                 {
                     UnityEditor.EditorGUILayout.Space(-20);
 
-                    var description = element.FindPropertyRelative("description");
+
+
 
                     if (styleDesc == null)
                         styleDesc = new GUIStyle(MTools.StyleGray)
@@ -205,20 +204,30 @@ namespace MalbersAnimations
 
                     styleDesc.normal.textColor = UnityEditor.EditorStyles.boldLabel.normal.textColor;
 
+                    var description = element.FindPropertyRelative("description");
+                    var UpdateAfterCompare = element.FindPropertyRelative("UpdateAfterCompare");
 
                     UnityEditor.EditorGUILayout.LabelField("Description", UnityEditor.EditorStyles.boldLabel);
                     description.stringValue = UnityEditor.EditorGUILayout.TextArea(description.stringValue, styleDesc);
-
-                    var Response = element.FindPropertyRelative("Response");
-                    var name = element.FindPropertyRelative("name").stringValue;
-                    UnityEditor.EditorGUILayout.PropertyField(Response, new GUIContent("Response: [" + name + "]   "));
+                    using (new GUILayout.VerticalScope(UnityEditor.EditorStyles.helpBox))
+                    {
+                        var Response = element.FindPropertyRelative("Response");
+                        var name = element.FindPropertyRelative("name").stringValue;
+                        if (UpdateAfterCompare != null) UnityEditor.EditorGUILayout.PropertyField(UpdateAfterCompare);
+                        UnityEditor.EditorGUILayout.PropertyField(Response, new GUIContent("Response: [" + name + "]   "));
+                        ExtraEvents(element);
+                    }
                 }
             }
 
             if (OnValueChanged != null)
                 UnityEditor.EditorGUILayout.PropertyField(OnValueChanged);
 
+
         }
+
+        protected virtual void ExtraEvents(UnityEditor.SerializedProperty element)
+        { }
     }
 #endif
 }

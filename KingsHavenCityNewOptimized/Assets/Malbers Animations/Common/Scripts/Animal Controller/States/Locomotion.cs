@@ -1,7 +1,7 @@
 ﻿using MalbersAnimations.Reactions;
 using MalbersAnimations.Scriptables;
 using System.Collections.Generic;
-using UnityEngine; 
+using UnityEngine;
 
 namespace MalbersAnimations.Controller
 {
@@ -29,10 +29,10 @@ namespace MalbersAnimations.Controller
         [Header("Locomotion Parameters")]
 
         [Tooltip("Backward Offset Position of the BackFall Ray")]
-        public FloatReference FallRayBackwards = new FloatReference(0.3f);
+        public FloatReference FallRayBackwards = new(0.3f);
 
         [Tooltip("Reset Inertia On Enter")]
-        public BoolReference ResetIntertia = new BoolReference(false);
+        public BoolReference ResetIntertia = new(false);
 
         [Space(10), Tooltip("Makes the Animal Stop Moving when is near a Wall")]
         public bool WallStop = false;
@@ -47,10 +47,10 @@ namespace MalbersAnimations.Controller
             "\nX:Speed Index (Walk = 1, Trot = 2, etc)" +
             "\nY:Additional Value for the Ray when the Character is on that speed.")]
         [Hide("WallStop", false, false)]
-        public List<WallStopProfiles> wallStopProfiles = new List<WallStopProfiles>();
+        public List<WallStopProfiles> wallStopProfiles = new();
 
 
-       
+
 
         [Space(10), Tooltip("Makes the Animal avoid ledges, Useful when the Animal without a Fall State, like the Elephant")]
         public bool AntiFall = false;
@@ -91,22 +91,70 @@ namespace MalbersAnimations.Controller
 
         public override void Activate()
         {
+            //Update that the state can use sprint ??
+            animal.UseSprintState = true;
+
             base.Activate();
 
-            // if (animal.Sprint) speed++;
-            SetEnterStatus((int)animal.CurrentSpeedModifier.Vertical.Value); //When entering Locomotion the State set the Status the current Speed Modifier.
+            ////When entering Locomotion the State set the Status the current Speed Modifier. but only when the smooth vertical is off (Weird bug)
+            //if (!animal.UseSmoothVertical)
+            //    SetEnterStatus((int)animal.CurrentSpeedModifier.Vertical.Value);
 
+
+            //When entering Locomotion from Idle
+            //    if (animal.LastState.ID.ID == 0) //From Idle
+
+            //********* NEWWWWWWWWWWWWW CHECK if it works for everybody
+            if (!animal.UseSmoothVertical || animal.UseSmoothVertical && animal.RawInputAxis.magnitude > 0.7)
+                SetEnterStatus((int)animal.CurrentSpeedModifier.Vertical.Value);
 
             CheckCurrentWallProfile(animal.CurrentSpeedIndex);
+
+            animal.OnMovementDetected.AddListener(OnMovementDetected);
+
+            OnMovementDetected(true); //REcord that the movement has started
+
+            //Calculate Delta Angle again!!! IMPORTANT!!! BEFORE THE ANIMATOR
+            InputAxisUpdate();
+
         }
 
+        public override void ExitState()
+        {
+            base.ExitState();
+            animal.OnMovementDetected.RemoveListener(OnMovementDetected);
+        }
 
+        private void OnMovementDetected(bool movementDetected)
+        {
+            //Means the input has been released
+            if (InCoreAnimation && IsActiveState && !movementDetected)
+            {
+                var exitstatus = !(animal.sprint && animal.UseSprintState && !animal.CurrentSpeedSetIsLocked)
+                    ? animal.CurrentSpeedIndex : animal.CurrentSpeedSet.SprintIndex;
 
+                SetExitStatus(exitstatus); //Use the Enter Status to check the speed
+
+                //Add an extra movement Detected when the Input is released so the Animal Can calculate a Exit Animations well,
+                //but do not do it if the animal is rotatin at direction
+                if (animal.Rotate_at_Direction)
+                {
+                    // SetExitStatus(animal.CurrentSpeedIndex);
+                    animal.MovementAxis.z = 1;
+                    // animal.movementAxisRaw.z = 1;
+                    animal.MovementAxisRaw.z = 1;
+                }
+                // Debug.Log($"Movement REleased!!! -> {animal.CurrentSpeedModifier.Vertical.Value} - {animal.Sprint}");
+            }
+        }
         public override void EnterCoreAnimation()
         {
-            if (animal.LastState.ID == StateEnum.Climb) animal.ResetCameraInput(); //HACK
-            //Keep the Enter Speed on the State Enter Parameter.
-            SetEnterStatus((int)animal.CurrentSpeedModifier.Vertical.Value);
+            //SetExitStatus(0); //Reset the Exit Status once the Enter Animation is playing
+            //SetEnterStatus((int)CurrentSpeed.Vertical.Value); //Use the Enter Status to check the speed
+
+            animal.TryAnimParameter(animal.hash_LastState, 1); //Reset the Last State Animator Parameter (CHANGE VELOCITIES ARE NOT ALLOWED)
+
+            if (animal.LastState.ID == StateEnum.Climb) animal.ResetCameraInput(); //HACK\
 
             if (ResetIntertia.Value) animal.ResetInertiaSpeed();  //BUG THAT IT WAS MAKING GO FASTER WHEN ENTERING LOCOMOTION
 
@@ -114,9 +162,11 @@ namespace MalbersAnimations.Controller
 
         public override void EnterTagAnimation()
         {
-            if (CurrentAnimTag == EnterTagHash) //Using Enter Animation Tag, set the vertical smooth to the velocity 
+            //Using Enter Animation Tag, set the vertical smooth to the velocity 
+            if (CurrentAnimTag == EnterTagHash)
             {
                 animal.VerticalSmooth = animal.CurrentSpeedModifier.Vertical;
+                SetEnterStatus(0);
             }
         }
 
@@ -125,7 +175,6 @@ namespace MalbersAnimations.Controller
             Wall_Stop();
             Anti_Fall();
         }
-
 
         public override void OnStateMove(float deltatime)
         {
@@ -144,19 +193,27 @@ namespace MalbersAnimations.Controller
 
             if (InExitAnimation)
             {
-
                 //Keep Vertical speed here!!!!!!
-                if (Anim.IsInTransition(0) && !animal.MovementDetected)
+                if (Anim.IsInTransition(0))
                 {
                     animal.MovementAxis.z = 1;
-                    //   Debug.Log("VerticalSmooth");
+                    animal.MovementAxisRaw.z = 1;
+                    // animal.movementAxisRaw.z = 1;
                 }
+                //else
+                //{
+                //    SetExitStatus(0);
+                //    animal.VerticalSmooth = 0; //This makes the Idle State ready to be played??
+                //}
             }
         }
 
         public override void SpeedModifierChanged(MSpeed speed, int SpeedIndex)
         {
-            SetEnterStatus((int)speed.Vertical.Value); //Use the Enter Status to check the speed
+            // NEW**************(NOW THIS IS DONE VIA THE VERTICAL RAW PARAMETER)
+            // SetEnterStatus((int)speed.Vertical.Value); //Use the Enter Status to check the speed
+
+
             CheckCurrentWallProfile(SpeedIndex);
         }
 
@@ -204,7 +261,7 @@ namespace MalbersAnimations.Controller
                         currentProfile = prof;
                 }
 
-             //   Debug.Log($"Current Wall Stop Index: {currentProfile.SpeedIndex}");
+                //   Debug.Log($"Current Wall Stop Index: {currentProfile.SpeedIndex}");
             }
         }
 
@@ -220,89 +277,94 @@ namespace MalbersAnimations.Controller
         {
             if (AntiFall)
             {
-                bool BlockForward = false;
                 MovementAxisMult = Vector3.one;
 
-                var ForwardMov = MovementRaw.z; // Get the Raw movement that enters on the animal witouth any modifications
-                var Dir = animal.TerrainSlope > 0 ? Gravity : -animal.Up;
-
-                float SprintMultiplier = (animal.CurrentSpeedModifier.Vertical).Value;
-                SprintMultiplier += animal.Sprint ? 1f : 0f; //Check if the animal is sprinting
-
-
-                var RayMultiplier = animal.Pivot_Multiplier * FallMultiplier *ScaleFactor; //Get the Multiplier
-
-                var MainPivotPoint = animal.Pivot_Chest.World(animal.transform);
-
-                RaycastHit[] hits = new RaycastHit[1];
-
-                Vector3 Center;
-                Vector3 Left;
-                Vector3 Right;
-
-
-                if (ForwardMov > 0)              //Means we are going forward
+                if (animal.UseCameraInput)
                 {
-                    Center = MainPivotPoint + (frontDistance * ScaleFactor * SprintMultiplier * animal.Forward); //Calculate ahead the falling ray
-                    Left = Center + (frontSpace * ScaleFactor * animal.Right);
-                    Right = Center + (frontSpace * ScaleFactor * -animal.Right);
-                }
-                else if (ForwardMov < 0)  //Means we are going backwards
-                {
-                    Center = MainPivotPoint - (BackDistance * ScaleFactor * SprintMultiplier * animal.Forward); //Calculate ahead the falling ray
-                    Left = Center + (BackSpace * ScaleFactor * animal.Right);
-                    Right = Center + (BackSpace * ScaleFactor * -animal.Right);
-                }
-                else
-                { return; }
+                    bool BlockForward = false;
 
-                Debug.DrawRay(Center, Dir * RayMultiplier, DebugColor);
-                Debug.DrawRay(Left, Dir * RayMultiplier, DebugColor);
-                Debug.DrawRay(Right, Dir * RayMultiplier, DebugColor);
 
-                var fallHits = Physics.RaycastNonAlloc(Center, Dir, hits, RayMultiplier, GroundLayer, IgnoreTrigger);
+                    var ForwardMov = MovementRaw.z; // Get the Raw movement that enters on the animal witouth any modifications
+                    var Dir = animal.TerrainSlope > 0 ? Gravity : -animal.Up;
 
-                if (fallHits == 0)
-                {
-                    BlockForward = true; //Means there's 2 rays that are falling
-                }
-                else
-                    fallHits = Physics.RaycastNonAlloc(Left, Dir, hits, RayMultiplier, GroundLayer, IgnoreTrigger);
-                if (fallHits == 0)
-                {
-                    BlockForward = true; //Means there's 2 rays that are falling
-                }
-                else
-                {
-                    fallHits = Physics.RaycastNonAlloc(Right, Dir, hits, RayMultiplier, GroundLayer, IgnoreTrigger);
+                    float SprintMultiplier = (animal.CurrentSpeedModifier.Vertical).Value;
+                    SprintMultiplier += animal.Sprint ? 1f : 0f; //Check if the animal is sprinting
+
+
+                    var RayMultiplier = animal.Pivot_Multiplier * FallMultiplier * ScaleFactor; //Get the Multiplier
+
+                    var MainPivotPoint = animal.Pivot_Chest.World(animal.transform);
+
+                    Vector3 Center;
+                    Vector3 Left;
+                    Vector3 Right;
+
+
+                    if (ForwardMov > 0)              //Means we are going forward
+                    {
+                        Center = MainPivotPoint + (frontDistance * ScaleFactor * SprintMultiplier * animal.Forward); //Calculate ahead the falling ray
+                        Left = Center + (frontSpace * ScaleFactor * animal.Right);
+                        Right = Center + (frontSpace * ScaleFactor * -animal.Right);
+                    }
+                    else if (ForwardMov < 0)  //Means we are going backwards
+                    {
+                        Center = MainPivotPoint - (BackDistance * ScaleFactor * SprintMultiplier * animal.Forward); //Calculate ahead the falling ray
+                        Left = Center + (BackSpace * ScaleFactor * animal.Right);
+                        Right = Center + (BackSpace * ScaleFactor * -animal.Right);
+                    }
+                    else
+                    { return; }
+
+                    Debug.DrawRay(Center, Dir * RayMultiplier, DebugColor);
+                    Debug.DrawRay(Left, Dir * RayMultiplier, DebugColor);
+                    Debug.DrawRay(Right, Dir * RayMultiplier, DebugColor);
+
+                    var fallHits = Physics.RaycastNonAlloc(Center, Dir, hits, RayMultiplier, GroundLayer, IgnoreTrigger);
+
                     if (fallHits == 0)
                     {
                         BlockForward = true; //Means there's 2 rays that are falling
                     }
+                    else
+                        fallHits = Physics.RaycastNonAlloc(Left, Dir, hits, RayMultiplier, GroundLayer, IgnoreTrigger);
+                    if (fallHits == 0)
+                    {
+                        BlockForward = true; //Means there's 2 rays that are falling
+                    }
+                    else
+                    {
+                        fallHits = Physics.RaycastNonAlloc(Right, Dir, hits, RayMultiplier, GroundLayer, IgnoreTrigger);
+                        if (fallHits == 0)
+                        {
+                            BlockForward = true; //Means there's 2 rays that are falling
+                        }
+                    }
+
+                    if (BlockForward) MovementAxisMult.z = 0;
+                    //animal.Remove_HMovement = BlockForward;
                 }
-
-                if (BlockForward) MovementAxisMult.z = 0;
-                //animal.Remove_HMovement = BlockForward;
-            }
-            else if (!animal.UseCameraInput && MovementRaw.z < 0) //Meaning is going backwards so AntiFall B
-            {
-                var MainPivotPoint = animal.Has_Pivot_Hip ? animal.Pivot_Hip.World(transform) : animal.Pivot_Chest.World(transform);
-                MainPivotPoint += Forward * -(FallRayBackwards * ScaleFactor);
-                RaycastHit[] hits = new RaycastHit[1];
-
-                var RayMultiplier = animal.Pivot_Multiplier; //Get the Multiplier
-                Debug.DrawRay(MainPivotPoint, -Up * RayMultiplier, Color.white);
-
-                var fallHits = Physics.RaycastNonAlloc(MainPivotPoint, -Up, hits, RayMultiplier, GroundLayer, IgnoreTrigger);
-
-                if (fallHits == 0)
+                else if (MovementRaw.z < 0) //Meaning is going backwards with no UseCameraInput so AntiFall B
                 {
-                    MovementAxisMult.z = 0;
-                    //animal.Remove_HMovement = true;
+                    var MainPivotPointBack = animal.Has_Pivot_Hip ? animal.Pivot_Hip.World(transform) : animal.Pivot_Chest.World(transform);
+                    MainPivotPointBack += Forward * -(FallRayBackwards * ScaleFactor);
+
+
+                    var RayMultiplier = animal.Pivot_Multiplier * ScaleFactor; //Get the Multiplier
+                    Debug.DrawRay(MainPivotPointBack, -Up * RayMultiplier, Color.white);
+
+                    var fallHits = Physics.RaycastNonAlloc(MainPivotPointBack, -Up, hits, RayMultiplier, GroundLayer, IgnoreTrigger);
+
+                    if (fallHits == 0)
+                    {
+                        MovementAxisMult.z = 0;
+                        //animal.Remove_HMovement = true;
+                    }
                 }
             }
         }
 
+
+        readonly RaycastHit[] hits = new RaycastHit[1];
 
 #if UNITY_EDITOR
         public override void StateGizmos(MAnimal animal)
@@ -331,12 +393,12 @@ namespace MalbersAnimations.Controller
             var RayMultiplier = animal.Pivot_Multiplier * FallMultiplier; //Get the Multiplier
             var MainPivotPoint = animal.Pivot_Chest.World(animal.transform);
 
-            var FrontCenter = MainPivotPoint + (animal.Forward * frontDistance * scale); //Calculate ahead the falling ray
-            var FrontLeft = FrontCenter + (animal.Right * frontSpace * scale);
-            var FrontRight = FrontCenter + (-animal.Right * frontSpace * scale);
-            var BackCenter = MainPivotPoint - (animal.Forward * BackDistance * scale); //Calculate ahead the falling ray
-            var BackLeft = BackCenter + (animal.Right * BackSpace * scale);
-            var BackRight = BackCenter + (-animal.Right * BackSpace * scale);
+            var FrontCenter = MainPivotPoint + (frontDistance * scale * animal.Forward); //Calculate ahead the falling ray
+            var FrontLeft = FrontCenter + (frontSpace * scale * animal.Right);
+            var FrontRight = FrontCenter + (frontSpace * scale * -animal.Right);
+            var BackCenter = MainPivotPoint - (BackDistance * scale * animal.Forward); //Calculate ahead the falling ray
+            var BackLeft = BackCenter + (BackSpace * scale * animal.Right);
+            var BackRight = BackCenter + (BackSpace * scale * -animal.Right);
 
             Debug.DrawRay(FrontCenter, Dir * RayMultiplier, DebugColor);
             Debug.DrawRay(FrontLeft, Dir * RayMultiplier, DebugColor);

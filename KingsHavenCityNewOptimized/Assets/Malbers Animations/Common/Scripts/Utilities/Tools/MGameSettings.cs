@@ -4,26 +4,26 @@ using UnityEngine.SceneManagement;
 
 namespace MalbersAnimations
 {
-    [AddComponentMenu("Malbers/Utilities/Managers/Game Settings <Simple>")] 
+    [AddComponentMenu("Malbers/Utilities/Managers/Game Settings <Simple>")]
     public class MGameSettings : MonoBehaviour, IScene
     {
         public bool HideCursor = false;
         public bool ForceFPS = false;
         [Hide("ForceFPS")]
-        public int GameFPS = 60;
+        [Min(-1)] public int GameFPS = 120;
 
-        public int vSyncCount = 0;
+        [Min(0)] public int vSyncCount = 0;
         public bool DebugBuild = false;
 
 
 
 #if UNITY_EDITOR
-        [Space,Tooltip("The Scene must be added to the Build Settings!!!")]
+        [Space, Tooltip("The Scene must be added to the Build Settings!!!")]
         public List<UnityEditor.SceneAsset> AdditiveScenes;
 #endif
         [Tooltip("Add the Additive scene in the Editor")]
         public bool InEditor = true;
-       [HideInInspector] public List<string> sceneNames;
+        [HideInInspector] public List<string> sceneNames;
 
         void Awake()
         {
@@ -57,7 +57,7 @@ namespace MalbersAnimations
                 sceneNames = new List<string>();
 
                 foreach (var s in AdditiveScenes)
-                  if (s != null)
+                    if (s != null)
                         sceneNames.Add(s.name);
             }
 

@@ -1,5 +1,5 @@
-﻿using UnityEngine;
-using MalbersAnimations.Controller;
+﻿using MalbersAnimations.Controller;
+using UnityEngine;
 
 namespace MalbersAnimations.Reactions
 {
@@ -22,12 +22,19 @@ namespace MalbersAnimations.Reactions
                     animal.Stance_Set(ID);
                     break;
                 case Stance_Reaction.SetPersistent:
-                    animal.Stance_Set(ID);
-                    if (animal.Stance.ID == ID)
-                    { 
-                        animal.ActiveStance.SetPersistent(true);
-                    } 
-                    else return false;
+
+                    var Stance = animal.Stance_Get(ID);
+
+                    if (Stance != null)
+                    {
+                        animal.Stance_Set(ID);
+                        if (animal.Stance == ID || Stance.Queued)
+                        {
+                            Stance.SetPersistent(true);
+                        }
+                        else return false;
+                    }
+
                     break;
                 case Stance_Reaction.Reset:
                     var ispersistent = animal.ActiveStance.Persistent;
@@ -54,15 +61,6 @@ namespace MalbersAnimations.Reactions
             return true;
         }
 
-        public enum Stance_Reaction
-        {
-            Set,
-            SetPersistent,
-            Toggle,
-            SetDefault,
-            Reset,
-            ResetPersistent,
-            RestoreDefault,
-        }
+
     }
 }

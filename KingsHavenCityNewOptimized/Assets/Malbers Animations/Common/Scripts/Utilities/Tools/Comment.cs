@@ -46,12 +46,12 @@ namespace MalbersAnimations.Utilities
             style.normal.textColor = UnityEditor.EditorStyles.boldLabel.normal.textColor;
             // Color.white;
 
-            if (ShowDescription.boolValue)
-            {
-                UnityEditor.EditorGUILayout.PropertyField(reference, GUIContent.none);
-            }
+            
             using (new GUILayout.VerticalScope(MTools.StyleGray))
                 text.stringValue = UnityEditor.EditorGUILayout.TextArea(text.stringValue, style);
+
+            if (ShowDescription.boolValue)
+                UnityEditor.EditorGUILayout.PropertyField(reference, GUIContent.none);
 
             serializedObject.ApplyModifiedProperties();
         }

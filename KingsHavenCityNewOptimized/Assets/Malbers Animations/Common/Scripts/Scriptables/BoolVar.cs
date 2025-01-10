@@ -10,7 +10,7 @@ namespace MalbersAnimations.Scriptables
         [SerializeField] private bool value;
 
         /// <summary>Invoked when the value changes </summary>
-        public Action<bool> OnValueChanged = delegate { };
+        public Action<bool> OnValueChanged;
 
         /// <summary> Value of the Bool variable</summary>
         public virtual bool Value
@@ -21,7 +21,7 @@ namespace MalbersAnimations.Scriptables
                 //if (this.value != value)                  //If the value is diferent change it
                 {
                     this.value = value;
-                    OnValueChanged(value);         //If we are using OnChange event Invoked
+                    OnValueChanged?.Invoke(value);         //If we are using OnChange event Invoked
 #if UNITY_EDITOR
                     if (debug) Debug.Log($"<B>{name} -> [<color=blue> {value} </color>] </B>", this);
 #endif
@@ -41,7 +41,7 @@ namespace MalbersAnimations.Scriptables
 
     [System.Serializable]
     public class BoolReference : ReferenceVar
-    { 
+    {
         public bool ConstantValue;
         [RequiredField] public BoolVar Variable;
 

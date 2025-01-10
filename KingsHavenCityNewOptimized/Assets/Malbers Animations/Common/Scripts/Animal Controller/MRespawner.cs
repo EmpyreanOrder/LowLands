@@ -13,16 +13,20 @@ namespace MalbersAnimations.Controller
         public static MRespawner instance;
 
         #region Respawn
-        [Tooltip("Animal Prefab to Swpawn"), FormerlySerializedAs("playerPrefab")]
+        [Tooltip("Animal Prefab to Spawn"), FormerlySerializedAs("playerPrefab")]
         public GameObject player;
 
         //[ContextMenuItem("Set Default", "SetDefaultRespawnPoint")]
         //public Vector3Reference RespawnPoint;
         public StateID RespawnState;
-        public FloatReference RespawnTime = new FloatReference(4f);
+        public FloatReference RespawnTime = new(4f);
         [Tooltip("If True: it will destroy the MainPlayer GameObject and Respawn a new One")]
-        public BoolReference DestroyAfterRespawn = new BoolReference(true);
+        public BoolReference DestroyAfterRespawn = new(true);
+        [Tooltip("The Respawner will be kept between scenes")]
+        public BoolReference m_DontDestroyOnLoad = new(true);
 
+        [Tooltip("Restart Scene After Death")]
+        public BoolReference RestartScene = new();
 
         /// <summary>Active Player Animal GameObject</summary>
         private GameObject InstantiatedPlayer;
@@ -33,7 +37,9 @@ namespace MalbersAnimations.Controller
         #endregion
 
         [FormerlySerializedAs("OnRestartGame")]
-        public GameObjectEvent OnRespawned = new GameObjectEvent();
+        public GameObjectEvent OnRespawned = new();
+
+
 
         private bool Respawned;
 
@@ -52,7 +58,7 @@ namespace MalbersAnimations.Controller
             {
                 instance = this;
                 transform.parent = null;
-                DontDestroyOnLoad(gameObject);
+                if (m_DontDestroyOnLoad) DontDestroyOnLoad(gameObject);
                 gameObject.name = gameObject.name + " Instance";
                 SceneManager.sceneLoaded += OnLevelFinishedLoading;
                 FindMainAnimal();
@@ -141,9 +147,24 @@ namespace MalbersAnimations.Controller
                     {
                         SceneAnimal();
                     }
-
                 }
             }
+
+            if (player != null && activeAnimal != null) //Make sure Death is not disabling stuffs
+            {
+                //make sure the Death does not disable all things... since where reusing the same animal
+
+                var DeathState = activeAnimal.State_Get<Death>();
+
+                if (DeathState)
+                {
+                    DeathState.disableAnimal = false;
+                    DeathState.DisableAllComponents = false;
+                    DeathState.DisableInternalColliders = false;
+                    DeathState.DisableMainCollider = false;
+                }
+            }
+
             //else
             //{
             //    Debug.LogWarning("[Respawner Removed]. There's no Character assigned", this);
@@ -157,7 +178,14 @@ namespace MalbersAnimations.Controller
             activeAnimal.Teleport_Internal(transform.position);             //Move the Animal to is Start Position
             activeAnimal.transform.rotation = (transform.rotation);         //Move the Animal to is Start Position
             activeAnimal.OverrideStartState = RespawnState;
+            activeAnimal.InputSource?.Enable(true);         //Enable the Input for the Player
+            if (activeAnimal.MainCollider) activeAnimal.MainCollider.enabled = (true);
             activeAnimal.SetMainPlayer();
+            activeAnimal.Anim.Rebind();
+
+            var allCompo = activeAnimal.GetComponentsInChildren<IRestart>();
+            foreach (var item in allCompo) item.Restart();
+
             Respawned = true;
         }
 
@@ -172,18 +200,39 @@ namespace MalbersAnimations.Controller
 
                 activeAnimal.OnStateChange.RemoveListener(OnCharacterDead);        //Remove listener from the Animal
 
-                if (player != null && player.IsPrefab())         //If the Player is a Prefab then then instantiate it on the created scene
+                if (player != null)
                 {
-                    this.Delay_Action(RespawnTime, () =>
-                     {
-                         DestroyDeathPlayer();
-                         this.Delay_Action(() => InstantiateNewPlayer());
-                     }
-                    );
-                }
-                else
-                {
-                    this.Delay_Action(RespawnTime, () => ResetScene());
+                    if (player.IsPrefab())         //If the Player is a Prefab then then instantiate it on the created scene
+                    {
+                        this.Delay_Action(RespawnTime, () =>
+                         {
+                             DestroyDeathPlayer();
+                             this.Delay_Action(() => InstantiateNewPlayer()); //Instantiate next frame
+                         }
+                        );
+                    }
+                    else
+                    {
+                        if (RestartScene.Value)
+                        {
+                            this.Delay_Action(RespawnTime, () => ResetScene());
+                        }
+                        else
+                        {
+                            this.Delay_Action(RespawnTime, () =>
+                            {
+                                SceneAnimal();
+
+                                if (!activeAnimal.enabled)
+                                    activeAnimal.enabled = true;
+                                else
+                                    activeAnimal.ResetController();
+
+                                //activeAnimal.Anim.Rebind(); //Reset the Animator (THIS BREAK THE MODE BEHAVIOURS)
+                            }
+                            );
+                        }
+                    }
                 }
             }
         }

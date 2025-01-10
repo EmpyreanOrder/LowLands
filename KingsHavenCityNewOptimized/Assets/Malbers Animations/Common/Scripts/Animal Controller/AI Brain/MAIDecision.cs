@@ -11,13 +11,13 @@ namespace MalbersAnimations.Controller.AI
         public enum WSend { None, SendTrue, SendFalse }
 
         [Space, Tooltip("ID Used for sending messages to the Brain to see if the Decision was TRUE or FALSE")]
-        public IntReference DecisionID = new IntReference(0);
+        public IntReference DecisionID = new(0);
         [Tooltip("What to send to to the Brain.OnDecisionSucceeded() if a Decision is executed")]
         public WSend send = WSend.None;
 
         /// <summary>Execute the Decide method every x Seconds</summary>
         [Tooltip("Execute the Decide method every x Seconds to improve performance")]
-        public FloatReference interval = new FloatReference(0.2f);
+        public FloatReference interval = new(0.2f);
 
         [Tooltip("Check for decisions after all tasks are done")]
         public bool WaitForAllTasks;

@@ -9,6 +9,10 @@ namespace MalbersAnimations
     { 
         /// <summary>Last Direction the Damage came from</summary>
         Vector3 HitDirection { get; set; }
+        /// <summary>Position of the Interaction </summary>
+        Vector3 HitPosition { get; }
+
+        Transform Transform { get; }
 
         ///// <summary>Last Position of the actual hit</summary>
         //Vector3 HitPosition { get; set; }
@@ -25,6 +29,9 @@ namespace MalbersAnimations
         /// <summary>What Collider got the interaction? </summary>
         Collider HitCollider { get; set; }
 
+        /// <summary>Last Force Applied to the Damager</summary>
+        ForceMode LastForceMode { get; set; }
+
         /// <summary>  Method to receive damage from an Atacker  </summary>
         /// <param name="Direction">Direction where the damage comes from</param>
         /// <param name="Damager">Who is sending the Damage?</param>
@@ -35,6 +42,7 @@ namespace MalbersAnimations
         /// <param name="element">Element sent by the </param>
         void ReceiveDamage(
             Vector3 Direction,
+            Vector3 Position,
             GameObject Damager, 
             StatModifier stat, 
             bool IsCritical, 

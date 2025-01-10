@@ -27,7 +27,14 @@ namespace MalbersAnimations.Controller.AI
 
         public override void StartTask(MAnimalBrain brain, int index)
         {
-            if (MoveToTarget) brain.AIControl.UpdateDestinationPosition = true;          //Check if the target has moved
+            if (MoveToTarget)
+            {
+                brain.AIControl.UpdateDestinationPosition = true;          //Check if the target has moved
+            }
+            else
+            {
+                if (brain.AIControl.IsMoving) { brain.AIControl.Stop(); } //Stop if the animal is already moving
+            }
 
             switch (targetType)
             {
@@ -41,7 +48,7 @@ namespace MalbersAnimations.Controller.AI
                     if (TargetRG != null && !TargetRG.IsEmpty)
                     {
                         var target = TargetRG.GetItem(rtype, RTIndex, RTName, brain.Animal.gameObject);
-                        if (target) brain.AIControl.SetTarget(target.transform, true);
+                        if (target) brain.AIControl.SetTarget(target.transform, MoveToTarget);
                     }
                     break;
                 case TargetToFollow.ClearTarget:
@@ -55,7 +62,7 @@ namespace MalbersAnimations.Controller.AI
                     }
                     else
                     {
-                        Debug.Log("Using SetTarget.ByName() but there's no Gameobject with that name",this);
+                        Debug.Log("Using SetTarget.ByName() but there's no Gameobject with that name", this);
                     }
                     break;
                 default:
@@ -72,7 +79,8 @@ namespace MalbersAnimations.Controller.AI
     [UnityEditor.CustomEditor(typeof(SetTargetTask))]
     public class SetTargetTaskEditor : UnityEditor.Editor
     {
-        UnityEditor.SerializedProperty Description, MessageID, targetType, TargetT, TargetG, TargetRG, rtype, RTIndex, RTName, MoveToTarget;
+        UnityEditor.SerializedProperty Description, MessageID, targetType, TargetT, TargetG, TargetRG, rtype,
+            UpdateInterval, WaitForPreviousTask, RTIndex, RTName, MoveToTarget;
 
         private void OnEnable()
         {
@@ -82,6 +90,8 @@ namespace MalbersAnimations.Controller.AI
             TargetT = serializedObject.FindProperty("TargetT");
             TargetG = serializedObject.FindProperty("TargetG");
             TargetRG = serializedObject.FindProperty("TargetRG");
+            WaitForPreviousTask = serializedObject.FindProperty("WaitForPreviousTask");
+            UpdateInterval = serializedObject.FindProperty("UpdateInterval");
             rtype = serializedObject.FindProperty("rtype");
             RTIndex = serializedObject.FindProperty("RTIndex");
             RTName = serializedObject.FindProperty("RTName");
@@ -93,6 +103,8 @@ namespace MalbersAnimations.Controller.AI
             serializedObject.Update();
             UnityEditor.EditorGUILayout.PropertyField(Description);
             UnityEditor.EditorGUILayout.PropertyField(MessageID);
+            UnityEditor.EditorGUILayout.PropertyField(WaitForPreviousTask);
+            UnityEditor.EditorGUILayout.PropertyField(UpdateInterval);
             UnityEditor.EditorGUILayout.Space();
             UnityEditor.EditorGUILayout.HelpBox("All targets must be set at Runtime. Scriptable asset cannot have scenes References", UnityEditor.MessageType.Info);
 
@@ -135,7 +147,7 @@ namespace MalbersAnimations.Controller.AI
                     break;
             }
 
-            if (tt != SetTargetTask.TargetToFollow.ClearTarget)  
+            if (tt != SetTargetTask.TargetToFollow.ClearTarget)
                 UnityEditor.EditorGUILayout.PropertyField(MoveToTarget);
             serializedObject.ApplyModifiedProperties();
         }

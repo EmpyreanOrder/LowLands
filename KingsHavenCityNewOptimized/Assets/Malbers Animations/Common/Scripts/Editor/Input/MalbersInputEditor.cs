@@ -1,9 +1,6 @@
-﻿
-
-#if UNITY_EDITOR
-using UnityEngine;
+﻿#if UNITY_EDITOR
 using UnityEditor;
-using UnityEditorInternal;
+using UnityEngine;
 
 namespace MalbersAnimations
 {
@@ -11,7 +8,7 @@ namespace MalbersAnimations
     public class MalbersInputEditor : MInputEditor
     {
         protected SerializedProperty Horizontal, Vertical, UpDown, MovementEvent;
-     //   private MalbersInput M;
+        //   private MalbersInput M;
 
         protected override void OnEnable()
         {
@@ -22,7 +19,7 @@ namespace MalbersAnimations
             UpDown = serializedObject.FindProperty("UpDown");
             MovementEvent = serializedObject.FindProperty("MovementEvent");
 
-           // M = ((MalbersInput)target);
+            // M = ((MalbersInput)target);
         }
 
         public override void OnInspectorGUI()
@@ -71,6 +68,7 @@ namespace MalbersAnimations
                     {
                         EditorGUILayout.PropertyField(OnInputEnabled);
                         EditorGUILayout.PropertyField(OnInputDisabled);
+                        EditorGUILayout.PropertyField(OnUsingGamePad);
                         EditorGUILayout.PropertyField(MovementEvent);
                     }
                 }

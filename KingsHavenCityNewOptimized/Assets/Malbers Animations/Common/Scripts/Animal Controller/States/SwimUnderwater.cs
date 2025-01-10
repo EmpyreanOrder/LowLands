@@ -1,6 +1,6 @@
-﻿using UnityEngine; 
-using MalbersAnimations.Scriptables;
+﻿using MalbersAnimations.Scriptables;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace MalbersAnimations.Controller
 {
@@ -13,7 +13,7 @@ namespace MalbersAnimations.Controller
         [Header("UnderWater Parameters")]
         [Range(0, 90)]
         public float Bank = 30;
-        [Range(0, 90),Tooltip("Limit to go Up and Down")]
+        [Range(0, 90), Tooltip("Limit to go Up and Down")]
         public float Ylimit = 80;
         [Tooltip("It will push the animal down into the water for a given time")]
         public float EnterWaterDrag = 10;
@@ -28,16 +28,16 @@ namespace MalbersAnimations.Controller
 
         protected Vector3 Inertia;
         protected Swim SwimState;
-         
+
 
         public override void InitializeState()
         {
             SwimState = null;
-            SwimState = (Swim)animal.State_Get(StateEnum.Swim); //Get the Store the Swim State
- 
+            SwimState = (Swim)animal.State_Get(StateEnum.Swim); //Cache the Swim State
+
             if (SwimState == null)
             {
-                Debug.LogError($"UnderWater State needs Swim State in order to work, please add the Swim State to {animal.name}",animal);
+                Debug.LogError($"UnderWater State needs Swim State in order to work, please add the Swim State to {animal.name}", animal);
             }
         }
 
@@ -47,37 +47,31 @@ namespace MalbersAnimations.Controller
             Inertia = animal.DeltaPos;
         }
 
-       
-     
+        public override Vector3 Speed_Direction() => animal.FreeMovement ? animal.PitchDirection : animal.Forward;
 
-        public override Vector3 Speed_Direction() => animal.FreeMovement ?  animal.PitchDirection : animal.Forward;
-       
         public override bool TryActivate()
         {
-           if (SwimState == null) return false;
+            if (SwimState == null) return false;
 
             if (SwimState.IsActiveState)
             {
-                if (SwimState.CheckWater() && animal.RawInputAxis.y < -0.25f) //Means that Key Down is Pressed;
+                if (/*SwimState.CheckWater() && */animal.RawInputAxis.y < -0.25f) //Means that Key Down is Pressed;
                 {
                     IgnoreLowerStates = true;
                     return true;
                 }
             }
             else
-            { 
-                //var insideWater = SwimState.CheckWater();
-
-                //if (insideWater)
-                //{
-
-                //}
-                //return SwimState.CheckWater();
+            {
+                if (SwimState.CheckWater() && animal.MovementAxisSmoothed.y < -0.25f) //Means that Key Down is Pressed;
+                {
+                    IgnoreLowerStates = false;
+                    return true;
+                }
             }
             return false;
         }
 
-         
         public override void OnStateMove(float deltatime)
         {
             animal.FreeMovementRotator(Ylimit, Bank);
@@ -89,38 +83,27 @@ namespace MalbersAnimations.Controller
         public override void TryExitState(float DeltaTime)
         {
             var checkWater = SwimState.CheckWater();
-            var WaterLevel = SwimState.FindWaterLevel2();
+            //  SwimState.FindWaterLevel2();
 
-            var radius = SwimState.m_Radius;
+            // var radius = SwimState.m_Radius;
 
-            //If we  touched the waterLevel
-            if (animal.UpDownSmooth > 0f && MTools.DoSpheresIntersect(SwimState.WaterLevel, radius, SwimState.WaterPivotPoint, radius))
-            {
-                Debugging("[Allow Exit to Swim]");
-                SwimState.Activate();
-                SwimState.BounceDown = Vector3.zero;
-            }
             if (!checkWater)
             {
-                Debugging("[Allow Exit]");
-                AllowExit();
-
-                //check if we can go to Swim
-                if (  SwimState.TryActivate())
-                    SwimState.Activate();
-                else
-              
-
-                if (AllowFallOnExit && animal.Sprint && animal.UpDownSmooth > 0)
+                if (AllowFallOnExit && animal.Sprint && animal.UpDownSmooth > 0f)
                 {
-                    animal.State_Activate(StateEnum.Fall);
+                    Debugging("[Exit to Fall]");
+                    animal.State_Force(StateEnum.Fall);
+                    AllowExit();
+                }
+                //If we  touched the waterLevel
+                else
+                {
+                    Debugging("[Allow Exit to Swim]");
+                    SwimState.Activate();
+                    SwimState.BounceDown = Vector3.zero;
                 }
             }
         }
-
-
-        
-
 
         public override void ResetStateValues()
         {
@@ -148,7 +131,7 @@ namespace MalbersAnimations.Controller
                         StartVerticalIndex = new IntReference(1),
                         TopIndex = new IntReference(2),
                         states = new List<StateID>(1) { ID },
-                        Speeds = new List<MSpeed>() { new MSpeed(setName), new MSpeed(setName + " Fast",2,4,4) { animator = new FloatReference(1.33f) } }
+                        Speeds = new List<MSpeed>() { new MSpeed(setName), new MSpeed(setName + " Fast", 2, 4, 4) { animator = new FloatReference(1.33f) } }
                     }
                     );
             }
@@ -166,8 +149,8 @@ namespace MalbersAnimations.Controller
                 Sprint = true,
                 OrientToGround = false,
                 CustomRotation = false,
-                FreeMovement  = true,
-                IgnoreLowerStates = true,  
+                FreeMovement = true,
+                IgnoreLowerStates = true,
                 AdditivePosition = true,
                 AdditiveRotation = true,
                 Gravity = false,
@@ -178,7 +161,7 @@ namespace MalbersAnimations.Controller
 
         public override void StateGizmos(MAnimal animal)
         {
-            if (Application.isPlaying && SwimState != null && animal != null)   
+            if (Application.isPlaying && SwimState != null && animal != null)
             {
                 Gizmos.color = Color.blue;
                 Gizmos.DrawSphere(SwimState.WaterPivotPoint, SwimState.m_Radius * animal.ScaleFactor);

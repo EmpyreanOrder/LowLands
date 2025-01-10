@@ -127,7 +127,7 @@ namespace MalbersAnimations.Controller.AI
                 case checkStatOption.CompareNormalized:
                     return CompareWithValue(stat.NormalizedValue);
                 case checkStatOption.IsInmune:
-                    return stat.IsInmune;
+                    return stat.IsImmune;
                 case checkStatOption.Regenerating:
                     return stat.IsRegenerating;
                 case checkStatOption.Degenerating:

@@ -3,13 +3,11 @@ using UnityEngine;
 
 namespace MalbersAnimations.Controller
 {
-    /// <summary>
-    /// Sets the Ability Index by checking which direction the Input is being pressed.
-    /// </summary>
+    /// <summary>Sets the Ability Index by checking which direction the Input is being pressed. </summary>
     [CreateAssetMenu(menuName = "Malbers Animations/Modifier/Mode/Input Axis")]
     public class ModifierInputAxis : ModeModifier
     {
-        public List<AxisAbility> axisAbilities = new List<AxisAbility>(1) { new AxisAbility() { Ability = 1, Direction = Vector3.zero } };
+        public List<AxisAbility> axisAbilities = new(1) { new AxisAbility() { Ability = 1, Direction = Vector3.zero } };
 
         public override void OnModeEnter(Mode mode)
         {

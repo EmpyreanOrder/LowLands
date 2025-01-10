@@ -1,11 +1,11 @@
 ﻿
 
 #if UNITY_EDITOR
-using UnityEngine;
+using System.Collections.Generic;
 using UnityEditor;
 using UnityEditorInternal;
-using System.Collections.Generic;
- 
+using UnityEngine;
+
 
 namespace MalbersAnimations
 {
@@ -14,15 +14,15 @@ namespace MalbersAnimations
     {
         protected ReorderableList list;
         protected SerializedProperty
-            inputs, showInputEvents, IgnoreOnPause, OnInputEnabled, 
-            
-            ActiveMapIndex, actionMaps, ActiveMap, DefaultMap, ResetAllInputsOnDisable,
+            inputs, showInputEvents, IgnoreOnPause, OnInputEnabled,
+
+            ActiveMapIndex, actionMaps, ActiveMap, DefaultMap, ResetAllInputsOnDisable, DefaultIndex,
 
 
-            OnInputDisableds, OnInputDisabled, ResetOnFocusLost;
+            OnInputDisableds, OnInputDisabled, ResetOnFocusLost, OnUsingGamePad;
         private MInput _M;
 
-        private readonly Dictionary<string, ReorderableList> innerListDict = new ();
+        private readonly Dictionary<string, ReorderableList> innerListDict = new();
         string[] ActionMapsNames;
 
 
@@ -36,14 +36,18 @@ namespace MalbersAnimations
             inputs = serializedObject.FindProperty("inputs");
             OnInputEnabled = serializedObject.FindProperty("OnInputEnabled");
             OnInputDisabled = serializedObject.FindProperty("OnInputDisabled");
+            OnUsingGamePad = serializedObject.FindProperty("OnUsingGamePad");
             showInputEvents = serializedObject.FindProperty("showInputEvents");
 
             IgnoreOnPause = serializedObject.FindProperty("IgnoreOnPause");
             ActiveMap = serializedObject.FindProperty("ActiveMap");
-             
+
             ActiveMapIndex = serializedObject.FindProperty("ActiveMapIndex");
             actionMaps = serializedObject.FindProperty("actionMaps");
             DefaultMap = serializedObject.FindProperty("DefaultMap");
+
+            DefaultIndex = DefaultMap.FindPropertyRelative("selectedIndex");
+
             ResetAllInputsOnDisable = serializedObject.FindProperty("ResetAllInputsOnDisable");
 
 
@@ -51,7 +55,12 @@ namespace MalbersAnimations
             {
                 drawElementCallback = DrawElementCallback,
                 drawHeaderCallback = HeaderCallbackDelegate,
-                onAddCallback = OnAddCallBack
+                onAddCallback = OnAddCallBack,
+
+                onSelectCallback = (list) =>
+                {
+                    DefaultIndex.intValue = list.index;
+                }
             };
 
             ActionMapsNames = new string[1]; // Set the first one as One 
@@ -59,6 +68,11 @@ namespace MalbersAnimations
 
 
             showOnPlayMode = false;
+
+            //foreach (var item in _M.actionMaps)
+            //{
+            //    item.selectedIndex;
+            //}
         }
 
         public override void OnInspectorGUI()
@@ -70,7 +84,7 @@ namespace MalbersAnimations
             if (Application.isPlaying)
             {
                 showOnPlayMode =
-                    GUILayout.Toggle(showOnPlayMode, 
+                    GUILayout.Toggle(showOnPlayMode,
                     new GUIContent("Show Buttons on Play Mode", "This makes the Inspector bit faster"), EditorStyles.miniButton);
             }
 
@@ -94,6 +108,7 @@ namespace MalbersAnimations
                     {
                         EditorGUILayout.PropertyField(OnInputEnabled);
                         EditorGUILayout.PropertyField(OnInputDisabled);
+                        EditorGUILayout.PropertyField(OnUsingGamePad);
                     }
                 }
             }
@@ -138,11 +153,10 @@ namespace MalbersAnimations
 
             using (new GUILayout.VerticalScope(EditorStyles.helpBox))
             {
-
-                if (_M.actionMaps.Count>0)
+                if (_M.actionMaps.Count > 0)
                 {
-                    EditorGUILayout.LabelField("Use the method SetMap(name) to switch Input Maps",MalbersEditor.DescriptionStyle);
-                  //  EditorGUILayout.HelpBox("Use the Method SetMap(name) to switch Input Maps", MessageType.Info);
+                    EditorGUILayout.LabelField("Use the method SetMap(name) to switch Input Maps", MalbersEditor.DescriptionStyle);
+                    //  EditorGUILayout.HelpBox("Use the Method SetMap(name) to switch Input Maps", MessageType.Info);
                 }
 
 
@@ -176,17 +190,17 @@ namespace MalbersAnimations
                     {
                         if (GUILayout.Button(MalbersEditor.Icon_Add, GUILayout.Width(30), GUILayout.Height(18)))
                         {
-                            var NewMap = new MInputMap() 
-                            { 
-                                name = new Scriptables.StringReference($"New Action Map {_M.actionMaps.Count}"), 
-                                inputs = new List<InputRow>() 
+                            var NewMap = new MInputMap()
+                            {
+                                name = new Scriptables.StringReference($"New Action Map {_M.actionMaps.Count}"),
+                                inputs = new List<InputRow>()
                             };
                             _M.actionMaps.Add(NewMap);
                             _M.ActiveMapIndex = _M.actionMaps.Count;
                             serializedObject.ApplyModifiedProperties();
                             EditorUtility.SetDirty(_M);
 
-                          //  ActiveMapIndex.intValue++;
+                            //  ActiveMapIndex.intValue++;
                             //serializedObject.ApplyModifiedProperties();
                             CheckActionMaps();
 
@@ -194,9 +208,14 @@ namespace MalbersAnimations
                         }
                     }
                 }
+
+
+
                 if (ActiveMapIndex.intValue == 0) //Draw Default Input Map
                 {
                     list.DoLayoutList();
+
+                    list.index = DefaultIndex.intValue;
 
                     var Index = list.index;
 
@@ -236,13 +255,9 @@ namespace MalbersAnimations
                             }
                         }
                     }
-
-
                     DrawActionMapList(selectedMap, index);
                 }
             }
-
-          
         }
 
         private void DrawActionMapList(SerializedProperty selectedMap, int inputIndex)
@@ -251,6 +266,7 @@ namespace MalbersAnimations
 
             var inputs = selectedMap.FindPropertyRelative("inputs");
             var element = _M.actionMaps[inputIndex].inputs;
+            var index = selectedMap.FindPropertyRelative("selectedIndex");
 
             string listKey = inputs.propertyPath;
 
@@ -269,14 +285,21 @@ namespace MalbersAnimations
                         var elementSer = inputs.GetArrayElementAtIndex(index);
                         rect.y += 2;
 
+                        var dbC = GUI.backgroundColor;
+                        GUI.backgroundColor = isActive ? MTools.MBlue : dbC;
+
                         var activeRect = new Rect(rect.x, rect.y, 20, EditorGUIUtility.singleLineHeight);
                         element[index].active.Value = EditorGUI.Toggle(activeRect, element[index].active.Value);
+
+
                         DrawRow(rect, elementSer);
+                        GUI.backgroundColor = dbC;
+
                     },
 
                     onAddCallback = (list) =>
                     {
-                      //  Debug.Log("inputIndex = " + inputIndex);
+                        //  Debug.Log("inputIndex = " + inputIndex);
                         Undo.RecordObject(target, "Add New Input");
 
                         if (_M.actionMaps[inputIndex].inputs == null)
@@ -289,6 +312,11 @@ namespace MalbersAnimations
 
                         selectedMap.serializedObject.ApplyModifiedProperties();
                         EditorUtility.SetDirty(target);
+                    },
+                    onSelectCallback = (list) =>
+                    {
+
+                        index.intValue = list.index;
                     }
                 };
 
@@ -297,12 +325,12 @@ namespace MalbersAnimations
 
             Reo_AbilityList.DoLayoutList();
 
-            int SelectedAbility = Reo_AbilityList.index;
 
+            Reo_AbilityList.index = index.intValue;
 
-            if (SelectedAbility != -1 && SelectedAbility < inputs.arraySize)
+            if (index.intValue != -1 && index.intValue < inputs.arraySize)
             {
-                DrawInputEvents(inputs.GetArrayElementAtIndex(SelectedAbility));
+                DrawInputEvents(inputs.GetArrayElementAtIndex(index.intValue));
             }
         }
 
@@ -423,9 +451,13 @@ namespace MalbersAnimations
             var elementSer = inputs.GetArrayElementAtIndex(index);
 
             rect.y += 2;
-            element.active.Value = EditorGUI.Toggle(new Rect(rect.x, rect.y, 20, EditorGUIUtility.singleLineHeight), element.active.Value);
 
+            var dbC = GUI.backgroundColor;
+            GUI.backgroundColor = isActive ? MTools.MBlue : dbC;
+            element.active.Value = EditorGUI.Toggle(new Rect(rect.x, rect.y, 20, EditorGUIUtility.singleLineHeight), element.active.Value);
             DrawRow(rect, elementSer);
+            GUI.backgroundColor = dbC;
+
         }
 
         private static void DrawRow(Rect rect, SerializedProperty elementSer)
@@ -443,7 +475,9 @@ namespace MalbersAnimations
             var key = elementSer.FindPropertyRelative("key");
             var GetPressed = elementSer.FindPropertyRelative("GetPressed");
 
-          //  EditorGUI.PropertyField(R_5, elementSer);
+
+
+            //  EditorGUI.PropertyField(R_5, elementSer);
 
             EditorGUI.PropertyField(R_1, name, GUIContent.none);
             //name.stringValue = EditorGUI.TextField(R_1, name.stringValue, EditorStyles.textField);
@@ -474,7 +508,7 @@ namespace MalbersAnimations
         protected void OnAddCallBack(ReorderableList list)
         {
             Undo.RecordObject(target, "Add New Input");
-            
+
             _M.inputs ??= new();
             _M.inputs.Add(new InputRow("New", "InputValue", KeyCode.Alpha0, InputButton.Press, InputType.Input));
 

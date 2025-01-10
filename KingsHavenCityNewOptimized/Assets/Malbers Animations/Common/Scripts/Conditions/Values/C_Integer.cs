@@ -1,15 +1,14 @@
-﻿using MalbersAnimations.Controller;
-using MalbersAnimations.Scriptables;
-using System.Collections.Generic;
+﻿using MalbersAnimations.Scriptables;
 using UnityEngine;
 
 namespace MalbersAnimations.Conditions
 {
     [System.Serializable]
+    [AddTypeMenu("Values/Integer")]
     public class C_Integer : MCondition
     {
-        public override string DisplayName => "Values/Integer";
-        
+        //public override string DisplayName => "Values/Integer";
+
         public IntReference Target;
         public ComparerInt Condition;
         public IntReference Value;
@@ -22,10 +21,8 @@ namespace MalbersAnimations.Conditions
 
         public override bool _Evaluate() => Target.Value.CompareInt(Value.Value, Condition);
 
-        public override void SetTarget(Object target)
-        {
-            if (target is IntVar) this.Target.Value = target as IntVar;
-        }
+        protected override void _SetTarget(Object target) => VerifyTarget(target, ref Target.Variable);
+
 
         private void Reset() => Name = "New Integer Comparer";
     }

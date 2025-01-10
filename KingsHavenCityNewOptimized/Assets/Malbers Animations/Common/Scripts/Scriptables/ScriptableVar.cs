@@ -7,13 +7,13 @@ using UnityEditor;
 
 namespace MalbersAnimations.Scriptables
 {
-    public abstract class ScriptableVar: ScriptableObject
+    public abstract class ScriptableVar : ScriptableObject
     {
 #if UNITY_EDITOR
         [TextArea(3, 20)]
         public string Description = "";
 #endif
-        [HideInInspector] public bool debug = false;
+        public bool debug = false;
     }
 
     /// <summary> Base for all Local Scritable Reference Variables </summary>
@@ -51,9 +51,17 @@ namespace MalbersAnimations.Scriptables
                     EditorGUILayout.PropertyField(value, new GUIContent("Value", "The current value"));
                     MalbersEditor.DrawDebugIcon(debug);
                 }
-                EditorGUILayout.PropertyField(Description);
+
+                ExtraValues();
+
+                EditorGUILayout.PropertyField(Description, GUIContent.none);
             }
             serializedObject.ApplyModifiedProperties();
+        }
+
+        public virtual void ExtraValues()
+        {
+
         }
     }
 #endif

@@ -9,7 +9,7 @@ namespace MalbersAnimations.Menu
 {
     public class AnimUnhideTool
     {
-        [MenuItem("Tools/Malbers Animations/Animator States Unhide Fix", false, 300)]
+        [MenuItem("Tools/Malbers Animations/Tools/Animator States Unhide Fix", false, 300)]
         private static void Fix()
         {
             if (Selection.objects.Length < 1)

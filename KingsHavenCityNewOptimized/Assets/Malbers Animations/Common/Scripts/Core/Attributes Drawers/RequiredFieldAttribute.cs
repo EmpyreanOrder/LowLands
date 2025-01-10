@@ -1,12 +1,12 @@
 ﻿using UnityEngine;
- 
+
 namespace MalbersAnimations
 {
     public class RequiredFieldAttribute : PropertyAttribute
     {
         public Color color;
 
-        public RequiredFieldAttribute(FieldColor Fieldcolor =  FieldColor.Red)
+        public RequiredFieldAttribute(FieldColor Fieldcolor = FieldColor.Red)
         {
             switch (Fieldcolor)
             {
@@ -42,7 +42,7 @@ namespace MalbersAnimations
 
         public RequiredFieldAttribute()
         {
-            color = new Color(1,0.4f,0.4f,1);
+            color = new Color(1, 0.4f, 0.4f, 1);
         }
     }
 
@@ -67,6 +67,12 @@ namespace MalbersAnimations
             {
                 UnityEditor.EditorGUI.PropertyField(position, property, label);
             }
+        }
+
+        // Here!! Add me :))
+        public override float GetPropertyHeight(UnityEditor.SerializedProperty property, GUIContent label)
+        {
+            return UnityEditor.EditorGUI.GetPropertyHeight(property, label, includeChildren: true);
         }
     }
 #endif

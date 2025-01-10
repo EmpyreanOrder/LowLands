@@ -7,10 +7,10 @@ namespace MalbersAnimations.Scriptables
     [CreateAssetMenu(menuName = "Malbers Animations/Variables/Transform", order = 3000)]
     public class TransformVar : ScriptableVar
     {
-       [SerializeField] private Transform value;
+        [SerializeField] private Transform value;
 
         /// <summary>Invoked when the value changes </summary>
-        public Action<Transform> OnValueChanged = delegate { };
+        public Action<Transform> OnValueChanged;
 
         /// <summary> Value of the Bool variable</summary>
         public virtual Transform Value
@@ -21,7 +21,7 @@ namespace MalbersAnimations.Scriptables
                 if (value != this.value) // Avoid Stack Overflow
                 {
                     this.value = value;
-                    OnValueChanged(value);         //If we are using OnChange event Invoked
+                    OnValueChanged?.Invoke(value);         //If we are using OnChange event Invoked
 #if UNITY_EDITOR
                     if (debug) Debug.Log($"<B>{name} -> [<color=white> {(value != null ? value.name : "NULL")} </color>] </B>", this);
 #endif
@@ -34,6 +34,20 @@ namespace MalbersAnimations.Scriptables
         public virtual void SetValue(Transform var) => Value = var;
         public virtual void SetValue(GameObject var) => Value = var.transform;
         public virtual void SetValue(Component var) => Value = var.transform;
+        public virtual void ApplyPositionTo(Transform var) => var.position = Value.position;
+        public virtual void SetVector3Value(Vector3Var var) => var.Value = Value.position;
+
+        public virtual void SetParentOf(Transform var) => var.SetParent(Value);
+        public virtual void SetChildOf(Transform var) => Value.SetParent(var);
+        public virtual void ClearParent() => Value.parent = null;
+
+        public virtual void DetachChildren()
+        {
+            foreach (Transform child in Value)
+            {
+                child.parent = null;
+            }
+        }
     }
 
     [Serializable]
@@ -54,7 +68,7 @@ namespace MalbersAnimations.Scriptables
         public Transform Value
         {
             get
-            { 
+            {
                 return UseConstant ? ConstantValue : (Variable != null ? Variable.Value : null);
             }
 
@@ -73,6 +87,9 @@ namespace MalbersAnimations.Scriptables
         public Vector3 position => Value.position;
         public Quaternion rotation => Value.rotation;
 
+        public Vector3 localPosition => Value.localPosition;
+        public Quaternion localRotation => Value.localRotation;
+
         public virtual void SetPosition(Vector3 pos)
         {
             if (Value) Value.position = pos;
@@ -86,14 +103,16 @@ namespace MalbersAnimations.Scriptables
         {
             if (Value)
             {
-                Value.rotation = rot;
-                Value.position = pos;
+                Value.SetPositionAndRotation(pos, rot);
             }
         }
 
 
         public static implicit operator Transform(TransformReference reference) => reference.Value;
-        public static implicit operator TransformReference(Transform reference) => new TransformReference(reference);
+
+        public static implicit operator GameObject(TransformReference reference) => reference.Value.gameObject;
+
+        public static implicit operator TransformReference(Transform reference) => new(reference);
     }
 
 #if UNITY_EDITOR
@@ -132,5 +151,4 @@ namespace MalbersAnimations.Scriptables
         }
     }
 #endif
-
 }

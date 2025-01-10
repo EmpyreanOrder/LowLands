@@ -3,9 +3,10 @@
 namespace MalbersAnimations.Conditions
 {
     [System.Serializable]
+    [AddTypeMenu("Animal/Modes")]
     public class C_AnimalMode : MAnimalCondition
     {
-        public override string DisplayName => "Animal/Modes";
+
         public enum ModeCondition { PlayingMode, PlayingAbility, HasMode, HasAbility, Enabled }
         public ModeCondition Condition;
         public ModeID Value;
@@ -13,15 +14,12 @@ namespace MalbersAnimations.Conditions
         public string AbilityName;
 
         private Mode mode;
-
-        private void OnEnable()
+        public override void OnEnable()
         {
             if (Target) mode = Target.Mode_Get(Value);
         }
 
-
         public void SetValue(ModeID v) => Value = v;
-
 
         public override bool _Evaluate()
         {

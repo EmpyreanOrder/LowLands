@@ -4,9 +4,10 @@ using UnityEngine;
 namespace MalbersAnimations.Conditions
 {
     [System.Serializable]
+    [AddTypeMenu("Values/Float")]
     public class C_Float : MCondition
     {
-        public override string DisplayName => "Values/Float";
+        //public override string DisplayName => "Values/Float";
 
         public FloatReference Target;
         public ComparerInt Condition;
@@ -20,10 +21,8 @@ namespace MalbersAnimations.Conditions
 
         public override bool _Evaluate() => Target.Value.CompareFloat(Value.Value, Condition);
 
-        public override void SetTarget(Object target)
-        {
-            if (target is FloatVar) this.Target.Value = target as FloatVar;
-        }
+        protected override void _SetTarget(Object target) => VerifyTarget(target, ref Target.Variable);
+
 
         private void Reset() => Name = "New Float Comparer";
     }

@@ -34,13 +34,13 @@ namespace MalbersAnimations.Controller.AI
         [Space, Tooltip("Type of the Movement task")]
         public MoveType task = MoveType.MoveToCurrentTarget;
         /// <summary> Distance for the Flee, Circle Around and keep Distance Task</summary>
-        public FloatReference distance = new FloatReference(10f);
+        public FloatReference distance = new(10f);
         /// <summary> Distance Threshold for the Keep Distance Task</summary>
-        public FloatReference distanceThreshold = new FloatReference(1f);
+        public FloatReference distanceThreshold = new(1f);
         /// <summary> Custom Stopping Distance to Override the AI Movement Stopping Distance</summary>
-        public FloatReference stoppingDistance = new FloatReference(0.5f);
+        public FloatReference stoppingDistance = new(0.5f);
         /// <summary> Custom slowing Distance to Override the AI Movement Stopping Distance</summary>
-        public FloatReference slowingDistance = new FloatReference(0);
+        public FloatReference slowingDistance = new(0);
 
         /// <summary> Custom Stopping Distance to Override the AI Movement Stopping Distance</summary>
         public CircleDirection direction = CircleDirection.Left;
@@ -52,9 +52,12 @@ namespace MalbersAnimations.Controller.AI
 
         [Tooltip("It will flee from the Target forever. If this value is false it will flee once it has reached a safe distance and the Task will end.")]
         public bool FleeForever = true;
-        
 
-        public Color debugColor = new Color(0.5f, 0.5f, 0.5f, 0.25f);
+
+         [Tooltip("The AI will stop if it arrives to the current target")]
+        public bool StopOnArrive = true;
+
+        public Color debugColor = new(0.5f, 0.5f, 0.5f, 0.25f);
 
         public override void StartTask(MAnimalBrain brain, int index)
         {
@@ -123,10 +126,29 @@ namespace MalbersAnimations.Controller.AI
         {
             switch (task)
             {
+                case MoveType.MoveToCurrentTarget:  StopOnArrived(brain, index); break;
+                case MoveType.MoveToNextTarget:  StopOnArrived(brain, index);  break;
                 case MoveType.Flee: Flee(brain, index); break;
                 case MoveType.KeepDistance: KeepDistance(brain, index); break;
                 case MoveType.CircleAround: CircleAround(brain, index); break;
+                case MoveType.MoveToLastKnownDestination:
+                    if (brain.AIControl.HasArrived)
+                    {
+                        brain.AIControl.Stop();
+                        brain.TaskDone(index);
+                    }
+                    break;
                 default: break;
+            }
+        }
+
+        private void StopOnArrived(MAnimalBrain brain, int index)
+        {
+            if (brain.AIControl.HasArrived)
+            {
+                if (StopOnArrive) brain.AIControl.Stop();
+                brain.AIControl.LookAtTargetOnArrival = LookAtTarget;
+                brain.TaskDone(index);
             }
         }
 
@@ -134,8 +156,7 @@ namespace MalbersAnimations.Controller.AI
         {
             switch (task)
             {
-                case MoveType.LockAnimalMovement:
-                    brain.Animal.LockMovement = false; break;
+                case MoveType.LockAnimalMovement: brain.Animal.LockMovement = false; break;
                 default: break;
             }
         }
@@ -145,33 +166,18 @@ namespace MalbersAnimations.Controller.AI
         {
             switch (task)
             {
-                case MoveType.MoveToCurrentTarget:
-                    brain.TaskDone(index);
-                    break;
-                case MoveType.MoveToNextTarget:
-                    brain.TaskDone(index);
-                    break;
-                case MoveType.LockAnimalMovement:
-                    brain.TaskDone(index);
-                    break;
-                case MoveType.Stop: 
-                    brain.TaskDone(index);
-                    break;
-                case MoveType.RotateInPlace:
-                    brain.TaskDone(index);
-                    break;
-                case MoveType.Flee:
-                    //brain.AIControl.Stop();
-                    //brain.TaskDone(index);
-                    break;
-                case MoveType.CircleAround:
-                    break;
-                case MoveType.KeepDistance:
-                    break;
-                case MoveType.MoveToLastKnownDestination:
-                    brain.AIControl.Stop();
-                    brain.TaskDone(index);
-                    break;
+                case MoveType.MoveToCurrentTarget:      StopOnArrived(brain, index); break;
+                case MoveType.MoveToNextTarget:         StopOnArrived(brain, index); break;
+                case MoveType.LockAnimalMovement:       brain.TaskDone(index);  break;
+                case MoveType.Stop:                     brain.TaskDone(index);  break;
+                case MoveType.RotateInPlace:            brain.TaskDone(index);  break;
+               
+                //Do nothing!!
+                case MoveType.Flee:  break;
+                case MoveType.CircleAround:  break;
+                case MoveType.KeepDistance: break;
+
+                case MoveType.MoveToLastKnownDestination:   brain.AIControl.Stop();  brain.TaskDone(index);  break;
                 default:
                     break;
             }
@@ -263,6 +269,8 @@ namespace MalbersAnimations.Controller.AI
         {
             if (brain.Target)
             {
+                brain.AIControl.UpdateDestinationPosition = true;
+
                 brain.AIControl.StoppingDistance = stoppingDistance;
                 brain.AIControl.LookAtTargetOnArrival = false;
 
@@ -291,11 +299,13 @@ namespace MalbersAnimations.Controller.AI
                 }
                 else
                 {
+                    if (!brain.AIControl.HasArrived) brain.AIControl.Stop(); //It need to stop
+                    
                     brain.AIControl.HasArrived = true;
-                    brain.AIControl.LookAtTargetOnArrival = true;
+                    brain.AIControl.LookAtTargetOnArrival = LookAtTarget;
                     brain.AIControl.StoppingDistance = distance + distanceThreshold; //Force to have a greater Stopping Distance so the animal can rotate around the target
                     brain.AIControl.RemainingDistance = 0; //Force the remaining distance to be 0
-                  //  brain.TaskDone(index,false);
+                    //  brain.TaskDone(index,false);
                 }
 
                 if (brain.debug)
@@ -419,7 +429,7 @@ namespace MalbersAnimations.Controller.AI
     {
         SerializedProperty
             Description, distance, debugColor, distanceThreshold, active, WaitForPreviousTask,
-            stoppingDistance, task, Direction, UpdateInterval, slowingDistance, FleeForever,
+            stoppingDistance, task, Direction, UpdateInterval, slowingDistance, FleeForever, StopOnArrive,
             MessageID, arcsCount, LookAtTarget;
              
         private void OnEnable()
@@ -432,6 +442,7 @@ namespace MalbersAnimations.Controller.AI
             WaitForPreviousTask = serializedObject.FindProperty("WaitForPreviousTask");
             task = serializedObject.FindProperty("task");
             arcsCount = serializedObject.FindProperty("arcsCount");
+            StopOnArrive = serializedObject.FindProperty("StopOnArrive");
             distance = serializedObject.FindProperty("distance");
             Direction = serializedObject.FindProperty("direction");
             distanceThreshold = serializedObject.FindProperty("distanceThreshold");
@@ -473,9 +484,14 @@ namespace MalbersAnimations.Controller.AI
                     case MoveStopTask.MoveType.Stop: LookAt_T(); break;
                     case MoveStopTask.MoveType.RotateInPlace: break;
                     case MoveStopTask.MoveType.MoveToCurrentTarget:
-                        LookAt_T(); Interact_(); break;
+                        LookAt_T();
+                        Interact_();
+                        EditorGUILayout.PropertyField(StopOnArrive); break;
+                         
                     case MoveStopTask.MoveType.MoveToNextTarget:
-                        LookAt_T(); Interact_(); break;
+                        LookAt_T();
+                        Interact_(); 
+                        EditorGUILayout.PropertyField(StopOnArrive); break;
 
                     case MoveStopTask.MoveType.Flee:
                         EditorGUILayout.PropertyField(FleeForever);

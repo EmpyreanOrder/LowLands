@@ -7,7 +7,8 @@ namespace MalbersAnimations.Scriptables
     [CreateAssetMenu(menuName = "Malbers Animations/Variables/Game Object", order = 3000)]
     public class GameObjectVar : ScriptableVar
     {
-        [SerializeField] private GameObject value;
+        [SerializeField, HideInInspector]
+        private GameObject value;
 
         /// <summary>Invoked when the value changes </summary>
         public Action<GameObject> OnValueChanged;
@@ -35,11 +36,9 @@ namespace MalbersAnimations.Scriptables
 
     [System.Serializable]
     public class GameObjectReference : ReferenceVar
-    { 
-#pragma warning disable CA2235 // Mark all non-serializable fields
+    {
         public GameObject ConstantValue;
         [RequiredField] public GameObjectVar Variable;
-#pragma warning restore CA2235 // Mark all non-serializable fields
 
         public GameObjectReference() => UseConstant = true;
         public GameObjectReference(GameObject value) => Value = value;
@@ -56,7 +55,7 @@ namespace MalbersAnimations.Scriptables
             set
             {
                 if (UseConstant || Variable == null)
-                { 
+                {
                     ConstantValue = value;
                     UseConstant = true;
                 }
@@ -66,9 +65,9 @@ namespace MalbersAnimations.Scriptables
                 }
             }
         }
+
+        public static implicit operator GameObject(GameObjectReference reference) => reference.Value;
     }
-
-
 
 #if UNITY_EDITOR
     [UnityEditor.CanEditMultipleObjects, UnityEditor.CustomEditor(typeof(GameObjectVar))]
@@ -78,32 +77,32 @@ namespace MalbersAnimations.Scriptables
         {
             serializedObject.Update();
             MalbersEditor.DrawDescription("GameObject/Prefab Variable");
-            UnityEditor.EditorGUILayout.BeginVertical(UnityEditor.EditorStyles.helpBox);
-
-            var go = value.objectReferenceValue as GameObject;
-
-            UnityEditor.EditorGUILayout.BeginHorizontal();
-
-            if (go == null || go.IsPrefab())
+            using (new GUILayout.VerticalScope(UnityEditor.EditorStyles.helpBox))
             {
-                UnityEditor.EditorGUILayout.PropertyField(value, new GUIContent("Prefab", "The current value"));
-            }
-            else
-            {
-                if (Application.isPlaying)
+                var go = value.objectReferenceValue as GameObject;
+
+                using (new GUILayout.HorizontalScope())
                 {
-                    UnityEditor.EditorGUILayout.ObjectField("Value ", go, typeof(GameObject), false);
-                }
-            }
+                    if (go == null || go.IsPrefab())
+                    {
+                        UnityEditor.EditorGUILayout.PropertyField(value, new GUIContent("Prefab", "The current value"));
+                    }
+                    else
+                    {
+                        if (Application.isPlaying)
+                        {
+                            UnityEditor.EditorGUILayout.ObjectField("Value ", go, typeof(GameObject), false);
+                        }
+                    }
 
-            MalbersEditor.DrawDebugIcon(debug);
-            UnityEditor.EditorGUILayout.EndHorizontal();
-            UnityEditor.EditorGUILayout.PropertyField(Description);
-            UnityEditor.EditorGUILayout.EndVertical();
+                    MalbersEditor.DrawDebugIcon(debug);
+                }
+
+                UnityEditor.EditorGUILayout.PropertyField(Description, GUIContent.none);
+            }
 
             serializedObject.ApplyModifiedProperties();
         }
     }
 #endif
-
 }

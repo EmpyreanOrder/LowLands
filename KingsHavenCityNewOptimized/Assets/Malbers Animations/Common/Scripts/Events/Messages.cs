@@ -1,5 +1,7 @@
 ﻿using UnityEngine;
 using MalbersAnimations.Scriptables;
+using UnityEngine.Serialization;
+
 
 #if UNITY_EDITOR
 using UnityEditorInternal;
@@ -42,18 +44,10 @@ namespace MalbersAnimations.Utilities
 
         public virtual void SendMessage(Component go)
         {
-            Pinned = go;
-
-            var realRoot = go;
-
             //Find the Right Root if the objets is a Malbers Core Object
-            var coreRoot = go.FindInterface<IObjectCore>();
+            var coreRoot = go.FindInterface<IObjectCore>(false);
 
-            if (coreRoot != null)
-            {
-                Pinned = coreRoot.transform;
-            }
-
+            Pinned = coreRoot != null ? coreRoot.transform : go;
 
             foreach (var m in messages)
             {
@@ -88,7 +82,22 @@ namespace MalbersAnimations.Utilities
 
 
 
-        //#if UNITY_EDITOR
+#if UNITY_EDITOR
+        private void OnValidate()
+        {
+            foreach (var m in messages)
+            {
+                if (!m.UpdateVarReference)
+                {
+                    m.UpdateVarReference = true;
+                    m.TransformValue.Value = m.Old_transformValue;
+                    m.GOValue.Value = m.Old_GoValue;
+                    MTools.SetDirty(this);
+                    // Debug.Log($"[{name}] Message Component Updated Message vars to reference vars", this);
+                }
+            }
+        }
+
         //        private void OnDrawGizmosSelected()
         //        {
         //            DrawInteration(true);
@@ -113,7 +122,7 @@ namespace MalbersAnimations.Utilities
         //                if (t) MalbersEditor.DrawInteraction(transform.position, t.position, Selected, Color.white);
         //            }
         //        }
-        //#endif
+#endif
     }
 
     [System.Serializable]
@@ -126,13 +135,29 @@ namespace MalbersAnimations.Utilities
         public float floatValue;
         public string stringValue;
         public IntVar intVarValue;
-        public Transform transformValue;
-        public GameObject GoValue;
+
         public Component ComponentValue;
+
+        public TransformReference TransformValue;
+        public GameObjectReference GOValue;
+
+        //OLD VALUES WITH NO REFERENCE
+
+        [FormerlySerializedAs("transformValue")]
+        public Transform Old_transformValue;
+        [FormerlySerializedAs("GoValue")]
+        public GameObject Old_GoValue;
+        //OLD VALUES WITH NO REFERENCE
 
         public float time;
         public bool sent;
         public bool Active = true;
+
+
+        /// <summary>
+        /// Record to update the reference vars with the old values just once
+        /// </summary>
+        public bool UpdateVarReference = false;
 
         public MesssageItem()
         {
@@ -175,16 +200,16 @@ namespace MalbersAnimations.Utilities
                     val = intVarValue.name.ToString();
                     break;
                 case TypeMessage.Transform:
-                    succesful = listener.OnAnimatorBehaviourMessage(message, transformValue);
-                    val = transformValue.name.ToString();
+                    succesful = listener.OnAnimatorBehaviourMessage(message, TransformValue);
+                    val = TransformValue.Value.name.ToString();
                     break;
                 case TypeMessage.GameObject:
-                    succesful = listener.OnAnimatorBehaviourMessage(message, GoValue);
-                    val = GoValue.name.ToString();
+                    succesful = listener.OnAnimatorBehaviourMessage(message, GOValue);
+                    val = GOValue.Value.name.ToString();
                     break;
                 case TypeMessage.Component:
                     succesful = listener.OnAnimatorBehaviourMessage(message, ComponentValue);
-                    val = GoValue.name.ToString();
+                    val = ComponentValue.name.ToString();
                     break;
                 default:
                     break;
@@ -222,10 +247,10 @@ namespace MalbersAnimations.Utilities
                     SendMessage(anim, message, (int)intVarValue, SendToChildren);
                     break;
                 case TypeMessage.Transform:
-                    SendMessage(anim, message, transformValue, SendToChildren);
+                    SendMessage(anim, message, TransformValue.Value, SendToChildren);
                     break;
                 case TypeMessage.GameObject:
-                    SendMessage(anim, message, GoValue, SendToChildren);
+                    SendMessage(anim, message, GOValue.Value, SendToChildren);
                     break;
                 case TypeMessage.Component:
                     SendMessage(anim, message, ComponentValue, SendToChildren);
@@ -292,7 +317,7 @@ namespace MalbersAnimations.Utilities
             EditorGUI.PropertyField(R_3, typeM, GUIContent.none);
 
 
-            Rect R_5 = new Rect(rect.x + ((rect.width) / 3) * 2 + 5 + 15, rect.y, ((rect.width) / 3) - 5 - 15, EditorGUIUtility.singleLineHeight);
+            Rect R_5 = new Rect(rect.x + ((rect.width) / 3) * 2 + 5 + 15 + 13, rect.y, ((rect.width) / 3) - 5 - 15 - 10, EditorGUIUtility.singleLineHeight);
             var TypeM = (TypeMessage)typeM.intValue;
 
             SerializedProperty messageValue = property.FindPropertyRelative("boolValue");
@@ -315,12 +340,12 @@ namespace MalbersAnimations.Utilities
                     messageValue = property.FindPropertyRelative("intVarValue");
                     break;
                 case TypeMessage.Transform:
-                    messageValue = property.FindPropertyRelative("transformValue");
+                    messageValue = property.FindPropertyRelative("TransformValue");
                     break;
                 case TypeMessage.Void:
                     break;
                 case TypeMessage.GameObject:
-                    messageValue = property.FindPropertyRelative("GoValue");
+                    messageValue = property.FindPropertyRelative("GOValue");
                     break;
                 case TypeMessage.Component:
                     messageValue = property.FindPropertyRelative("ComponentValue");

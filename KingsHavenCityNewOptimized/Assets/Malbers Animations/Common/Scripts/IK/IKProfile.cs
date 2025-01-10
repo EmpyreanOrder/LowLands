@@ -153,20 +153,31 @@ namespace MalbersAnimations.Weapons
     {
         [HideInInspector]
         public string name;
-        public enum IKType { AdditiveOffset, OffsetOnly, WorldRotation, RootRotation, LookAtDir, LootAtYAxis }
+
         public IKType rotationType;
         [SearcheableEnum] public HumanBodyBones bone;
         public Vector3 RotationOffset;
         [Range(0, 1)]
         public float Weight;
-
         public Quaternion ParentBoneOffset { get; set; }
+
+
+        public enum IKType
+        {
+            [InspectorName("Additive Local Rotation")]
+            AdditiveOffset,
+            [InspectorName("Override Local Rotation")]
+            OffsetOnly,
+            [InspectorName("World Rotation")]
+            WorldRotation,
+            [InspectorName("World Rotation Relative to Root")]
+            RootRotation,
+            [InspectorName("LookAt Aimer Direction")]
+            LookAtDir,
+            [InspectorName("LookAt Aimer Direction No Horizontal")]
+            LootAtYAxis
+        }
     }
 
-    public struct IKGoalOffsets
-    {
-        [SearcheableEnum] public AvatarIKGoal ikGoal;
-        public Vector3 PositionOffset;
-        public Vector3 RotationOffset;
-    }
+
 }

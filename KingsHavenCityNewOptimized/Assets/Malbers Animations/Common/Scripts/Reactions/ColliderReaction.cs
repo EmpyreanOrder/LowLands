@@ -8,7 +8,7 @@ namespace MalbersAnimations
     [AddTypeMenu("Unity/Collider")]
     public class ColliderReaction : Reaction
     {
-     
+
         public override System.Type ReactionType => typeof(Collider); //set the Type of component this Reaction Needs
 
         public enum ColliderOption { Enable = 1, IsTrigger = 2, Material = 4 }
@@ -21,7 +21,7 @@ namespace MalbersAnimations
         [Hide("option", false, true, true, 2, 6, -1)]
         public bool isTrigger;
         [Hide("option", false, true, true, 5, 6, -1)]
-        public PhysicMaterial material;
+        public PhysicsMaterial material;
 
         protected override bool _TryReact(Component reactor)
         {

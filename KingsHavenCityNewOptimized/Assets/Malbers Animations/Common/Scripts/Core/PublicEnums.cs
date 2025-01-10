@@ -22,9 +22,23 @@
         NotEqual = 3,
     }
 
+    public enum AnimatorType { Float, Int, Bool }
+
+    public enum MathOperation
+    {
+        //   [InspectorName("+")]
+        Add,
+        //   [InspectorName("-")]
+        Substract,
+        // [InspectorName("*")]
+        Multiply,
+        //  [InspectorName("/")]
+        Divide
+    }
+
     public enum ComparerBool { Equal = 0, NotEqual = 1, }
 
-    public enum ComparerString { Equal = 0, NotEqual = 1, Empty = 2, }
+    public enum ComparerString { Equal = 0, NotEqual = 1, Empty = 2, Contains, DoesNotContains }
 
     public enum EEnterExit { Enter = 1, Exit = 2, }
 
@@ -136,21 +150,7 @@
         public static int Ready => 95;
 
 
-        public static string WValue(int v)
-        {
-            switch (v)
-            {
-                case 0: return "None";
-                case 95: return "Ready|Preparing";
-                case 96: return "Reload";
-                case 97: return "Aim";
-                case 98: return "Store";
-                case 99: return "Draw";
-                case 100: return "Idle";
-                case 101: return "Fire_Projectile";
-                default: return v.ToString(); ;
-            }
-        }
+
     }
 
 }

@@ -16,6 +16,9 @@ namespace MalbersAnimations
         public QueryTriggerInteraction interaction = QueryTriggerInteraction.UseGlobal;
         public FloatReference MaxDistance = new(100f);
 
+        [Tooltip("If the MousePoint Value is null set the value to this Transform")]
+        public BoolReference SetOnNull = new(true);
+
         //[Space]
         //public bool Snap = true;
         //[Tooltip("Reference to the Mouse Point Transform")]
@@ -42,7 +45,7 @@ namespace MalbersAnimations
             }
             else
             {
-                if (!MainCamera.Value.TryGetComponent<Camera>(out m_camera))
+                if (!MainCamera.Value.TryGetComponent(out m_camera))
                 {
                     Debug.LogWarning("There's no Main Camera on the Scene");
                     enabled = false;
@@ -56,11 +59,18 @@ namespace MalbersAnimations
 
         private void Update()
         {
-            if (MousePoint.Value == null) MousePoint.Value = transform; //If is null use itself 
+            if (SetOnNull.Value && MousePoint.Value == null) MousePoint.Value = transform; //If is null use itself 
             else if (MousePoint.Value != transform) return;
 
+            //#if ENABLE_INPUT_SYSTEM
+            //            var mousePosition = UnityEngine.InputSystem.Mouse.current.position;
+            //#else
+            //            var mousePosition = Input.mousePosition;
+            //#endif
 
-            Ray ray = m_camera.ScreenPointToRay(Input.mousePosition);
+            var mousePosition = Input.mousePosition;
+
+            Ray ray = m_camera.ScreenPointToRay(mousePosition);
 
             if (Physics.Raycast(ray, out RaycastHit hit, MaxDistance, layer, interaction))
             {
@@ -76,7 +86,7 @@ namespace MalbersAnimations
 
             }
         }
- 
+
 
         public Transform HitTransform { get; set; }
         public Vector3 TransformCenter { get; set; }

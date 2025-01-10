@@ -10,10 +10,10 @@
         void Pick();
 
         /// <summary>If the collectable has physic, Enable it</summary>
-        void EnablePhysics();
+        void OnDropEnablePhysics();
 
         /// <summary>If the collectable has physic, Disable it</summary>
-        void DisablePhysics();
+        void OnPickDisablePhysics();
 
         /// <summary>Can the Collectable be droped or Picked?</summary>
         bool InCoolDown { get; }

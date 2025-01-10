@@ -17,8 +17,8 @@ namespace MalbersAnimations.Controller.AI
 
         [HideInInspector, Tooltip("Selected Index of the list in the inspector")] public int list_index;
 
-        public List<MAIDecision> decisions = new List<MAIDecision>();
-        public List<bool> invert = new List<bool>();
+        public List<MAIDecision> decisions = new();
+        public List<bool> invert = new();
 
         public bool debug;
 
@@ -151,7 +151,7 @@ namespace MalbersAnimations.Controller.AI
                         if (GUI.Button(AddButtonRect, plus, EditorStyles.helpBox))
                         {
                             MTools.AddScriptableAssetContextMenu(element, typeof(MAIDecision),
-                                MTools.GetSelectedPathOrFallback());
+                                MalbersEditor.GetSelectedPathOrFallback());
                         }
                     }
                 },
@@ -163,7 +163,9 @@ namespace MalbersAnimations.Controller.AI
 
                     if (decision != null)
                     {
-                        if (EditorUtility.DisplayDialog("Remove Decision", "Deleting a Decision cannot be undone. Are you sure you want to delete it?", "Yes", "No"))
+                        var name = decision.name;
+
+                        if (EditorUtility.DisplayDialog("Remove Decision", $"Deleting a Decision [{name}] cannot be undone. Are you sure you want to delete it?", "Yes", "No"))
                         {
                             string Path = AssetDatabase.GetAssetPath(decision);
 

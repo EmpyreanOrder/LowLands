@@ -1,5 +1,5 @@
-﻿using UnityEngine;
-using MalbersAnimations.Events; 
+﻿using MalbersAnimations.Events;
+using UnityEngine;
 
 namespace MalbersAnimations.Scriptables
 {
@@ -9,9 +9,8 @@ namespace MalbersAnimations.Scriptables
     [CreateAssetMenu(menuName = "Malbers Animations/Collections/Runtime GameObject Set", order = 1000, fileName = "New Runtime Gameobject Collection")]
     public class RuntimeGameObjects : RuntimeCollection<GameObject>
     {
-
-        public GameObjectEvent OnItemAdded = new GameObjectEvent();
-        public GameObjectEvent OnItemRemoved = new GameObjectEvent();
+        public GameObjectEvent OnItemAdded = new();
+        public GameObjectEvent OnItemRemoved = new();
 
         /// <summary>Return the Closest game object from an origin</summary>
         public GameObject Item_GetClosest(GameObject origin)
@@ -36,10 +35,10 @@ namespace MalbersAnimations.Scriptables
         }
 
         protected override void OnAddEvent(GameObject newItem) => OnItemAdded.Invoke(newItem);
-        protected override void OnRemoveEvent(GameObject newItem) => OnItemRemoved.Invoke(newItem); 
-        
-        public  void Item_Add(Component newItem) => Item_Add(newItem.gameObject);
-        public  void Item_Remove(Component newItem) => Item_Remove(newItem.gameObject);
+        protected override void OnRemoveEvent(GameObject newItem) => OnItemRemoved.Invoke(newItem);
+
+        public void Item_Add(Component newItem) => Item_Add(newItem.gameObject);
+        public void Item_Remove(Component newItem) => Item_Remove(newItem.gameObject);
 
 
         public GameObject GetItem(RuntimeSetTypeGameObject type, int Index = 0, string m_name = "", GameObject origin = null)

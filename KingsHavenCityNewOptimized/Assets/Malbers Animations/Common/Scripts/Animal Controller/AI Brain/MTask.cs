@@ -1,5 +1,5 @@
-﻿using UnityEngine;
-using MalbersAnimations.Scriptables;
+﻿using MalbersAnimations.Scriptables;
+using UnityEngine;
 
 namespace MalbersAnimations.Controller.AI
 {
@@ -9,7 +9,7 @@ namespace MalbersAnimations.Controller.AI
         public abstract string DisplayName { get; }
 
         [Tooltip("ID Used for sending messages to the Brain to see if the Task started")]
-        public IntReference MessageID = new IntReference(0);
+        public IntReference MessageID = new(0);
         [Min(0), Tooltip("Task using Update will be executed every X seconds")]
         public float UpdateInterval = 0.2f;
         [Tooltip("If the previous Task is done then this Task will start")]
@@ -24,8 +24,9 @@ namespace MalbersAnimations.Controller.AI
         {
             if (MTools.ElapsedTime(brain.TasksUpdateTime[index], UpdateInterval))
             {
-                UpdateTask(brain, index);
                 brain.TasksUpdateTime[index] = Time.time; //Reset the interval
+                UpdateTask(brain, index);
+                //Debug.Log($"brain --->  {brain.currentState.name} ---INDEXZ {index},   brain.TasksUpdateTime{brain.TasksUpdateTime.Length}");
             }
         }
 
@@ -55,8 +56,8 @@ namespace MalbersAnimations.Controller.AI
     public abstract class BrainBase : ScriptableObject
     {
         [Tooltip("Enable disable Task or Decisions")]
-        public bool active = true;
-        [Space,TextArea(3,10)]
+        [HideInInspector] public bool active = true;
+        [Space, TextArea(3, 10)]
         public string Description = "Type Description Here";
         public virtual void DrawGizmos(MAnimalBrain brain) { }
 

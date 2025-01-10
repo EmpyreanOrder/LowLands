@@ -11,7 +11,7 @@ namespace MalbersAnimations.Scriptables
     {
         [Tooltip("Set of Scriptable variables you want to save on Player Pref")]
         public ScriptableVar[] userPreferences;
-        [CreateScriptableAsset] 
+        [CreateScriptableAsset]
         [Tooltip("Restore the Array of Variables to their default Options")]
         public ResetScriptableVarsAsset defaultUserOptions;
         [Tooltip("All values will be save to <PlayerPref> On Disable")]
@@ -84,12 +84,12 @@ namespace MalbersAnimations.Scriptables
                     Debug.LogError("Unacceptable ScriptableVar used: " + userPreference.name);
                 }
 
-                if (debug) Debug.Log($"Get Value From Player Pref: {userPreference.name} -> [{val}]",this);
+                if (debug) Debug.Log($"Get Value From Player Pref: {userPreference.name} -> [{val}]", this);
             }
         }
 
         /// <summary> Stores to PlayerPrefs using Scriptable Varible name as reference  </summary>
-        public void SaveUserPreferences() 
+        public void SaveUserPreferences()
         {
             foreach (ScriptableVar userPreference in userPreferences)
             {
@@ -134,9 +134,9 @@ namespace MalbersAnimations.Scriptables
 
         private bool StringToBool(string value)
         {
-            if (value == "true")
+            if (value.ToLower() == "true")
                 return true;
-            else if (value == "false")
+            else if (value.ToLower() == "false")
                 return false;
             else
             {
@@ -145,7 +145,7 @@ namespace MalbersAnimations.Scriptables
             }
         }
 
-       // private string BoolToString(bool value) => value ? "true" : "false";
+        // private string BoolToString(bool value) => value ? "true" : "false";
     }
 
 #if UNITY_EDITOR

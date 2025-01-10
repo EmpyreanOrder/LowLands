@@ -10,12 +10,12 @@ namespace MalbersAnimations.Scriptables
 {
     public abstract class RuntimeCollection<T> : ScriptableObject where T : Object
     {
-        public List<T> items = new List<T>();
+        public List<T> items = new();
 
-       // [TextArea(4,5)]
+        // [TextArea(4,5)]
         public string Description;
 
-        public UnityEvent OnSetEmpty = new UnityEvent();
+        public UnityEvent OnSetEmpty = new();
 
         /// <summary>Ammount of object on the list</summary>
         public int Count => items.Count;
@@ -58,13 +58,13 @@ namespace MalbersAnimations.Scriptables
         /// <summary>Gets the Index on the list of an object</summary>
         public virtual int Item_Index(T obj) => items.IndexOf(obj);
 
-       
+
         /// <summary>Gets a rando first object of the list</summary>
         public virtual T Item_GetRandom()
         {
             if (items != null && items.Count > 0)
-            {  
-                return items[Random.Range(0,items.Count)];
+            {
+                return items[Random.Range(0, items.Count)];
             }
             return default;
         }
@@ -81,7 +81,6 @@ namespace MalbersAnimations.Scriptables
                     OnAddEvent(newItem);
 
                     Debugging($"Add [{newItem.name}]");
-
                 }
             }
         }
@@ -125,15 +124,15 @@ namespace MalbersAnimations.Scriptables
 
 
 #if UNITY_EDITOR
-    //[CustomEditor(typeof(RuntimeCollection<>),true)]
-    public abstract class RuntimeCollectionEditor<T> : Editor where T:Object
+    [CustomEditor(typeof(RuntimeCollection<>), true)]
+    public abstract class RuntimeCollectionEditor<T> : Editor where T : Object
     {
         RuntimeCollection<T> M;
 
         SerializedProperty Description, OnSetEmpty, OnItemAdded, OnItemRemoved, debug;
 
         private void OnEnable()
-        { 
+        {
             M = (RuntimeCollection<T>)target;
 
             Description = serializedObject.FindProperty("Description");
@@ -157,7 +156,7 @@ namespace MalbersAnimations.Scriptables
                     {
                         EditorGUILayout.ObjectField("Item " + i, M.Items[i], typeof(T), false);
                     }
-                   
+
                 }
             }
             using (new GUILayout.HorizontalScope())
@@ -166,7 +165,7 @@ namespace MalbersAnimations.Scriptables
                 MalbersEditor.DrawDebugIcon(debug);
             }
             EditorGUILayout.PropertyField(OnSetEmpty);
-            if (OnItemAdded != null)  EditorGUILayout.PropertyField(OnItemAdded);
+            if (OnItemAdded != null) EditorGUILayout.PropertyField(OnItemAdded);
             if (OnItemRemoved != null) EditorGUILayout.PropertyField(OnItemRemoved);
 
             if (!Application.isPlaying && M.Items != null && M.Items.Count > 0 && GUILayout.Button("Clear Set - " + M.Items.Count))

@@ -155,10 +155,16 @@ namespace MalbersAnimations.UI
 
         private void RemoveFromGroup(StatUI item)
         {
-            //Debug.Log($"Removed From Group {item.slider}", item.slider );
+            try
+            {
+                item.stat.OnValueChange.RemoveListener(item.OnStatValueChange);
+            }
+            catch
+            { }
 
-            item.stat.OnValueChange.RemoveListener(item.OnStatValueChange);
+
             item.OnStatValueChange = null;
+
 
             Destroy(item.slider.gameObject);
 

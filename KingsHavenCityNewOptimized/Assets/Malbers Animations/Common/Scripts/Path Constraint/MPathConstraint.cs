@@ -4,6 +4,8 @@ using MalbersAnimations.Controller;
 using System.Collections.Generic;
 using MalbersAnimations.Scriptables;
 
+
+
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -25,8 +27,6 @@ namespace MalbersAnimations.PathCreation
 
         public MPath Path { get => m_Path; set => m_Path = value; }
 
-
-
         // protected CinemachinePathBase.PositionUnits T => CinemachinePathBase.PositionUnits.PathUnits; //Always needs to be on Path Units
         /// <summary> m_SearchRadius:  -1 </summary>
         // private readonly int m_SearchRadius = -1;
@@ -35,7 +35,7 @@ namespace MalbersAnimations.PathCreation
         [Min(0)] public float Radius = 0.5f;
 
         [Tooltip("Offset of the Radius on the Constraint")]
-        public Vector3 Offset = new Vector3(0, 0.5f, 0);
+        public Vector3 Offset = new(0, 0.5f, 0);
 
         [Tooltip("Forward point to calculate the Path Direction")]
         public float ForwardOffset = 0.3f;
@@ -49,8 +49,8 @@ namespace MalbersAnimations.PathCreation
         public bool debug;
 
 
-        public GameObjectEvent OnEnterPath = new GameObjectEvent();
-        public GameObjectEvent OnExitPath = new GameObjectEvent();
+        public GameObjectEvent OnEnterPath = new();
+        public GameObjectEvent OnExitPath = new();
         [HideInInspector, SerializeField] private int Editor_Tabs1;
 
 
@@ -111,9 +111,18 @@ namespace MalbersAnimations.PathCreation
             animal.OnStateChange.AddListener(OnStateChange);
             animal.OnModeStart.AddListener(OnModeStart);
 
+            if (m_Path)
+            {
+                StartPosition = animal.Position;
 
-            if (m_Path) EnterPath(m_Path); //Try to make a first entry
+                EnterPath(m_Path); //Try to make a first entry
+                MoveOnPath(1);
+                animal.Position = StartPosition;
+            }
         }
+
+
+        // private bool EnterFromEnable;
 
         private void OnStateChange(int ActiveState)
         {
@@ -133,8 +142,7 @@ namespace MalbersAnimations.PathCreation
             animal.OnStateChange.RemoveListener(OnStateChange);
             animal.OnModeStart.RemoveListener(OnModeStart);
 
-
-          if (Path)  ExitPath();
+            if (Path) ExitPath();
         }
 
         private void OnModeStart(int arg0, int arg1)
@@ -179,7 +187,6 @@ namespace MalbersAnimations.PathCreation
             }
             else
             {
-                Debug.Log("Try Enter", this);
                 TryEnterPath();
             }
         }
@@ -297,21 +304,21 @@ namespace MalbersAnimations.PathCreation
             FrontPos = Path.Path.GetPointAtTime(m_PathFrontPoint);       // Apply the offset to get the new position Front Position
 
             Quaternion RootRotation = Path.Path.GetPathRotation(m_PathRootPoint); //Get the Orientation of the Path
-           // Quaternion FrontRotation = Path.Path.GetPathRotation(m_PathFrontPoint); //Get the Orientation of the Path
-            
-          
+            // Quaternion FrontRotation = Path.Path.GetPathRotation(m_PathFrontPoint); //Get the Orientation of the Path
+
+
             var PathPosOffset = RootRotation * Path.AlignmentOffset;
 
-             RootPathDirection = RootRotation * Vector3.forward;
-           // RootPathDirection = FrontRotation * Vector3.forward;
-         
+            RootPathDirection = RootRotation * Vector3.forward;
+            // RootPathDirection = FrontRotation * Vector3.forward;
+
             Path.PathPosition.SetPositionAndRotation(RootPos, RootRotation); //Transform Reference to store the Position and Rotation
 
             Vector3 PathDirection = RootPathDirection; //USE THE REAL PATH DIRECTION FROM START TO END
 
             if (Path.LockRotation) //Find the Correct Path Rotation 
             {
-               // PathDirection = RootPathDirection; //USE THE REAL PATH DIRECTION FROM START TO END
+                // PathDirection = RootPathDirection; //USE THE REAL PATH DIRECTION FROM START TO END
 
                 if (Path.FollowDirection == PathFollowDir.None)
                 {
@@ -328,20 +335,20 @@ namespace MalbersAnimations.PathCreation
 
 
             var PathNormal = RootRotation * Vector3.up; //Get the Up vector of the Path 
-         
+
 
             if (debug)
             {
                 //Real Path Direction From Start to End
-                MDebug.Draw_Arrow(animal.Position, RootPathDirection, Color.cyan); 
+                MDebug.Draw_Arrow(animal.Position, RootPathDirection, Color.cyan);
 
                 MDebug.DrawWireSphere(RootPos + PathPosOffset, Color.white, 0.1f * scaleFactor);
-                
+
                 MDebug.DrawWireSphere(FrontPos, Color.white, 0.1f * scaleFactor);
                 MDebug.DrawWireSphere(RootPos, Color.white, 0.1f * scaleFactor);
 
 
-                MDebug.Draw_Arrow(RootPos, PathDirection.normalized, Color.green);  
+                MDebug.Draw_Arrow(RootPos, PathDirection.normalized, Color.green);
                 MDebug.Draw_Arrow(RootPos, PathNormal.normalized, Color.blue);
             }
 
@@ -350,7 +357,10 @@ namespace MalbersAnimations.PathCreation
             //Clean the Path Rotation on Y
             if (Path.IgnoreVertical)
             {
-                PathDirectionNoY = Vector3.ProjectOnPlane(PathDirection, animal.UpVector).normalized; 
+                //PathDirectionNoY = Vector3.ProjectOnPlane(PathDirection, animal.UpVector).normalized;
+
+                var N1 = Vector3.Cross(PathDirection, animal.UpVector);
+                PathDirectionNoY = Vector3.ProjectOnPlane(Path.LockRotation ? PathDirection : animal.Move_Direction, N1).normalized;
             }
 
             //Disable Grounded
@@ -360,7 +370,9 @@ namespace MalbersAnimations.PathCreation
             var AlignRot = Quaternion.FromToRotation(animal.Forward, PathDirectionNoY) * rotation;  //Calculate the orientation to Terrain 
             var Inverse_Rot = Quaternion.Inverse(rotation);
             var Target = Inverse_Rot * AlignRot;
-            var Delta = Quaternion.Slerp(Quaternion.identity, Target, OrientSmoothness * animal.DeltaTime); //Calculate the Delta Align Rotation
+
+            //  var Delta = Quaternion.Slerp(Quaternion.identity, Target, OrientSmoothness * animal.DeltaTime); //Calculate the Delta Align Rotation
+            var Delta = Quaternion.Slerp(Quaternion.identity, Target, OrientSmoothness * Path.OrientSmoothness * animal.DeltaTime); //Calculate the Delta Align Rotation
 
             var Dot = Vector3.Dot(animal.Move_Direction, PathDirection);
 
@@ -390,6 +402,11 @@ namespace MalbersAnimations.PathCreation
             }
 
 
+
+            //  Debug.Log("LS");
+            //  Debug.DrawRay(animal.Position, PathDirection*5, Color.white);
+            //  Debug.DrawRay(animal.Position, N1 * 5, Color.white);
+
             if (AutoMove.Value)
             {
                 animal.MoveFromDirection(PathDirection.normalized);
@@ -410,7 +427,7 @@ namespace MalbersAnimations.PathCreation
 
             else if (Dot > 0) //Make the Animal able to turn 180 degree on the Path
             {
-                animal.MoveFromDirection(PathDirection);
+                animal.MoveFromDirection(Path.IgnoreVertical ? PathDirectionNoY : PathDirection);
                 animal.Rotation *= Delta;
             }
 
@@ -420,14 +437,14 @@ namespace MalbersAnimations.PathCreation
             {
                 animal.MovementAxis.z = 0;
             }
-             
+
             Vector3 Difference = (RootPos + PathPosOffset) - position; //What need to be substract to the Position of the animal
 
             if (Path.IgnoreVertical)
             {
                 Difference = Vector3.ProjectOnPlane(Difference, animal.UpVector); //IGNORE VERTICAL
             }
-             
+
             Difference = Vector3.ProjectOnPlane(Difference, Vector3.ProjectOnPlane(PathDirection, animal.UpVector)); //IGNORE Forward
 
             Vector3 AlignPos = Vector3.Lerp(Vector3.zero, Difference, weight);
@@ -470,6 +487,7 @@ namespace MalbersAnimations.PathCreation
             LastPath.Add(Path);
             Path = null;
             Weight = 0;
+            NextPath = null;
 
             Debugging("Exit");
         }
@@ -602,6 +620,8 @@ namespace MalbersAnimations.PathCreation
             {
                 JustExit = null;
                 //  LastPath = null;
+                LastPath.Remove(mPath); // Clear after cooldown
+
             });
 
         }
@@ -613,7 +633,7 @@ namespace MalbersAnimations.PathCreation
         {
             var rot = animal.Rotation;
             //Calculate the orientation to Terrain 
-            Quaternion AlignRot = Quaternion.FromToRotation(animal.Up, normal) * animal.Rotation;  
+            Quaternion AlignRot = Quaternion.FromToRotation(animal.Up, normal) * animal.Rotation;
             Quaternion Inverse_Rot = Quaternion.Inverse(rot);
             Quaternion Target = Inverse_Rot * AlignRot;
 
@@ -621,7 +641,7 @@ namespace MalbersAnimations.PathCreation
 
             Debug.DrawRay(animal.Position, normal * 5);
             Debug.DrawRay(animal.Position, animal.Up * 5);
-                
+
 
             animal.Rotation *= Delta;
         }
@@ -629,8 +649,8 @@ namespace MalbersAnimations.PathCreation
 
         public virtual bool OnAnimatorBehaviourMessage(string message, object value) => this.InvokeWithParams(message, value);
 
-        
-        
+
+
         public void Debugging(string value)
         {
 #if UNITY_EDITOR
@@ -638,19 +658,24 @@ namespace MalbersAnimations.PathCreation
 #endif
         }
 
+#if MALBERS_DEBUG && UNITY_EDITOR
         private void OnDrawGizmosSelected()
         {
-            if (!Application.isPlaying && animal)
+            if (!Application.isPlaying && animal && debug)
             {
-                Gizmos.color = Color.red;
-                Gizmos.matrix = transform.localToWorldMatrix;
-                Gizmos.DrawWireSphere(Offset, Radius);
+                if (UnityEditorInternal.InternalEditorUtility.GetIsInspectorExpanded(this))
+                {
+                    Gizmos.color = Color.red;
+                    Gizmos.matrix = transform.localToWorldMatrix;
+                    Gizmos.DrawWireSphere(Offset, Radius);
 
-                Gizmos.color = Color.white;
-                Gizmos.DrawWireSphere(Vector3.forward * ForwardOffset, 0.1f);
-                Gizmos.DrawLine(Vector3.zero, Vector3.forward * ForwardOffset);
+                    Gizmos.color = Color.white;
+                    Gizmos.DrawWireSphere(Vector3.forward * ForwardOffset, 0.1f);
+                    Gizmos.DrawLine(Vector3.zero, Vector3.forward * ForwardOffset);
+                }
             }
         }
+#endif
 
         private void Reset()
         {
@@ -762,13 +787,16 @@ namespace MalbersAnimations.PathCreation
         {
             using (new GUILayout.VerticalScope(EditorStyles.helpBox))
             {
+
                 using (new GUILayout.HorizontalScope())
                 {
                     EditorGUILayout.PropertyField(animal);
                     MalbersEditor.DrawDebugIcon(debug);
                 }
+
                 EditorGUILayout.PropertyField(m_Path);
-                EditorGUILayout.PropertyField(AutoMove);
+
+        EditorGUILayout.PropertyField(AutoMove);
                 // EditorGUILayout.PropertyField(PathPosition);
             }
 

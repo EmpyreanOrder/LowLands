@@ -3,7 +3,9 @@ using UnityEngine.Events;
 using MalbersAnimations.Scriptables;
 using MalbersAnimations.Controller;
 using MalbersAnimations.Events;
-using System; 
+using System;
+using UnityEngine.Serialization;
+
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -35,7 +37,7 @@ namespace MalbersAnimations.Weapons
     {
         #region Data
         [SerializeField] protected Sprite m_UI;
-        [SerializeField] protected StringReference description = new StringReference(string.Empty);
+        [SerializeField] protected StringReference description = new(string.Empty);
         #endregion
 
         //#region Damage
@@ -44,30 +46,34 @@ namespace MalbersAnimations.Weapons
         //#endregion
 
         #region Weapon Charge
-        [SerializeField] private FloatReference chargeTime = new FloatReference(0);
+        public FloatReference chargeTime = new(0);
 
 
         [Tooltip("Value of Charge.. from zero to Max")]
-        public FloatReference m_MaxCharge = new FloatReference(1);
+        public FloatReference m_MaxCharge = new(1);
         [SerializeField] private float chargeCharMultiplier = 1;
-        public AnimationCurve ChargeCurve = new AnimationCurve(new Keyframe[] { new Keyframe(0, 0), new Keyframe(1, 1) });
+        public AnimationCurve ChargeCurve = new(new Keyframe[] { new(0, 0), new(1, 1) });
         #endregion
 
         #region Riding/Ground Values
-        [Tooltip("Use Weapon Arm Pose while Grounded. This will send to the Animator the WeaponType Parameter to Activate the Animation ")]
+        [Tooltip("Use a Arm Pose when the weapon is equipped while Grounded. It will keep playing in loop an animation for an arm while the weapon is equipped")]
         public bool GroundArmPose = true;
-        [Tooltip("Use Weapon Arm Pose while Riding. This will send to the Animator the WeaponType Parameter to Activate the Animation")]
+        [Tooltip("Use a Arm Pose when the weapon is equipped while Riding. It will keep playing in loop an animation for an arm while the weapon is equipped")]
         public bool RidingArmPose = true;
 
 
-        [Tooltip("Is the weapon using Combo while grounded?.  -1 means do not use combos!")]
-        [Min(-1)] public int GroundCombo = -1;
-        [Tooltip("Is the weapon using Combo while Riding?. -1 means do not use combos!")]
-        [Min(-1)] public int RidingCombo = -1;
+        [Tooltip("Is the weapon using Combo while grounded?.  Leave empty to not use combos!")]
+        public ModeID GroundCombo;
+        [Tooltip("Is the weapon using Combo while Riding?. Leave empty to not use combos!")]
+        public ModeID RidingCombo;
         #endregion
+
 
         /// <summary>Continue Attacking using the Rate of the Weapon </summary>
         public bool Automatic { get => m_Automatic.Value; set => m_Automatic.Value = value; }
+
+        /// <summary> The call of attack was from automatic </summary>
+        public bool AttackFromAutomatic { get; set; }
 
         /// <summary>Does the weapon has Ammo in the Chamber?</summary>
         public virtual bool HasAmmo => false;
@@ -83,12 +89,12 @@ namespace MalbersAnimations.Weapons
 
         ///// <summary> Sets if the weapon is stored in a holster or not  </summary>
         //public bool InHolster { get; set; }
-        
+
         //public Sprite UISprite { get => m_UI; set => m_UI = value; }
 
         #region Aiming
-        [SerializeField,RequiredField] private Transform m_AimOrigin;
-         public virtual Transform AimOrigin { get => m_AimOrigin; set => m_AimOrigin = value; }
+        [SerializeField, RequiredField] private Transform m_AimOrigin;
+        public virtual Transform AimOrigin { get => m_AimOrigin; set => m_AimOrigin = value; }
         public Vector3 AimOriginPos => AimOrigin.position;
 
         [SerializeField] private AimSide m_AimSide;
@@ -97,13 +103,13 @@ namespace MalbersAnimations.Weapons
         #region Weapon Properties
         [SerializeField] protected WeaponID weaponType;
         [Tooltip("Identifier for the Holster that the weapon will be stored")]
-        [SerializeField] protected HolsterID holster;                                       // From which Holder you will draw the Weapon
-        [SerializeField] protected HolsterID holsterAnim;                                   // From which Holder you will draw the Weapon
+        public HolsterID holster;                                       // From which Holder you will draw the Weapon
+        public HolsterID holsterAnim;                                   // From which Holder you will draw the Weapon
 
-        [Min(0),Tooltip("A holster can have multiple Transform to be parent to. This is the Index of the Transform Slots Array")]
+        [Min(0), Tooltip("A holster can have multiple Transform to be parent to. This is the Index of the Transform Slots Array")]
         [SerializeField] protected int m_holsterIndex = 0;                                  // From which Holder you will draw the Weapon
         public BoolReference rightHand = new(true);                           // With which hand you will draw the Weapon;
-      
+
         [SerializeField] protected FloatReference m_rate = new(0);           //Weapon Rate
         [SerializeField] protected BoolReference m_Automatic = new(false);    //Press Fire to Contiue Attacking
 
@@ -118,33 +124,42 @@ namespace MalbersAnimations.Weapons
 
         [Tooltip("Stance Used by the Animal Controller for the Weapon")]
         public StanceID stance;
-        [SerializeField,Tooltip("Enable Strafing while Aiming")]
-        private BoolReference strafeOnAim =  new();
+        [SerializeField, Tooltip("Enable Strafing while Aiming")]
+        private BoolReference strafeOnAim = new();
         [Tooltip("When using the weapon on foot it will Try activate the Strafe on the Animal")]
         public BoolReference strafeOnEquip = new(false);
+        [Tooltip("When the weapon is  unequipped enable or disable straffing")]
+        public BoolReference strafeOnUnequip = new(false);
         #endregion
 
         #region IK
-        [ExposeScriptableAsset,Tooltip("Aim IK Modification to the Character Body to Aim Properly when the Weapon is RightHanded")]
+        [ExposeScriptableAsset, Tooltip("Aim IK Modification to the Character Body to Aim Properly when the Weapon is RightHanded")]
         public IKProfile AimIKRight;
-        
-        [ExposeScriptableAsset,Tooltip("Aim IK Modification to the Character Body to Aim Properly when the Weapon is LeftHanded")]
+
+        [ExposeScriptableAsset, Tooltip("Aim IK Modification to the Character Body to Aim Properly when the Weapon is LeftHanded")]
         public IKProfile AimIKLeft;
 
-        public IKProfile AimI => rightHand ? AimIKRight : AimIKLeft;
+        public IKProfile AimIK => rightHand ? AimIKRight : AimIKLeft;
 
         [Tooltip("IK Modification to the Character Body to Aim Properly")]
         public BoolReference TwoHandIK;                              // Makes the IK for the 2Hands
 
-        [Tooltip("Position and Rotation Reference for the IK Hand Goal")]
-        public TransformReference IKHandPoint;                       // Rotation Offset Left Hand
+        [Tooltip("Position and Rotation Reference for the secondary Hand IK Goal (Left) ")]
+        [FormerlySerializedAs("IKHandPoint")]
+        public TransformReference IKHandLeft = new();                       // Rotation Offset Left Hand
+
+        [Tooltip("Position and Rotation Reference for the secondary Hand IK  (Right)  ")]
+        public TransformReference IKHandRight = new();                       // Rotation Offset Left Hand
+
+        public Transform IKHandPoint => rightHand ? IKHandLeft.Value : IKHandRight.Value;
+
 
         #endregion
 
         #region Offsets
-        public TransformOffset HolsterOffset = new TransformOffset(1);
-        public TransformOffset LeftHandOffset = new TransformOffset(1);
-        public TransformOffset RightHandOffset = new TransformOffset(1);
+        public TransformOffset HolsterOffset = new(1);
+        public TransformOffset LeftHandOffset = new(1);
+        public TransformOffset RightHandOffset = new(1);
         #endregion
 
         #region Audio
@@ -159,11 +174,16 @@ namespace MalbersAnimations.Weapons
         /// <summary>ID of the Damager (To be activated by the Animator)</summary>
         public override int Index => weaponType.ID;
 
+
+        /// <summary>Can the weapon be stored, unequiped -> override with the different weapons</summary>
+        public virtual bool CanUnequip => true;
+
         /// <summary>Holster the weapon can be draw from</summary> 
         public virtual int HolsterID => (Holster != null) ? Holster.ID : 0;
 
         public HolsterID Holster { get => holster; set => holster = value; }
-        public WeaponID WeaponType { get => weaponType; set => weaponType = value; }
+        public WeaponID WeaponType => weaponType;
+        public WeaponID WeaponMode => WeaponType;
 
         /// <summary> ID value for the Holster, This is used on the Animator to Draw or Store the weapons </summary>
         public int HolsterAnim => holsterAnim != null ? holsterAnim.ID : holster.ID;//  { get => holsterAnim; set => holsterAnim = value; }
@@ -180,35 +200,54 @@ namespace MalbersAnimations.Weapons
             set
             {
                 isEquiped = value;
-                Debugging($"Equiped [{value}]", this);  //Debug
+                Debugging($"Equiped [{value}]", this, "green");  //Debug
 
                 if (isEquiped && Owner)
                 {
                     OnEquiped.Invoke(Owner.transform);
+
+                    MaxCharged = false;
+                    IsAttacking = false;
                 }
                 else
                 {
-                    Owner = null;                       //Clean the Owner
+                    OnUnequiped.Invoke(Owner ? Owner.transform : null);
+
+                    //Reset the Owner
+                    Owner = null;
                     CurrentOwner = null;
-                    OnUnequiped.Invoke(null);
+                    IsReloading = false;
                 }
             }
         }
 
-
         /// <summary>Is the Weapon Charging?</summary>
-        public virtual bool IsCharging { get; set; }
+        public virtual bool IsCharging// { get; set; }
+        {
+            get => isCharging;
+            set
+            {
+                isCharging = value;
+                //Debug.Log("isCharging = " + isCharging);   
+            }
+        }
+        private bool isCharging;
 
         /// <summary>Is the Weapon used while riding?</summary>
         public virtual bool IsRiding { get; set; }
 
-        /// <summary>Is the Weapon Reloading?</summary>
-        public virtual bool IsReloading   { get; set; }
-        //{
-        //    get => isReloading;
-        //    set { isReloading = value; Debug.Log("isReloading = " + isReloading); }
-        //}
-        //private bool isReloading;
+
+        /// <summary>Is the Playing a Reloading animation</summary>
+        public virtual bool IsReloading  // { get; set; }
+        {
+            get => isReloading;
+            set
+            {
+                isReloading = value;
+                //  Debug.Log("isReloading = " + isReloading);   
+            }
+        }
+        private bool isReloading;
 
 
         /// <summary>Can the Weapon Attack? Uses the Weapon Rate to evaluate if the weapon can Attack Again (Works for Melee and Shotable weapons)</summary>
@@ -218,41 +257,54 @@ namespace MalbersAnimations.Weapons
             set
             {
                 canAttack = value;
-                //Debug.Log("canAttack = " + canAttack);
+
                 if (!canAttack)
                 {
                     if (Rate > 0)
                         this.Delay_Action(Rate, () => { canAttack = true; });
-                    else 
+                    else
                         canAttack = true; //Restore Can Attack if the weapon has no Rate
                 }
+
             }
         }
-        private bool canAttack;
+        protected bool canAttack;
 
-        /// <summary>Is the Weapon Ready to Attack?? (Set by the Animations)</summary>
-        public virtual bool IsReady { get; private set; }
-
-        public virtual void WeaponReady(bool value)
+        /// <summary>Check if the Weapon is aiming so it plays the Aim Animation </summary>
+        public virtual void CheckAim()
         {
-            IsReady = value;
-            Debugging($"<color=white><b>[Weapon Ready: {IsReady}] </b></color>", this);  //Debug
+            //   Debug.Log("CHECK AIMIMING");
+
+            WeaponAction?.Invoke(IsAiming ? (int)Weapon_Action.Aim : (int)Weapon_Action.Idle);
+            IsAttacking = false;
         }
 
-        /// <summary>Is the Weapon Attacking... the Opposite of CanAttack</summary>
-        public virtual bool IsAttacking { get => !CanAttack; }
 
-        /// <summary>Main Attack Input Value. Also Means the Main Attack has Started. I use this to know if the weapon is holding the Attack Down</summary>
-        public virtual bool Input{ get; set; }
+        /// <summary>Is the Weapon Attacking...Is Playing the Attack Animation if it has one.</summary>
+        public virtual bool IsAttacking { get; set; }
         //{
-        //    get => m_MainInput;
+        //    get => isAttacking;
         //    set
         //    {
-        //        m_MainInput = value;
-        //        Debugging($"Input → [{value}]",this);
+        //        isAttacking = value;
+        //        Debug.Log("isAttacking = " + isAttacking);
+
         //    }
         //}
-        //bool m_MainInput;
+        //protected bool isAttacking;
+
+        /// <summary>Main Attack Input Value. Also Means the Main Attack has Started. I use this to know if the weapon is holding the Attack Down</summary>
+        public virtual bool Input//{ get; set; }
+        {
+            get => m_MainInput;
+            set
+            {
+                if (m_MainInput != value)
+                    Debugging($"Input → [{value}]", this);
+                m_MainInput = value;
+            }
+        }
+        bool m_MainInput;
 
         ///// <summary>Second Attack Input Value. Also Means the Secondary Attack has Started</summary>
         //public virtual bool SecondInput { get; set; }
@@ -260,7 +312,7 @@ namespace MalbersAnimations.Weapons
         public string Description { get => description.Value; set => description.Value = value; }
 
 
-        private bool isAiming;
+        protected bool isAiming;
         /// <summary>Is the Weapon Aiming?</summary>
         public virtual bool IsAiming
         {
@@ -269,6 +321,8 @@ namespace MalbersAnimations.Weapons
             {
                 isAiming = value;
                 OnAiming.Invoke(isAiming);
+
+                //  if (!value) ResetCharge();
             }
         }
 
@@ -278,15 +332,18 @@ namespace MalbersAnimations.Weapons
         /// <summary>Can the weapon Aim?? Overrie with shootables</summary>
         public virtual bool CanAim => false;
 
-        public float MinDamage=> statModifier.MinValue.Value;
-        public float MaxDamage=> statModifier.MaxValue.Value; 
+        public float MinDamage => statModifier.MinValue.Value;
+        public float MaxDamage => statModifier.MaxValue.Value;
 
         /// <summary>Time needed to fully charge the weapon</summary>
         public float ChargeTime { get => chargeTime.Value; set => chargeTime.Value = value; }
         public float MaxCharge { get => m_MaxCharge.Value; set => m_MaxCharge.Value = value; }
 
         /// <summary>Can the Weapon be Charged? Meaning Charge time is greater than 0</summary>
-        public bool CanCharge => ChargeTime > 0;
+        public virtual bool CanCharge => ChargeTime > 0;
+
+        /// <summary>Is the weapon at max charge</summary>
+        public bool MaxCharged { get; internal set; }
 
         /// <summary> Charge multiplier to Apply to the Character Charge Value (For the Animator Parameter)  </summary>
         public float ChargeCharMultiplier { get => chargeCharMultiplier; set => chargeCharMultiplier = value; }
@@ -307,7 +364,7 @@ namespace MalbersAnimations.Weapons
         public bool IsRightHanded => rightHand.Value;
         public bool IsLefttHanded => !IsRightHanded;
 
-        
+
 
         /// <summary>Weapon Rate</summary>
         public float Rate { get => m_rate.Value; set => m_rate.Value = value; }
@@ -316,8 +373,9 @@ namespace MalbersAnimations.Weapons
         //public bool IsCharged => ChargeCurrentTime >= ChargeTime;
 
         /// <summary>Normalized Value for the Charge. if ChargeTime == 0 then Random Value between [0-1]</summary>
-        public float ChargedNormalized => CanCharge ? ChargeCurve.Evaluate(Mathf.Clamp01(ChargeCurrentTime / ChargeTime)) : UnityEngine.Random.Range(0f, 1f);
+        public float ChargedNormalized => CanCharge ? ChargeCurve.Evaluate(Charging) : UnityEngine.Random.Range(0f, 1f);
 
+        public float Charging => Mathf.Clamp01(ChargeCurrentTime / ChargeTime);
 
         /// <summary>Current charge the weapon has </summary>
         public float CurrentCharge { get; set; }
@@ -345,6 +403,7 @@ namespace MalbersAnimations.Weapons
         /// <summary>  Enable Strafing on Aiming  </summary>
         public bool StrafeOnAim { get => strafeOnAim.Value; set => strafeOnAim.Value = value; }
         public bool StrafeOnEquip { get => strafeOnEquip.Value; set => strafeOnEquip.Value = value; }
+        public bool StrafeOnUnequip { get => strafeOnUnequip.Value; set => strafeOnUnequip.Value = value; }
 
         /// <summary> The Free Hand is Free[True] or used[false]</summary>
         public bool FreeHand { get; set; }
@@ -352,16 +411,16 @@ namespace MalbersAnimations.Weapons
         #endregion
 
         #region Events
-        public TransformEvent OnEquiped = new TransformEvent();
-        public TransformEvent OnUnequiped = new TransformEvent();
+        public TransformEvent OnEquiped = new();
+        public TransformEvent OnUnequiped = new();
         /// <summary>Invoked when the weapon is Charging  (Returns a Normalized Value) </summary>
-        public FloatEvent OnCharged = new FloatEvent();
-        public FloatEvent OnChargedFinished = new FloatEvent();
-        public BoolEvent OnAiming = new BoolEvent();
+        public FloatEvent OnCharged = new();
+        public UnityEvent OnMaxCharged = new();
+        public FloatEvent OnChargedFinished = new();
+        public BoolEvent OnAiming = new();
 
-        public UnityEvent OnUseFreeHand= new UnityEvent();
-        public UnityEvent OnReleaseFreeHand= new UnityEvent();
-        // public UnityEvent OnPlaced = new UnityEvent();
+        public UnityEvent OnUseFreeHand = new();
+        public UnityEvent OnReleaseFreeHand = new();
         #endregion
 
 
@@ -384,18 +443,15 @@ namespace MalbersAnimations.Weapons
         }
 
         /// <summary>Set when the Current Attack is Active and Holding ... So reset the Attack</summary>
-        internal virtual void Attack_Charge(IMWeaponOwner RC, float time)
-        {
-            //if (Automatic && CanAttack && CanCharge && Rate > 0)
-            //{
-            //    //if (Input) MainAttack_Start(RC);
-            //}
-        }
+        internal abstract void Attack_Charge(IMWeaponOwner RC, float time);
+
+
+
 
         /// <summary>Set when the Primary Attack is Released (BOW) </summary>
         internal virtual void MainAttack_Released(IMWeaponOwner RC)
         {
-           // Debugging($"Main Attack Released", this);
+            // Debugging($"Main Attack Released", this);
             Input = false;
             ResetCharge();
         }
@@ -403,7 +459,7 @@ namespace MalbersAnimations.Weapons
         /// <summary>Set when the Primary Attack is Released (BOW) </summary>
         internal virtual void SecondAttack_Released(IMWeaponOwner RC)
         {
-         //   Debugging($"Second Attack Released", this);
+            //   Debugging($"Second Attack Released", this);
             Input = false;
             ResetCharge();
         }
@@ -434,7 +490,7 @@ namespace MalbersAnimations.Weapons
         public virtual bool Equip(IMWeaponOwner _char)
         {
             if (gameObject.IsPrefab()) return false; //Means is still a prefab
-            if (!Enabled) { Debugging("The weapon is Disable. It cannot be equipped",this);  return false; }
+            if (!Enabled) { Debugging("The weapon is Disable. It cannot be equipped", this); return false; }
 
             CurrentOwner = _char;
             Owner = CurrentOwner.Owner;
@@ -442,7 +498,7 @@ namespace MalbersAnimations.Weapons
             CanAttack = true;
             ChargeCurrentTime = 0;
             IgnoreTransform = _char.IgnoreTransform;
-           // Enabled = true;
+            // Enabled = true;
             gameObject.SetActive(true);
 
             animator = _char.Anim; //Set the Animator;
@@ -456,7 +512,7 @@ namespace MalbersAnimations.Weapons
 
 
         /// <summary> Attack Trigger Behaviour </summary>
-        public virtual void ActivateDamager(int value, int prof) 
+        public virtual void ActivateDamager(int value, int prof)
         {
             DoDamage(true, prof);
         }
@@ -469,10 +525,14 @@ namespace MalbersAnimations.Weapons
                 ChargeCurrentTime += time;
                 IsCharging = true;
 
-                CurrentCharge = MaxCharge * ChargedNormalized;
+                CurrentCharge = MaxCharge * ChargeCurve.Evaluate(Charging);
 
+                if (Charging == 1 && !MaxCharged)
+                {
+                    MaxCharged = true; //Meaning the weapon has charged to the max
+                    OnMaxCharged.Invoke(); //Max Charged Invoked
+                }
                 OnCharged.Invoke(CurrentCharge); //Charge Normalized
-                //Debug.Log("ISCHARGING");
             }
             else
             {
@@ -489,12 +549,12 @@ namespace MalbersAnimations.Weapons
 
         /// <summary > Do all Grab Logic with your Free Hand (E.g. Bow Grab Know on the String) </summary>
         public virtual void FreeHandUse()
-        { 
+        {
             OnUseFreeHand.Invoke();
             FreeHand = false;
         }
 
-         
+
         /// <summary>Reset the Charge of the weapon</summary>
         public virtual void ResetCharge()
         {
@@ -502,8 +562,9 @@ namespace MalbersAnimations.Weapons
             {
                 ChargeCurrentTime = 0;
                 IsCharging = false;
+                CurrentCharge = 0;
                 OnCharged.Invoke(0);
-
+                MaxCharged = false;
                 Debugging($"Weapon [Charge Reseted]", this);
             }
         }
@@ -511,6 +572,8 @@ namespace MalbersAnimations.Weapons
         /// <summary>Set when the Primary Attack is Released (BOW) </summary>
         public virtual void ReleaseCharge()
         {
+            Debug.Log("RELEASE CHARGE");
+
             WeaponAction.Invoke((int)Weapon_Action.Attack);
             ResetCharge();
         }
@@ -545,7 +608,7 @@ namespace MalbersAnimations.Weapons
             SetDefaultProfile();
         }
 
-       
+
 
         /// <summary> Apply the Correct offset to the weapon</summary>
         public virtual void ApplyOffset()
@@ -559,7 +622,7 @@ namespace MalbersAnimations.Weapons
         /// <summary> Set the Weapon RigidBody to Kinematic and Disable the Colliders</summary>
         public void DisablePhysics()
         {
-            IsCollectable?.DisablePhysics();
+            IsCollectable?.OnPickDisablePhysics();
         }
 
         /// CallBack from the RiderCombat Layer in the Animator to reproduce a sound on the weapon
@@ -572,9 +635,12 @@ namespace MalbersAnimations.Weapons
             }
         }
 
-      
+        //internal void AnimalModeEnd(int modeID, int ablility)
+        //{ }
 
-       
+        /// <summary> Called when Weapon has been stored </summary>
+        internal virtual void StoringWeapon() { }
+
 
         [ContextMenu("Set Hand Offset Values")]
         private void CopyTransformToOffsets()
@@ -621,33 +687,35 @@ namespace MalbersAnimations.Weapons
         protected GUIStyle DescSTyle;
 
         protected SerializedProperty
-            Sounds, audioSource, weaponType, rightHand, 
+            Sounds, audioSource, weaponType, rightHand,
             ChargeTime, m_MaxCharge,
             chargeCharMultiplier, MaxChargeDamage, m_AimOrigin, m_UI,
-            m_AimSide, OnCharged, OnUnequiped, OnEquiped,  /*OnPlaced, minDamage, maxDamage,*/ holster, holsterAnim, IKProfile,
+            m_AimSide, OnCharged, OnMaxCharged,
+            OnUnequiped, OnEquiped,  /*OnPlaced, minDamage, maxDamage,*/ holster, holsterAnim, IKProfile,
 
-            AimIKRight, AimIKLeft, Rate, TwoHandIK, IKHandPoint, //HandIKLerp,
+            AimIKRight, AimIKLeft, Rate, TwoHandIK, IKHandLeft, IKHandRight, //HandIKLerp,
 
-            mode, stance, strafeOnAim, strafeOnEquip,
-            RidingArmPose, GroundArmPose,// RidingCombo, GroundCombo,
-           // rotationOffsetIKHand, positionOffsetIKHand,
+            mode, stance, strafeOnAim, strafeOnEquip, strafeOnUnequip,
+            RidingArmPose, GroundArmPose, //WeaponDirection,
+                                          // RidingCombo, GroundCombo,
+                                          // rotationOffsetIKHand, positionOffsetIKHand,
             OnAiming, m_Automatic, ChargeCurve, HolsterOffset, OnUseFreeHand, OnReleaseFreeHand, m_holsterIndex,
             description, Editor_Tabs2, Editor_Tabs1,
             LeftHandOffset, RightHandOffset,
-           // rotationOffsetR, positionOffsetR, rotationOffsetL, positionOffsetL, scaleOffsetR, scaleOffsetL,
+            // rotationOffsetR, positionOffsetR, rotationOffsetL, positionOffsetL, scaleOffsetR, scaleOffsetL,
             m_IgnoreDraw, m_IgnoreStore;
 
-       // bool offsets = true;
+        // bool offsets = true;
 
         protected string WeaponTab = "Weapon";
 
         protected string[] Tabs1 = new string[] { "General", "Damage", "IK", "Extras" };
-        protected string[] Tabs2 = new string[] { "Weapon","D Profiles", "Sounds", "Events" };
-        protected MWeapon mWeapon;
+        protected string[] Tabs2 = new string[] { "Weapon", "D Profiles", "Sounds", "Events" };
+        protected MWeapon M;
 
         protected virtual void SetOnEnable()
         {
-            mWeapon = (MWeapon)target;
+            M = (MWeapon)target;
             FindBaseProperties();
 
             Tabs2[0] = WeaponTab;
@@ -661,6 +729,7 @@ namespace MalbersAnimations.Weapons
 
             description = serializedObject.FindProperty("description");
             strafeOnEquip = serializedObject.FindProperty("strafeOnEquip");
+            strafeOnUnequip = serializedObject.FindProperty("strafeOnUnequip");
             m_Automatic = serializedObject.FindProperty("m_Automatic");
             m_AimOrigin = serializedObject.FindProperty("m_AimOrigin");
             chargeCharMultiplier = serializedObject.FindProperty("chargeCharMultiplier");
@@ -678,6 +747,7 @@ namespace MalbersAnimations.Weapons
 
 
             OnCharged = serializedObject.FindProperty("OnCharged");
+            OnMaxCharged = serializedObject.FindProperty("OnMaxCharged");
             OnUnequiped = serializedObject.FindProperty("OnUnequiped");
             OnEquiped = serializedObject.FindProperty("OnEquiped");
             OnAiming = serializedObject.FindProperty("OnAiming");
@@ -695,7 +765,8 @@ namespace MalbersAnimations.Weapons
 
             GroundArmPose = serializedObject.FindProperty("GroundArmPose");
             RidingArmPose = serializedObject.FindProperty("RidingArmPose");
-         
+            //  WeaponDirection = serializedObject.FindProperty("WeaponDirection");
+
             m_holsterIndex = serializedObject.FindProperty("m_holsterIndex");
 
 
@@ -709,17 +780,14 @@ namespace MalbersAnimations.Weapons
             Editor_Tabs1 = serializedObject.FindProperty("Editor_Tabs1");
             Editor_Tabs2 = serializedObject.FindProperty("Editor_Tabs2");
 
-           
-           
-
-
             TwoHandIK = serializedObject.FindProperty("TwoHandIK");
-            IKHandPoint = serializedObject.FindProperty("IKHandPoint");
-         //   HandIKLerp = serializedObject.FindProperty("HandIKLerp");
+
+            IKHandLeft = serializedObject.FindProperty("IKHandLeft");
+            IKHandRight = serializedObject.FindProperty("IKHandRight");
+
+            //   HandIKLerp = serializedObject.FindProperty("HandIKLerp");
             //rotationOffsetIKHand = serializedObject.FindProperty("rotationOffsetIKHand");
             //positionOffsetIKHand = serializedObject.FindProperty("positionOffsetIKHand");
-
-
 
             mode = serializedObject.FindProperty("mode");
             stance = serializedObject.FindProperty("stance");
@@ -727,7 +795,7 @@ namespace MalbersAnimations.Weapons
         }
 
         protected virtual void WeaponInspector(bool showAim = true)
-        { 
+        {
             Editor_Tabs1.intValue = GUILayout.Toolbar(Editor_Tabs1.intValue, Tabs1);
             if (Editor_Tabs1.intValue != Tabs1.Length) Editor_Tabs2.intValue = Tabs2.Length;
 
@@ -741,22 +809,22 @@ namespace MalbersAnimations.Weapons
             switch (Selection)
             {
                 case 0: DrawWeapon(showAim); break;
-                case 1: DrawDamage(); break;
+                case 1: DrawDamage(); DrawStatModifiers(); break;
                 case 2: DrawIK(); break;
                 case 3: DrawExtras(); break;
-                default:break;
+                default: break;
             }
- 
+
             Selection = Editor_Tabs2.intValue;
 
             switch (Selection)
             {
-                case 0: DrawAdvancedWeapon();  break;
-                case 1: DrawProfiles();  break;
-                case 2: DrawSound();  break;
+                case 0: DrawAdvancedWeapon(); break;
+                case 1: DrawProfiles(); break;
+                case 2: DrawSound(); break;
                 case 3: DrawEvents(); break;
                 default: break;
-            } 
+            }
         }
 
         protected virtual void DrawExtras()
@@ -770,6 +838,7 @@ namespace MalbersAnimations.Weapons
                     EditorGUILayout.PropertyField(minForce, new GUIContent("Min Force", "Minimun Force to apply to a hitted rigid body"));
                     EditorGUILayout.PropertyField(Force, new GUIContent("Max Force", "Maximun Force to apply to a hitted rigid body"));
                     EditorGUILayout.PropertyField(forceMode);
+                    EditorGUILayout.PropertyField(AttackDirection);
                 }
             }
 
@@ -782,38 +851,65 @@ namespace MalbersAnimations.Weapons
 
         protected virtual void DrawDamageProfiles()
         {
-            
+
         }
 
         protected virtual void DrawDamage()
         {
             using (new GUILayout.VerticalScope(EditorStyles.helpBox))
             {
-                EditorGUILayout.PropertyField(Rate, new GUIContent("Rate", "Time(Delay) between attacks"));
-                EditorGUILayout.PropertyField(m_Automatic, new GUIContent("Automatic", "Continues Attacking if the Main Attack Input is pressed"));
-                EditorGUILayout.PropertyField(ChargeTime, new GUIContent("Charge Time", "Weapons can be Charged|Hold before releasing the Attack."));
-                EditorGUILayout.PropertyField(m_MaxCharge);
+                Rate.isExpanded = MalbersEditor.Foldout(Rate.isExpanded, "Rate and Charge");
 
-                if (mWeapon.ChargeTime > 0)
+                if (Rate.isExpanded)
                 {
-                    EditorGUILayout.PropertyField(chargeCharMultiplier, new GUIContent("Charge Char Mult", "Charge multiplier to Apply to the Character Charge Value (For the Animator Parameter) "));
-                    EditorGUILayout.PropertyField(ChargeCurve, new GUIContent("Curve", "Evaluation of the Charge in a Curve"));
+                    EditorGUILayout.PropertyField(Rate, new GUIContent("Rate", "Time(Delay) between attacks"));
+                    EditorGUILayout.PropertyField(m_Automatic, new GUIContent("Automatic", "Continues Attacking if the Main Attack Input is pressed"));
+
+                    var disable = (M is MShootable) && (M as MShootable).releaseProjectile == MShootable.Release_Projectile.OnAttackStart;
+
+                    using (new EditorGUI.DisabledGroupScope(disable))
+                    {
+                        using (new GUILayout.HorizontalScope())
+                        {
+                            EditorGUILayout.PropertyField(ChargeTime, new GUIContent("Charge Time", "Weapons can be Charged|Hold before releasing the Attack."));
+                            if (M.ChargeTime > 0) EditorGUILayout.PropertyField(ChargeCurve, GUIContent.none, GUILayout.Width(80));
+                        }
+
+                        if (M.ChargeTime > 0)
+                        {
+                            using (new GUILayout.HorizontalScope())
+                            {
+                                EditorGUILayout.PropertyField(m_MaxCharge);
+
+                                EditorGUIUtility.labelWidth = 30;
+                                EditorGUILayout.PropertyField(chargeCharMultiplier,
+                                    new GUIContent("CM", "Charge multiplier to Apply to the Character Charge Value (For the Animator Parameter) "), GUILayout.Width(80));
+                                EditorGUIUtility.labelWidth = 0;
+                            }
+
+                        }
+                    }
+
+                    //if (M.ChargeTime == 0)
+                    //    EditorGUILayout.HelpBox("When [Charge Time] is 0 the 'Charge Weapon' logic will be ignored", MessageType.Warning);
                 }
-                else
-                    EditorGUILayout.HelpBox("When [Charge Time] is 0 the 'Charge Weapon' logic will be ignored", MessageType.Warning);
             }
+        }
 
-
-
-
+        protected void DrawStatModifiers()
+        {
             using (new GUILayout.VerticalScope(EditorStyles.helpBox))
             {
                 EditorGUILayout.PropertyField(statModifier);
                 EditorGUILayout.PropertyField(pureDamage);
 
             }
-                DrawCriticalDamage(); 
+            DrawCriticalDamage();
+
+            using (new GUILayout.VerticalScope(EditorStyles.helpBox))
+            {
                 DrawElement();
+            }
         }
 
         protected virtual void DrawWeapon(bool showAim = true)
@@ -845,9 +941,10 @@ namespace MalbersAnimations.Weapons
                 {
                     EditorGUILayout.PropertyField(hitLayer);
                     EditorGUILayout.PropertyField(triggerInteraction);
+                    EditorGUILayout.PropertyField(AttackDirection);
 
                     EditorGUILayout.PropertyField(dontHitOwner, new GUIContent("Don't hit Owner"));
-                    if (mWeapon.dontHitOwner.Value) EditorGUILayout.PropertyField(owner);
+                    if (M.dontHitOwner.Value) EditorGUILayout.PropertyField(owner);
                 }
             }
 
@@ -859,16 +956,17 @@ namespace MalbersAnimations.Weapons
                 {
                     var ID = weaponType.objectReferenceValue != null ? weaponType.objectReferenceValue as WeaponID : null;
                     var color = GUI.color;
-                    if ( weaponType.objectReferenceValue == null ) GUI.color = new Color(1, 0.4f, 0.4f, 1);
+                    if (weaponType.objectReferenceValue == null) GUI.color = new Color(1, 0.4f, 0.4f, 1);
 
                     EditorGUILayout.PropertyField(weaponType,
                         new GUIContent($"Type: {(ID != null ? ID.ID.ToString() : "-")} ",
-                        "Gets the Weapon Type ID, Used on the Animator to Play the Matching animation for the weapon. It also is the Mode used on the Anima"));
+                        "Gets the Weapon Type ID, Used on the Animator to Play the Matching animation for the weapon. It also is the Mode used on the Character"));
 
                     GUI.color = color;
 
                     EditorGUILayout.PropertyField(GroundArmPose);
                     EditorGUILayout.PropertyField(RidingArmPose);
+                    // EditorGUILayout.PropertyField(WeaponDirection);
 
                     // ModeAbilities();
                 }
@@ -893,6 +991,7 @@ namespace MalbersAnimations.Weapons
                     EditorGUILayout.PropertyField(stance);
                     EditorGUILayout.PropertyField(strafeOnAim);
                     EditorGUILayout.PropertyField(strafeOnEquip);
+                    EditorGUILayout.PropertyField(strafeOnUnequip);
 
                     //EditorGUILayout.PropertyField(GroundCombo);
                     //EditorGUILayout.PropertyField(RidingCombo);
@@ -917,11 +1016,11 @@ namespace MalbersAnimations.Weapons
                 {
                     if (DescSTyle == null) DescSTyle = MalbersEditor.DescriptionStyle;
 
-                    EditorGUILayout.LabelField("The Weapon is " + (mWeapon.IsRightHanded ? "[Right] Handed" : "[Left] Handed"), DescSTyle);
+                    EditorGUILayout.LabelField($"The Weapon is {(M.IsRightHanded ? "[Right]" : "[Left]")} handed", DescSTyle);
                     EditorGUILayout.PropertyField(rightHand);
- 
+
                     EditorGUI.indentLevel++;
-                    EditorGUILayout.PropertyField(mWeapon.IsRightHanded ? RightHandOffset : LeftHandOffset, true);
+                    EditorGUILayout.PropertyField(M.IsRightHanded ? RightHandOffset : LeftHandOffset, true);
                     EditorGUI.indentLevel--;
 
                     EditorGUI.indentLevel++;
@@ -930,7 +1029,7 @@ namespace MalbersAnimations.Weapons
                 }
             }
 
-           // DrawProfiles();
+            // DrawProfiles();
         }
 
         protected virtual void ModeAbilities()
@@ -941,14 +1040,32 @@ namespace MalbersAnimations.Weapons
         {
             using (new GUILayout.VerticalScope(EditorStyles.helpBox))
             {
-                
-                EditorGUILayout.PropertyField(mWeapon.IsRightHanded ? AimIKRight : AimIKLeft);
+                if (DescSTyle == null) DescSTyle = MalbersEditor.DescriptionStyle;
+
+                EditorGUILayout.LabelField($"The Weapon is {(M.IsRightHanded ? "[Right]" : "[Left]")} handed", DescSTyle);
+                EditorGUILayout.PropertyField(rightHand);
+
+
+
+                using (new EditorGUI.DisabledGroupScope(M.IsRightHanded))
+                    EditorGUILayout.PropertyField(AimIKLeft);
+                using (new EditorGUI.DisabledGroupScope(!M.IsRightHanded))
+                    EditorGUILayout.PropertyField(AimIKRight);
+
+                //EditorGUILayout.PropertyField(M.IsRightHanded ? AimIKRight : AimIKLeft);
+
+
+
                 EditorGUILayout.PropertyField(TwoHandIK);
-                if (mWeapon.TwoHandIK.Value)
+                if (M.TwoHandIK.Value)
                 {
-                    EditorGUILayout.LabelField($"The {(mWeapon.IsRightHanded ? "Left Hand" : "Right Hand")}  is the auxiliar Hand" ,MalbersEditor.DescriptionStyle);
-                    EditorGUILayout.PropertyField(IKHandPoint);
-                  //  EditorGUILayout.PropertyField(HandIKLerp);
+                    EditorGUILayout.LabelField($"The {(M.IsRightHanded ? "[Left]" : "[Right]")} hand is the auxiliar hand", MalbersEditor.DescriptionStyle);
+
+                    using (new EditorGUI.DisabledGroupScope(!M.IsRightHanded))
+                        EditorGUILayout.PropertyField(IKHandLeft);
+                    using (new EditorGUI.DisabledGroupScope(M.IsRightHanded))
+                        EditorGUILayout.PropertyField(IKHandRight);
+
                 }
             }
         }
@@ -966,7 +1083,7 @@ namespace MalbersAnimations.Weapons
                 EditorGUILayout.PropertyField(Sounds, new GUIContent("Sounds", "Sounds Played by the weapon"), true);
                 EditorGUI.indentLevel--;
                 EditorGUILayout.HelpBox(SoundHelp, MessageType.None);
-            } 
+            }
         }
 
         protected override void DrawCustomEvents()
@@ -975,6 +1092,7 @@ namespace MalbersAnimations.Weapons
             EditorGUILayout.PropertyField(OnEquiped, new GUIContent("On Equiped by (Owner)"));
             EditorGUILayout.PropertyField(OnUnequiped, new GUIContent("On Unequiped by (Owner)"));
             EditorGUILayout.PropertyField(OnCharged, new GUIContent("On Charged Weapon"));
+            EditorGUILayout.PropertyField(OnMaxCharged, new GUIContent("On Max Charged Weapon"));
             EditorGUILayout.PropertyField(OnAiming, new GUIContent("On Aiming"));
             EditorGUILayout.PropertyField(OnUseFreeHand);
             EditorGUILayout.PropertyField(OnReleaseFreeHand);

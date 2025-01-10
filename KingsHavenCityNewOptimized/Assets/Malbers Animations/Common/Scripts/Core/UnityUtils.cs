@@ -1,39 +1,79 @@
-﻿using UnityEngine;
+﻿using MalbersAnimations.Scriptables;
 using System.Collections;
+using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace MalbersAnimations
 {
-    [AddComponentMenu("Malbers/Utilities/Tools/Unity Utilities")]
+    [AddComponentMenu("Malbers/Utilities/Tools/Unity [Tools] Utilities")]
     [HelpURL("https://malbersanimations.gitbook.io/animal-controller/global-components/ui/unity-utils")]
-    public class UnityUtils : MonoBehaviour 
+    public class UnityUtils : MonoBehaviour
     {
-        public virtual void PauseEditor() => Debug.Break();
+        public virtual void PauseEditor()
+        {
+            Debug.Log("Pause Editor", this);
+            Debug.Break();
+        }
 
         /// <summary>Multiply the Local Scale by a value</summary>
         public virtual void Scale_By_Float(float scale) => transform.localScale = Vector3.one * scale;
-       
-        
-        /// <summary>  Ugly way to stop all audiosources on the scenes  </summary>
+
+
+        private AudioSource[] audios;
+        /// <summary>Ugly way to stop all audiosources on the scenes</summary>
         public virtual void PauseAllAudio(bool pause)
         {
+            if (!enabled) return;
+
+            audios ??= FindObjectsByType<AudioSource>(FindObjectsSortMode.None);
+
             if (pause)
             {
-                AudioSource[] audios = FindObjectsOfType<AudioSource>();
                 foreach (var audio in audios)
+                {
                     if (audio.isPlaying) audio.Pause();
+                }
             }
             else
             {
-                AudioSource[] audios = FindObjectsOfType<AudioSource>();
-                foreach (var audio in audios) audio.UnPause();
+                foreach (var audio in audios) if (audio != null) audio.UnPause();
             }
         }
 
+
+        public void AddRigiBody()
+        {
+            Rigidbody rb = gameObject.AddComponent<Rigidbody>();
+
+            // Lock all constraints on the Rigidbody
+            rb.constraints = RigidbodyConstraints.FreezeAll;
+            rb.isKinematic = true;
+
+        }
+        public void DestroyRigidbody()
+        {
+            if (gameObject.TryGetComponent<Rigidbody>(out var rb))
+                Destroy(rb);
+        }
+
+
+
+        public void Forward_Direction(Transform target)
+        {
+            transform.forward = (target.position - transform.position).normalized;
+        }
+        public void Forward_Direction(TransformVar target) => Forward_Direction(target.Value);
+
+
+        public void Forward_Direction_NoY(Transform target)
+        {
+            var forward = (target.position - transform.position);
+            forward.y = 0;
+            transform.forward = forward.normalized;
+        }
+        public void Forward_Direction_NoY(TransformVar target) => Forward_Direction_NoY(target.Value);
         public virtual void Toggle_Enable(Behaviour component) => component.enabled = !component.enabled;
-
-
-        public virtual void Time_Freeze(bool value) => Time_Scale( value ? 0 : 1);
+        public virtual void Time_Freeze(bool value) => Time_Scale(value ? 0 : 1);
         public virtual void Time_Scale(float value) => Time.timeScale = value;
         public virtual void Freeze_Time(bool value) => Time_Freeze(value);
 
@@ -80,14 +120,21 @@ namespace MalbersAnimations
         //public void Move_Local(Vector3Var vector) => transform.Translate(vector, Space.Self);
         //public void Move_World(Vector3Var vector) => transform.Translate(vector, Space.World);
 
-        public void DebugLog(string value) => Debug.Log($"[{name}]-[{value}]",this);
-        public void DebugLog(object value) => Debug.Log($"[{name}]-[{value}]",this);
-         
-      
+        public void DebugLog(string value) => Debug.Log($"[{name}]-[{value}]", this);
+        public void DebugLog(object value) => Debug.Log($"[{name}]-[{value}]", this);
+
+        public void QuitGame()
+        {
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPlaying = false;
+#else
+            Application.Quit();
+#endif
+        }
 
         /// <summary>Reset the Local Rotation of this gameObject</summary>
         public void Rotation_Reset() => transform.localRotation = Quaternion.identity;
-        
+
         /// <summary>Reset the Local Position of this gameObject</summary>
         public void Position_Reset() => transform.localPosition = Vector3.zero;
 
@@ -103,12 +150,10 @@ namespace MalbersAnimations
         /// <summary>Reset the Local Position of a transform</summary>
         public void Position_Reset(Transform go) => go.localPosition = Vector3.zero;
 
-
         /// <summary>Parent this Game Object to a new Transform, retains its World Position</summary>
         public void Parent(Transform value) => transform.parent = value;
         public void Parent(GameObject value) => Parent(value.transform);
         public void Parent(Component value) => Parent(value.transform);
-
 
         /// <summary>Remove the Parent of a transform</summary>
         public void Unparent(Transform value) => value.parent = null;
@@ -139,28 +184,33 @@ namespace MalbersAnimations
             }
         }
 
+        public void Behaviour_EnableNextFrame(Behaviour behaviour)
+        {
+            behaviour.enabled = false;
+            this.Delay_Action(() => behaviour.enabled = true);
+        }
+
         /// <summary>Add an gameobject to Don't destroy on load logic</summary>
         public void Dont_Destroy_On_Load(GameObject value) => DontDestroyOnLoad(value);
 
         /// <summary>Loads additive a new scene</summary>
         public void Load_Scene_Additive(string value)
         {
-            SceneManager.LoadScene(value,  LoadSceneMode.Additive);
+            SceneManager.LoadScene(value, LoadSceneMode.Additive);
         }
 
         /// <summary>Loads a new scene</summary>
         public void Load_Scene(string value)
         {
             if (!string.IsNullOrEmpty(value))
-            SceneManager.LoadScene(value, LoadSceneMode.Single);
+                SceneManager.LoadScene(value, LoadSceneMode.Single);
         }
 
         /// <summary>Parent this GameObject to a new Transform</summary>
         public void Parent_Local(Transform value)
         {
             transform.parent = value;
-            transform.localPosition = Vector3.zero;
-            transform.localRotation = Quaternion.identity;
+            transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
             transform.localScale = Vector3.one;
         }
 
@@ -185,9 +235,7 @@ namespace MalbersAnimations
 
         public static void ShowCursorInvert(bool value) => ShowCursor(!value);
 
-
         private void DisableGo() => gameObject.SetActive(false);
-
 
         private IEnumerator C_Reset_GameObject(GameObject go)
         {
@@ -200,7 +248,6 @@ namespace MalbersAnimations
             }
             yield return null;
         }
-
         IEnumerator C_Reset_Mono(MonoBehaviour go)
         {
             if (go.gameObject.activeInHierarchy)
@@ -218,6 +265,28 @@ namespace MalbersAnimations
             yield return null;
             Destroy(gameObject);
         }
+
+        public void RectTransform_Width(float width)
+        {
+            RectTransform rt = GetComponent<RectTransform>();
+
+            if (rt)
+            {
+                rt.sizeDelta = new Vector2(width, rt.sizeDelta.y);
+            }
+        }
+
+        public void RectTransform_Height(float height)
+        {
+            RectTransform rt = GetComponent<RectTransform>();
+
+            if (rt)
+            {
+                rt.sizeDelta = new Vector2(rt.sizeDelta.x, height);
+            }
+        }
+        public void RectTransform_Width(int width) => RectTransform_Width((float)width);
+        public void RectTransform_Height(int height) => RectTransform_Height((float)height);
     }
 
 
@@ -227,9 +296,9 @@ namespace MalbersAnimations
     public class UnityUtilsEditor : UnityEditor.Editor
     {
         public override void OnInspectorGUI()
-        { 
+        {
             MalbersEditor.DrawDescription("Use this component to execute simple unity logics, " +
-                "such as Parent, Instantiate, Destroy, Disable..\nUse it via Unity Events" );
+                "such as Parent, Instantiate, Destroy, Disable..\nUse it via Unity Events");
         }
     }
 #endif

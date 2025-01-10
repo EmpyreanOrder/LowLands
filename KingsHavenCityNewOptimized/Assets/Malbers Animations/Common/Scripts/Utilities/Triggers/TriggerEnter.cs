@@ -1,6 +1,6 @@
-﻿using UnityEngine;
-using MalbersAnimations.Events;
+﻿using MalbersAnimations.Events;
 using MalbersAnimations.Scriptables;
+using UnityEngine;
 
 namespace MalbersAnimations.Utilities
 {
@@ -10,7 +10,7 @@ namespace MalbersAnimations.Utilities
     [SelectionBase]
     public class TriggerEnter : MonoBehaviour
     {
-        public LayerReference Layer = new LayerReference(-1);
+        public LayerReference Layer = new(-1);
         [SerializeField] private QueryTriggerInteraction triggerInteraction = QueryTriggerInteraction.Ignore;
 
         [Tooltip("On Trigger Enter only works with the first colliders that enters")]
@@ -19,7 +19,8 @@ namespace MalbersAnimations.Utilities
         [Tooltip("Search only Tags")]
         public Tag[] Tags;
 
-        public ColliderEvent onTriggerEnter = new ColliderEvent();
+        public ColliderEvent onTriggerEnter = new();
+        public GameObjectEvent onCoreObject = new();
 
         /// <summary> Collider Component used for the Trigger Proxy </summary>
         public Collider OwnCollider { get; private set; }
@@ -30,7 +31,7 @@ namespace MalbersAnimations.Utilities
         private void OnEnable()
         {
             OwnCollider = GetComponent<Collider>();
-           
+
             Active = true;
 
             if (OwnCollider)
@@ -40,7 +41,7 @@ namespace MalbersAnimations.Utilities
             else
             {
                 Active = false;
-                Debug.LogError("This Script requires a Collider, please add any type of collider",this);
+                Debug.LogError("This Script requires a Collider, please add any type of collider", this);
             }
         }
         public bool TrueConditions(Collider other)
@@ -56,7 +57,7 @@ namespace MalbersAnimations.Utilities
             if (triggerInteraction == QueryTriggerInteraction.Ignore && other.isTrigger) return false; // Check Trigger Interactions 
             if (!MTools.Layer_in_LayerMask(other.gameObject.layer, Layer)) return false;
             if (transform.IsChildOf(other.transform)) return false;                 // Do not Interact with yourself
-            if ( other.transform.SameHierarchy(transform)) return false;    // Do not Interact with yourself
+            if (other.transform.SameHierarchy(transform)) return false;    // Do not Interact with yourself
 
             return true;
         }
@@ -64,11 +65,16 @@ namespace MalbersAnimations.Utilities
         {
             if (TrueConditions(other))
             {
+                var core = other.GetComponentInParent<IObjectCore>();
+
+                onCoreObject.Invoke(core != null ? core.transform.gameObject : other.transform.root.gameObject);
                 onTriggerEnter.Invoke(other);
+
                 if (UseOnce)
                 {
                     Active = false;
                     OwnCollider.enabled = false;
+                    //gameObject.SetActive(false);
                 }
             }
         }

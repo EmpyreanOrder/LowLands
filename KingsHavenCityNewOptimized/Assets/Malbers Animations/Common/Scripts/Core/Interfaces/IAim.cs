@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using MalbersAnimations.Utilities;
+using UnityEngine;
 namespace MalbersAnimations
 {
     /// <summary>Interface used to Check if the Player/Animal is Aiming</summary>
@@ -48,6 +49,9 @@ namespace MalbersAnimations
 
         /// <summary>Calculate the Aiming Logic</summary>
         void CalculateAiming();
+
+        /// <summary>Remove the Target</summary>
+        void ClearTarget();
     }
 
     public interface IAimTarget
@@ -58,7 +62,10 @@ namespace MalbersAnimations
         /// <summary>Reference for the Aim Point</summary>
         Transform AimPoint { get; }
 
+        /// <summary>Reference for the gameObject</summary>
+        GameObject gameObject { get; }
+
         /// <summary>Is the target been aimed by the Aim Ray of the Aim Script</summary>
-        void IsBeenAimed(bool enter, GameObject AimedBy);
+        void IsBeenAimed(bool enter, Aim AimedBy);
     }
 }
