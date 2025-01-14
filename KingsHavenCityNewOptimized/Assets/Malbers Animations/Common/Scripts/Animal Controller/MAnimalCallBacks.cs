@@ -835,7 +835,8 @@ namespace MalbersAnimations.Controller
         {
             if (IsPlayingMode)
             {
-                activeMode.InputValue = false;
+                activeMode.InputValue = false; //Set the Input to false
+
                 ActiveMode.ResetMode();
                 Mode_Interrupt();
             }

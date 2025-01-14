@@ -327,7 +327,7 @@ namespace MalbersAnimations.IK
             m.sets.Add(
                 new IKSet()
                 {
-                    m_name = $"",
+                    // m_name = $"",
                     name = new Scriptables.StringReference($"newIK Set {list.count}") { UseConstant = true },
 
                     Targets = new Scriptables.TransformReference[1],
@@ -359,19 +359,19 @@ namespace MalbersAnimations.IK
 
             var ikSet = IKSets.GetArrayElementAtIndex(index);
             var active = ikSet.FindPropertyRelative("active");
-            var name = ikSet.FindPropertyRelative("m_name");
+            //var name = ikSet.FindPropertyRelative("m_name");
             var Name = ikSet.FindPropertyRelative("name");
             var weight = ikSet.FindPropertyRelative("weight");
 
-            if (name.stringValue != string.Empty)
-            {
-                var constant = Name.FindPropertyRelative("ConstantValue");
-                constant.stringValue = name.stringValue;
+            //if (name.stringValue != string.Empty)
+            //{
+            //    var constant = Name.FindPropertyRelative("ConstantValue");
+            //    constant.stringValue = name.stringValue;
 
-                name.stringValue = string.Empty;
-                serializedObject.ApplyModifiedProperties();
-                // Debug.Log("Transfer Done");
-            }
+            //    name.stringValue = string.Empty;
+            //    serializedObject.ApplyModifiedProperties();
+            //    // Debug.Log("Transfer Done");
+            //}
 
             var height = EditorGUIUtility.singleLineHeight;
 

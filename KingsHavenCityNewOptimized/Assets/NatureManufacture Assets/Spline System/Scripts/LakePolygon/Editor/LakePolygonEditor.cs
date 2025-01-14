@@ -59,7 +59,7 @@ public class LakePolygonEditor : Editor
 
     void OnEnable()
     {
-        lakes = FindObjectsOfType<LakePolygon>();
+        lakes = FindObjectsByType<LakePolygon>(FindObjectsSortMode.None);
 
         SceneView.duringSceneGui -= this.OnSceneGUIInvoke;
         SceneView.duringSceneGui += this.OnSceneGUIInvoke;
@@ -68,8 +68,8 @@ public class LakePolygonEditor : Editor
     private void OnDisable()
     {
         if (lakePolygon == null)
-            lakePolygon = (LakePolygon) target;
-        
+            lakePolygon = (LakePolygon)target;
+
         if (lakePolygon.meshGOs != null && lakePolygon.meshGOs.Count > 0)
         {
             foreach (var item in lakePolygon.meshGOs)
@@ -94,7 +94,7 @@ public class LakePolygonEditor : Editor
     private void OnDestroy()
     {
         if (lakePolygon == null)
-            lakePolygon = (LakePolygon) target;
+            lakePolygon = (LakePolygon)target;
         if (lakePolygon.meshGOs != null && lakePolygon.meshGOs.Count > 0)
         {
             foreach (var item in lakePolygon.meshGOs)
@@ -117,10 +117,10 @@ public class LakePolygonEditor : Editor
     public override void OnInspectorGUI()
     {
         if (lakePolygon == null)
-            lakePolygon = (LakePolygon) target;
+            lakePolygon = (LakePolygon)target;
 
         EditorGUILayout.Space();
-        logo = (Texture2D) Resources.Load("logoRAM");
+        logo = (Texture2D)Resources.Load("logoRAM");
 
         GUIContent btnTxt = new GUIContent(logo);
 
@@ -148,7 +148,7 @@ public class LakePolygonEditor : Editor
             EditorGUILayout.Space();
 
 
-            lakePolygon.currentProfile = (LakePolygonProfile) EditorGUILayout.ObjectField("Lake profile", lakePolygon.currentProfile, typeof(LakePolygonProfile), false);
+            lakePolygon.currentProfile = (LakePolygonProfile)EditorGUILayout.ObjectField("Lake profile", lakePolygon.currentProfile, typeof(LakePolygonProfile), false);
 
 
             if (GUILayout.Button("Create profile from settings"))
@@ -349,7 +349,7 @@ public class LakePolygonEditor : Editor
 
             if (lakePolygon.maximumTriangleSize == 0)
                 lakePolygon.maximumTriangleSize = 50;
-            lakePolygon.traingleDensity = 1 / (float) EditorGUILayout.IntSlider("Spline density", (int) (1 / (float) lakePolygon.traingleDensity), 1, 100);
+            lakePolygon.traingleDensity = 1 / (float)EditorGUILayout.IntSlider("Spline density", (int)(1 / (float)lakePolygon.traingleDensity), 1, 100);
             lakePolygon.uvScale = EditorGUILayout.FloatField("UV scale", lakePolygon.uvScale);
             EditorGUI.indentLevel--;
 
@@ -374,7 +374,7 @@ public class LakePolygonEditor : Editor
             EditorGUI.indentLevel++;
             lakePolygon.receiveShadows = EditorGUILayout.Toggle("Receive Shadows", lakePolygon.receiveShadows);
 
-            lakePolygon.shadowCastingMode = (ShadowCastingMode) EditorGUILayout.EnumPopup("Shadow Casting Mode", lakePolygon.shadowCastingMode);
+            lakePolygon.shadowCastingMode = (ShadowCastingMode)EditorGUILayout.EnumPopup("Shadow Casting Mode", lakePolygon.shadowCastingMode);
             EditorGUI.indentLevel--;
 
             if (EditorGUI.EndChangeCheck())
@@ -793,11 +793,12 @@ public class LakePolygonEditor : Editor
         {
             EditorGUILayout.HelpBox("R - Slow Water G - Small Cascade B - Big Cascade A - Opacity", MessageType.Info);
             EditorGUILayout.Space();
-            Color lakePolygonDrawColor = EditorGUILayout.ColorField("Draw color", lakePolygon.drawColor);
+            Color lakePolygonDrawColor = EditorGUILayout.ColorField(new GUIContent("Draw color"), lakePolygon.drawColor, false, true, false);
 
             if (lakePolygonDrawColor.r != lakePolygon.drawColor.r ||
                 lakePolygonDrawColor.g != lakePolygon.drawColor.g ||
-                lakePolygonDrawColor.b != lakePolygon.drawColor.b)
+                lakePolygonDrawColor.b != lakePolygon.drawColor.b||
+                lakePolygonDrawColor.a != lakePolygon.drawColor.a)
             {
                 Undo.RecordObject(lakePolygon, "Lake changed");
                 lakePolygon.drawColor = lakePolygonDrawColor;
@@ -1360,7 +1361,7 @@ public class LakePolygonEditor : Editor
                     dist = Vector3.Distance(hitPosition, vertices[i]);
                     if (dist < lakePolygon.drawSize)
                     {
-                        distValue = (lakePolygon.drawSize - dist) / (float) lakePolygon.drawSize;
+                        distValue = (lakePolygon.drawSize - dist) / (float)lakePolygon.drawSize;
                         if (Event.current.shift)
                         {
                             colorsFlowMap[i] = Vector2.Lerp(colorsFlowMap[i], new Vector2(0, 0), lakePolygon.opacity);
@@ -1384,9 +1385,9 @@ public class LakePolygonEditor : Editor
     protected virtual void OnSceneGUIInvoke(SceneView sceneView)
     {
         //Debug.Log(target.GetType().Name);
-        
+
         if (lakePolygon == null)
-            lakePolygon = (LakePolygon) target;
+            lakePolygon = (LakePolygon)target;
 
         if (lakePolygon == null)
             return;
@@ -1458,7 +1459,7 @@ public class LakePolygonEditor : Editor
             if (selectedPosition >= 0 && selectedPosition < lakePolygon.points.Count)
             {
                 Handles.color = Color.red;
-                Handles.SphereHandleCap(0, (Vector3) lakePolygon.points[selectedPosition] + lakePolygon.transform.position, Quaternion.identity, 1, EventType.Repaint);
+                Handles.SphereHandleCap(0, (Vector3)lakePolygon.points[selectedPosition] + lakePolygon.transform.position, Quaternion.identity, 1, EventType.Repaint);
             }
 
 
@@ -1474,7 +1475,7 @@ public class LakePolygonEditor : Editor
             {
                 EditorGUI.BeginChangeCheck();
 
-                Vector3 handlePos = (Vector3) lakePolygon.points[j] + lakePolygon.transform.position;
+                Vector3 handlePos = (Vector3)lakePolygon.points[j] + lakePolygon.transform.position;
 
                 GUIStyle style = new GUIStyle();
                 style.normal.textColor = Color.red;
@@ -1504,11 +1505,11 @@ public class LakePolygonEditor : Editor
                     size = HandleUtility.GetHandleSize(handlePos) * size;
                     if (Event.current.type == EventType.Repaint)
                     {
-                        Handles.SphereHandleCap(id, (Vector3) lakePolygon.points[j] + lakePolygon.transform.position, Quaternion.identity, size, EventType.Repaint);
+                        Handles.SphereHandleCap(id, (Vector3)lakePolygon.points[j] + lakePolygon.transform.position, Quaternion.identity, size, EventType.Repaint);
                     }
                     else if (Event.current.type == EventType.Layout)
                     {
-                        Handles.SphereHandleCap(id, (Vector3) lakePolygon.points[j] + lakePolygon.transform.position, Quaternion.identity, size, EventType.Layout);
+                        Handles.SphereHandleCap(id, (Vector3)lakePolygon.points[j] + lakePolygon.transform.position, Quaternion.identity, size, EventType.Layout);
                     }
                 }
                 else if (Tools.current == Tool.Move)
@@ -1517,31 +1518,31 @@ public class LakePolygonEditor : Editor
                     size = HandleUtility.GetHandleSize(handlePos) * size;
 
                     Handles.color = Handles.xAxisColor;
-                    Vector3 pos = Handles.Slider((Vector3) lakePolygon.points[j] + lakePolygon.transform.position, Vector3.right, size, Handles.ArrowHandleCap, 0.01f) - lakePolygon.transform.position;
+                    Vector3 pos = Handles.Slider((Vector3)lakePolygon.points[j] + lakePolygon.transform.position, Vector3.right, size, Handles.ArrowHandleCap, 0.01f) - lakePolygon.transform.position;
                     if (!lakePolygon.lockHeight || lakePolygon.points.Count == 1)
                     {
                         Handles.color = Handles.yAxisColor;
 
-                        pos = Handles.Slider((Vector3) pos + lakePolygon.transform.position, Vector3.up, size, Handles.ArrowHandleCap, 0.01f) - lakePolygon.transform.position;
+                        pos = Handles.Slider((Vector3)pos + lakePolygon.transform.position, Vector3.up, size, Handles.ArrowHandleCap, 0.01f) - lakePolygon.transform.position;
                     }
 
                     Handles.color = Handles.zAxisColor;
-                    pos = Handles.Slider((Vector3) pos + lakePolygon.transform.position, Vector3.forward, size, Handles.ArrowHandleCap, 0.01f) - lakePolygon.transform.position;
+                    pos = Handles.Slider((Vector3)pos + lakePolygon.transform.position, Vector3.forward, size, Handles.ArrowHandleCap, 0.01f) - lakePolygon.transform.position;
 
                     Vector3 halfPos = (Vector3.right + Vector3.forward) * size * 0.3f;
                     Handles.color = Handles.yAxisColor;
-                    pos = Handles.Slider2D((Vector3) pos + lakePolygon.transform.position + halfPos, Vector3.up, Vector3.right, Vector3.forward, size * 0.3f, Handles.RectangleHandleCap, 0.01f) -
+                    pos = Handles.Slider2D((Vector3)pos + lakePolygon.transform.position + halfPos, Vector3.up, Vector3.right, Vector3.forward, size * 0.3f, Handles.RectangleHandleCap, 0.01f) -
                           lakePolygon.transform.position - halfPos;
                     halfPos = (Vector3.right + Vector3.up) * size * 0.3f;
 
                     if (!lakePolygon.lockHeight || lakePolygon.points.Count == 1)
                     {
                         Handles.color = Handles.zAxisColor;
-                        pos = Handles.Slider2D((Vector3) pos + lakePolygon.transform.position + halfPos, Vector3.forward, Vector3.right, Vector3.up, size * 0.3f, Handles.RectangleHandleCap, 0.01f) -
+                        pos = Handles.Slider2D((Vector3)pos + lakePolygon.transform.position + halfPos, Vector3.forward, Vector3.right, Vector3.up, size * 0.3f, Handles.RectangleHandleCap, 0.01f) -
                               lakePolygon.transform.position - halfPos;
                         halfPos = (Vector3.up + Vector3.forward) * size * 0.3f;
                         Handles.color = Handles.xAxisColor;
-                        pos = Handles.Slider2D((Vector3) pos + lakePolygon.transform.position + halfPos, Vector3.right, Vector3.up, Vector3.forward, size * 0.3f, Handles.RectangleHandleCap, 0.01f) -
+                        pos = Handles.Slider2D((Vector3)pos + lakePolygon.transform.position + halfPos, Vector3.right, Vector3.up, Vector3.forward, size * 0.3f, Handles.RectangleHandleCap, 0.01f) -
                               lakePolygon.transform.position - halfPos;
                     }
 
@@ -1618,7 +1619,7 @@ public class LakePolygonEditor : Editor
 
                     for (int j = 0; j < lakePolygon.points.Count; j++)
                     {
-                        Vector3 handlePos = (Vector3) lakePolygon.points[j] + lakePolygon.transform.position;
+                        Vector3 handlePos = (Vector3)lakePolygon.points[j] + lakePolygon.transform.position;
 
                         float pointDist = Vector3.Distance(hit.point, handlePos);
                         if (pointDist < distanceMin)
@@ -1628,12 +1629,12 @@ public class LakePolygonEditor : Editor
                         }
                     }
 
-                    Vector3 posOne = (Vector3) lakePolygon.points[idMin] + lakePolygon.transform.position;
+                    Vector3 posOne = (Vector3)lakePolygon.points[idMin] + lakePolygon.transform.position;
                     Vector3 posTwo;
 
 
-                    Vector3 posPrev = (Vector3) lakePolygon.points[lakePolygon.ClampListPos(idMin - 1)] + lakePolygon.transform.position;
-                    Vector3 posNext = (Vector3) lakePolygon.points[lakePolygon.ClampListPos(idMin + 1)] + lakePolygon.transform.position;
+                    Vector3 posPrev = (Vector3)lakePolygon.points[lakePolygon.ClampListPos(idMin - 1)] + lakePolygon.transform.position;
+                    Vector3 posNext = (Vector3)lakePolygon.points[lakePolygon.ClampListPos(idMin + 1)] + lakePolygon.transform.position;
 
                     if (Vector3.Distance(hit.point, posPrev) > Vector3.Distance(hit.point, posNext))
                         posTwo = posNext;
@@ -1763,7 +1764,7 @@ public class LakePolygonEditor : Editor
     public void ResetToProfile()
     {
         if (lakePolygon == null)
-            lakePolygon = (LakePolygon) target;
+            lakePolygon = (LakePolygon)target;
 
         MeshRenderer ren = lakePolygon.GetComponent<MeshRenderer>();
         ren.sharedMaterial = lakePolygon.currentProfile.lakeMaterial;
@@ -1856,13 +1857,13 @@ public class LakePolygonEditor : Editor
 
         string fileData = File.ReadAllText(path);
 
-        string[] lines = fileData.Split(new char[] {'\n'}, System.StringSplitOptions.RemoveEmptyEntries);
+        string[] lines = fileData.Split(new char[] { '\n' }, System.StringSplitOptions.RemoveEmptyEntries);
 
         Vector4[] vectors = new Vector4[lines.Length];
 
         for (int i = 0; i < vectors.Length; i++)
         {
-            string[] values = lines[i].Split(new char[] {';'}, System.StringSplitOptions.RemoveEmptyEntries);
+            string[] values = lines[i].Split(new char[] { ';' }, System.StringSplitOptions.RemoveEmptyEntries);
 
             if (values.Length != 4)
                 Debug.LogError("Wrong file data");

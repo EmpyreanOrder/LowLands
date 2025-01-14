@@ -12,7 +12,7 @@ namespace MalbersAnimations.Controller
     [CustomEditor(typeof(MAnimal))]
     public class MAnimalEditor : Editor
     {
-        public readonly string version = "Animal Controller [v1.4.8]";
+        public readonly string version = "Animal Controller [v1.4.8a]";
 
         public static GUIStyle StyleGray => MTools.Style(new Color(0.5f, 0.5f, 0.5f, 0.3f));
         public static GUIStyle StyleBlue => MTools.Style(new Color(0, 0.5f, 1f, 0.3f));
@@ -2457,8 +2457,14 @@ namespace MalbersAnimations.Controller
                                 {
                                     var active = ability.FindPropertyRelative("active");
                                     var Input = ability.FindPropertyRelative("Input");
+
+
+                                    var MultiplierPosition = ability.FindPropertyRelative("MultiplierPosition");
+                                    var MultiplierRotation = ability.FindPropertyRelative("MultiplierRotation");
+
                                     var AdditivePosition = ability.FindPropertyRelative("AdditivePosition");
                                     var AdditiveRotation = ability.FindPropertyRelative("AdditiveRotation");
+
                                     var CoolDown = ability.FindPropertyRelative("CoolDown");
                                     var modifier = ability.FindPropertyRelative("modifier");
 
@@ -2472,12 +2478,21 @@ namespace MalbersAnimations.Controller
 
                                     EditorGUILayout.PropertyField(modifier);
                                     EditorGUILayout.PropertyField(CoolDown);
-                                    EditorGUILayout.PropertyField(AdditivePosition);
-                                    EditorGUILayout.PropertyField(AdditiveRotation);
+
+
+
                                     EditorGUILayout.PropertyField(IgnoreGrounded);
                                     EditorGUILayout.PropertyField(IgnoreGravity);
                                     EditorGUILayout.PropertyField(NoYMovement);
                                     EditorGUILayout.PropertyField(Persistent);
+
+
+                                    EditorGUILayout.PropertyField(MultiplierPosition);
+                                    EditorGUILayout.PropertyField(MultiplierRotation);
+
+                                    EditorGUILayout.PropertyField(AdditivePosition);
+                                    EditorGUILayout.PropertyField(AdditiveRotation);
+
                                     break;
                                 }
                             //Status

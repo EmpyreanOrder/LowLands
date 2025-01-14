@@ -1376,10 +1376,23 @@ namespace MalbersAnimations
                 if (objectReference != null)
                 {
                     MMDrawnPropertiesEditor.MMDrawnProperties(objectReference);
-                    //Editor.CreateEditor(objectReference).OnInspectorGUI();
                 }
             }
         }
+
+        public static void DrawObjectReferenceInspectorOld(SerializedProperty property)
+        {
+            if (property != null)
+            {
+                var objectReference = property.objectReferenceValue;
+
+                if (objectReference != null)
+                {
+                    Editor.CreateEditor(objectReference).OnInspectorGUI();
+                }
+            }
+        }
+
         public static void GetSelectedPathOrFallback() => MalbersEditor.GetSelectedPathOrFallback();
         public static void CreateScriptableAsset(SerializedProperty property, string selectedAssetPath)
         {

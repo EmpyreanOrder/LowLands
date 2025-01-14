@@ -60,8 +60,8 @@ namespace MalbersAnimations.Controller
         public Reaction OnExitReaction;
 
         /// <summary>  Multiplier added to the Additive position when the mode is playing. This will fix the issue Additive Speeds to mess with RootMotion Modes </summary>
-        public float PositionMultiplier => ActiveAbility.AdditivePosition;
-        public float RotatioMultiplier => ActiveAbility.AdditiveRotation;
+        public float PositionMultiplier => ActiveAbility.MultiplierPosition;
+        public float RotatioMultiplier => ActiveAbility.MultiplierRotation;
 
         [Tooltip("Global Audio Source assigned to the Mode to Play Audio Clips")]
         public AudioSource m_Source;
@@ -241,6 +241,23 @@ namespace MalbersAnimations.Controller
             }
         }
 
+
+        private Dictionary<int, Ability> dict_Abilities;
+
+        public void CacheAbilities()
+        {
+            dict_Abilities = new();
+
+            foreach (var ability in Abilities)
+            {
+                dict_Abilities.TryAdd(ability.Index, ability);
+            }
+        }
+
+        public Ability GetCachedAbility(int index) => dict_Abilities.GetValueOrDefault(index, null);
+
+
+
         /// <summary>Reset the current mode and ability</summary> 
         public virtual void ResetMode()
         {
@@ -267,13 +284,13 @@ namespace MalbersAnimations.Controller
                     }
 
                     ExitAbility = ActiveAbility;
-                    //ActiveAbility.OnExit.Invoke();
+                    ActiveAbility.InputValue = false;           //Reset the Ability Input value
                 }
 
                 if (ResetToDefault && !InputValue) //Important if the Input is still Active then Do not Reset to Default
                     m_AbilityIndex.Value = DefaultIndex.Value;
 
-                ActiveAbility = null;                           //Reset to the default
+                ActiveAbility = null;                        //Reset to the default
             }
         }
 
@@ -377,7 +394,7 @@ namespace MalbersAnimations.Controller
         }
 
         /// <summary>Randomly Activates an Ability from this mode</summary>
-        private void Activate(Ability newAbility, int modeStatus, string deb)
+        private void PreActivate(Ability newAbility, int modeStatus, string deb)
         {
             ActiveAbility = newAbility;
             Animal.SetModeParameters(this, modeStatus);
@@ -386,7 +403,8 @@ namespace MalbersAnimations.Controller
 
             ActiveAbility.modifier?.OnModeEnter(this); //Active Local Mode Modifier
 
-
+            //Set the Input Value to true if is Charged that way the mode can keep the Charge going
+            if (ActiveAbility.Status == AbilityStatus.Charged) ActiveAbility.InputValue = true;
 
             //Get the Audio Source from the Mode
             AudioSource source = ActiveAbility.audioSource != null ? ActiveAbility.audioSource : m_Source;
@@ -639,7 +657,7 @@ namespace MalbersAnimations.Controller
                 return false;
             }
 
-            Activate(newAbility, ModeStatus, deb);
+            PreActivate(newAbility, ModeStatus, deb);
 
             return true;
         }
@@ -845,7 +863,10 @@ namespace MalbersAnimations.Controller
         /// <summary> Returns an ability by its Index </summary>
         public virtual Ability GetAbility(int NewIndex)
         {
-            var newAbility = Abilities.Find(item => item.Index == NewIndex);
+            //var newAbility = Abilities.Find(item => item.Index == NewIndex); //Old way of finding the Ability
+
+            var newAbility = GetCachedAbility(NewIndex); //New way of finding the Ability (Dictionary)
+
 
             if (DefaultIndex != 0 && newAbility != null && !newAbility.Active) //If the Ability found is deactivated
             {
@@ -1092,11 +1113,19 @@ namespace MalbersAnimations.Controller
         [Tooltip("Release the Charged Ability when it reaches is Time")]
         public bool Release;
 
-        [Tooltip("Multiplier added to the Additive position when the mode is playing. This will fix the issue Additive Speeds to mess with RootMotion Modes")]
-        public float AdditivePosition = 1f;
+        [Tooltip("Multiplier added to the Additive position when the mode is playing. Usefull to remove or increase movement from Additive Speeds")]
+        public FloatReference MultiplierPosition = new(1f);
 
-        [Tooltip("Multiplier added to the Additive rotation when the mode is playing.")]
-        public float AdditiveRotation = 1f;
+        [Tooltip("Multiplier added to the Additive rotation when the mode is playing.Usefull to remove or increase movement from Additive Speeds rotation")]
+        public FloatReference MultiplierRotation = new(1f);
+
+
+        [Tooltip("Additive Position to add to the current Speed Modifier")]
+        public FloatReference AdditivePosition = new(0);
+
+        [Tooltip("Additive Rotation to add to the current Speed Modifier")]
+        public FloatReference AdditiveRotation = new(0);
+
 
         [Tooltip("The Mode can ignore if the Animal is Grounded. Useful for when the Mode moves in the Y Axis")]
         public bool IgnoreGrounded = false;

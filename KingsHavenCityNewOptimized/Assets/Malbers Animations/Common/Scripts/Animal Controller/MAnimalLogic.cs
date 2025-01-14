@@ -234,6 +234,12 @@ namespace MalbersAnimations.Controller
 
 
             if (height == 1) CalculateCenter(true); //Update the height if is 1 (Default Value)
+
+
+
+            //Fix to have on Awake all the states and stances not Null
+            activeState = states[^1];
+            ActiveStance = Stance_Get(DefaultStanceID);
         }
 
 
@@ -259,6 +265,8 @@ namespace MalbersAnimations.Controller
             for (int i = 0; i < modes.Count; i++)
             {
                 modes_Dict.Add(modes[i].ID.ID, modes[i]); //Save the modes into a dictionary so they are easy to find.
+
+                modes[i].CacheAbilities(); //Save all abilities to find it faster.
             }
         }
 
@@ -333,9 +341,7 @@ namespace MalbersAnimations.Controller
                 StartStateIndex = states.FindIndex(item => item.ID == OverrideStartState); //Find the Index of the Override State
             }
 
-
             CleanStateStart(StartStateIndex);
-
 
             //Reset Just Activate State The next Frame
             JustActivateState = true;
@@ -728,8 +734,7 @@ namespace MalbersAnimations.Controller
 
         #region Additional Speeds (Movement, Turn) 
 
-        public bool ModeNotAllowMovement => IsPlayingMode && !ActiveMode.AllowMovement && Grounded;
-
+        public bool ModeNotAllowMovement => IsPlayingMode && !ActiveMode.AllowMovement;
 
 
         /// <summary>Multiplier added to the Additive position when the mode is playing.
@@ -828,7 +833,7 @@ namespace MalbersAnimations.Controller
 
             if (InGroundChanger)
             {
-                var GroundSpeedRoot = RootMotion ? (Anim.deltaPosition / DeltaTime).magnitude : 0; //WHY?
+                var GroundSpeedRoot = RootMotion ? (Anim.deltaPosition / DeltaTime).magnitude : 0;
                 Speed_Modifier = Speed_Modifier + GroundChanger.Position + GroundSpeedRoot;
             }
 
@@ -845,7 +850,7 @@ namespace MalbersAnimations.Controller
                 if ((VerticalSmooth < 0) && CurrentSpeedSet != null)//Decrease when going backwards and NOT Strafing
                 {
                     TargetDir *= -CurrentSpeedSet.BackSpeedMult.Value;
-                    Speed_Modifier = CurrentSpeedSet[0].position;
+                    Speed_Modifier = CurrentSpeedSet[0].position; //Get the current speed modifier and the additive mode speed
 
                     if (InGroundChanger)
                     {
@@ -867,6 +872,9 @@ namespace MalbersAnimations.Controller
 
 
             if (TargetDir.magnitude > 1) TargetDir.Normalize();
+
+
+            Speed_Modifier += Mode_Additive_Pos; //Add the Mode Additive Position
 
             TargetSpeed = DeltaTime * Mode_Multiplier * ScaleFactor * Speed_Modifier * TargetDir;   //Calculate these Once per Cycle Extremely important 
 
@@ -923,21 +931,20 @@ namespace MalbersAnimations.Controller
 
             if (VerticalSmooth < 0.01 && !CustomSpeed && CurrentSpeedSet != null)
             {
-                SpeedRotation = CurrentSpeedSet[0].rotation;
+                SpeedRotation = CurrentSpeedSet[0].rotation; //When not moving ???
             }
 
-            if (SpeedRotation < 0) return;          //Do nothing if the rotation is lower than 0
+            SpeedRotation += Mode_Additive_Rot; //Add the Mode Rotation
+
+            if (SpeedRotation < 0) return;      //Do nothing if the rotation is lower than 0
 
             if (MovementDetected)
             {
-                //If the mode does not allow rotation set the multiplier to zero
-                float ModeRotation = (IsPlayingMode) ? ActiveMode.RotatioMultiplier : 1;
-
                 if (UsingMoveWithDirection)
                 {
                     if (DeltaAngle != 0)
                     {
-                        var TargetLocalRot = Quaternion.Euler(0, DeltaAngle * ModeRotation, 0);
+                        var TargetLocalRot = Quaternion.Euler(0, DeltaAngle * Mode_Multiplier_Rot, 0);
 
                         var targetRotation =
                             Quaternion.Slerp(Quaternion.identity, TargetLocalRot, (SpeedRotation + 1) / 4 * ((TurnMultiplier + 1) * time));
@@ -947,7 +954,7 @@ namespace MalbersAnimations.Controller
                 }
                 else
                 {
-                    float Turn = SpeedRotation * 10 * ModeRotation;           //Add Extra Multiplier
+                    float Turn = SpeedRotation * 10 * Mode_Multiplier_Rot;           //Add Extra Multiplier
 
                     //Add +Rotation when going Forward and -Rotation when going backwards
                     float TurnInput = Mathf.Clamp(HorizontalSmooth, -1, 1) * (MovementAxis.z >= 0 ? 1 : -1);
@@ -1438,7 +1445,10 @@ namespace MalbersAnimations.Controller
         public virtual void AlignPosition()
         {
             float difference = Height - hit_Hip.distance;
-            AdditivePosition += Rotation * new Vector3(0, difference, 0); //Rotates with the Transform to better alignment
+
+            Debug.Log($"Difference: {difference} - hit_Hip.distance {hit_Hip.distance}");
+
+            Position += Rotation * new Vector3(0, difference, 0); //Rotates with the Transform to better alignment
             InertiaPositionSpeed = Vector3.ProjectOnPlane(RB.linearVelocity * DeltaTime, UpVector);
             ResetUPVector(); //IMPORTANT!
         }
@@ -1448,7 +1458,7 @@ namespace MalbersAnimations.Controller
         protected virtual void TryActivateState()
         {
             if (ActiveState.IsPersistent) return;        //If the State cannot be interrupted the ignored trying activating any other States
-            if (ModePersistentState) return;             //The Modes are not allowing the States to Change
+            if (Mode_PersistentState) return;             //The Modes are not allowing the States to Change
             if (JustActivateState) return;               //Do not try to activate a new state since there already a new one on Activation
 
             foreach (var trySt in states)
@@ -1558,6 +1568,11 @@ namespace MalbersAnimations.Controller
             if (UseAdditiveRot)
                 AdditionalRotation(DeltaTime);
 
+
+            //Update the State Profile if is different
+            if (ActiveState_Profile != ActiveState.StateProfile) Update_StateProfile();
+
+
             ActiveState.OnStateMove(DeltaTime);                                                     //UPDATE THE STATE BEHAVIOUR
 
             if (IsPlayingMode)
@@ -1658,7 +1673,7 @@ namespace MalbersAnimations.Controller
 
         private bool GroundedLogic()
         {
-            if (Grounded && !IgnoreModeGrounded)
+            if (Grounded && !Mode_IgnoreGrounded)
             {
                 SlopeMovement(); //Before Raycasting so the Raycast is calculated correclty
 
@@ -2041,7 +2056,7 @@ namespace MalbersAnimations.Controller
         /// <summary> Do the Gravity Logic </summary>
         public void GravityLogic()
         {
-            if (UseGravity && !IgnoreModeGravity && !Grounded)
+            if (UseGravity && !Mode_IgnoreGravity && !Grounded)
             {
                 GravityStoredVelocity = StoredGravityVelocity();
 
@@ -2068,6 +2083,8 @@ namespace MalbersAnimations.Controller
         {
             var GTime = DeltaTime * GravityTime;
             return (GTime * GTime / 2) * GravityPower * ScaleFactor * TimeMultiplier * Gravity;
+
+
         }
         //int maxBounces = 5;
         ////  float skinWidth = 0.015f;
@@ -2075,14 +2092,20 @@ namespace MalbersAnimations.Controller
 
         //private Vector3 CollideAndSlide(Vector3 vel, Vector3 pos, int depth, Vector3 velInit)
         //{
+        //    if (MainCollider == null) return Vector3.zero;
+
         //    if (depth >= maxBounces)
         //        return Vector3.zero;
 
         //    float dist = vel.magnitude;// + skinWidth;
 
-        //    MDebug.DrawWireSphere(pos, Color.green, radius, 0, 72);
+        //    //MDebug.DrawWireSphere(pos, Color.green, radius, 0, 72);
 
-        //    if (Physics.SphereCast(pos, radius, vel.normalized, out var hit, dist, GroundLayer, QueryTriggerInteraction.Ignore))
+        //    var CapsuleDir = MainCollider.direction == 0 ? Vector3.right : MainCollider.direction == 1 ? Vector3.up : Vector3.forward;
+        //    var point1 = pos + CapsuleDir * (MainCollider.height / 2);
+        //    var point2 = pos - CapsuleDir * (MainCollider.height / 2);
+
+        //    if (Physics.CapsuleCast(point1, point2, MainCollider.radius, vel.normalized, out var hit, dist, GroundLayer, QueryTriggerInteraction.Ignore))
         //    {
         //        //Vector3 snapToSurface = vel.normalized * (hit.distance * skinWidth);
         //        Vector3 snapToSurface = Vector3.zero;

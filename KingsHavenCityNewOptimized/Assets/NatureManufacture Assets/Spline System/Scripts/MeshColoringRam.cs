@@ -25,9 +25,9 @@ public class MeshColoringRam : MonoBehaviour
         if (colorMeshLive)
         {
             if (ramSplines == null)
-                ramSplines = FindObjectsOfType<RamSpline>();
+                ramSplines = FindObjectsByType<RamSpline>(FindObjectsSortMode.None);
             if (lakePolygons == null)
-                lakePolygons = FindObjectsOfType<LakePolygon>();
+                lakePolygons = FindObjectsByType<LakePolygon>(FindObjectsSortMode.None);
             colored = false;
             meshFilters = this.gameObject.GetComponentsInChildren<MeshFilter>();
 

@@ -117,6 +117,9 @@ namespace MalbersAnimations
                 {
                     EditorGUI.LabelField(position, label, k_IsNotManagedReferenceLabel);
                 }
+
+                //CustomPatch: Modifications weren't applied for value types when using selector with default drawer.
+                property.serializedObject.ApplyModifiedProperties();
             }
             EditorGUI.EndProperty();
         }

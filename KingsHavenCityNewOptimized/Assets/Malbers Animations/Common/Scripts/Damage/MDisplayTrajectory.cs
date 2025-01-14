@@ -9,7 +9,7 @@ namespace MalbersAnimations.Weapons
 
     public class MDisplayTrajectory : MonoBehaviour
     {
-        private IThrower Thrower;
+        [SerializeField] private IThrower Thrower;
         [RequiredField, Tooltip("Reference for the line renderer")]
         public LineRenderer line;
         [Tooltip("Reference to Place a Transform at the End of the Line Renderer")]
@@ -28,19 +28,23 @@ namespace MalbersAnimations.Weapons
         [Tooltip("Max Steps")]
         public int MaxSteps = 50;
 
-        private List<Vector3> Trajectory = new List<Vector3>();
+        private List<Vector3> Trajectory = new();
 
         public bool ShowTrayectory { get; set; }
 
         private void Reset()
         {
-
             if (!TryGetComponent(out line))
                 line = gameObject.AddComponent<LineRenderer>();
 
             Thrower = GetComponent<IThrower>();
 
             SetLineRenderer();
+        }
+
+        private void Awake()
+        {
+            if (Thrower == null) Thrower = GetComponent<IThrower>();
         }
 
 
@@ -55,13 +59,15 @@ namespace MalbersAnimations.Weapons
                 line.material = new Material(Shader.Find("Sprites/Default"));
 
 
-            if (Thrower == null && TryGetComponent(out Thrower))
-            {
+            if (Thrower != null)
                 Thrower.Predict += DisplayTraj;
-            }
         }
 
-        private void OnDisable() { if (Thrower != null) Thrower.Predict -= DisplayTraj; }
+        private void OnDisable()
+        {
+            if (Thrower != null)
+                Thrower.Predict -= DisplayTraj;
+        }
 
 
         private void Update()
@@ -95,7 +101,7 @@ namespace MalbersAnimations.Weapons
         {
             ShowTrayectory = show;
 
-            //Debug.Log($"DISPLAY TRAJECTORY {show}");
+            // Debug.Log($"DISPLAY TRAJECTORY {show}");
 
             line.enabled = show;
             if (HitPoint) HitPoint.SetActive(show);

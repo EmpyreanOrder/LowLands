@@ -10,7 +10,6 @@ namespace MalbersAnimations.Reactions
     {
         public static MonoBehaviour Delay;
 
-
         /// <summary>Instant Reaction ... without considering Active or Delay parameters</summary>
         protected abstract bool _TryReact(Component reactor);
 

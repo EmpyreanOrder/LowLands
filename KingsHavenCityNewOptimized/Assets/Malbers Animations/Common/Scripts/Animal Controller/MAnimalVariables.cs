@@ -124,6 +124,8 @@ namespace MalbersAnimations.Controller
         /// <summary>State Float Value</summary>
         public float State_Float { get; private set; }
 
+        /// <summary> Current Active State Profile</summary>
+        public int ActiveState_Profile { get; private set; }
 
         /// <summary>Set/Get the Active State</summary>
         public State ActiveState
@@ -156,10 +158,8 @@ namespace MalbersAnimations.Controller
 
                 //Debug.Log($"<B>{name }] STATE INT { activeState.ID.ID} STATE ON </B>");
                 TryAnimParameter(hash_StateOn);                                     //Enable State On
-                //Debug.Log($"<B>  STATE ON  ACTIVE STATE </B>");
 
-                TryAnimParameter(hash_StateProfile, activeState.StateProfile);      //Use trigger in case the Animal is using Triggers
-                OnStateProfile.Invoke(activeState.StateProfile);
+                Update_StateProfile();
 
                 // Execute the code inside in case has changed
 
@@ -212,7 +212,15 @@ namespace MalbersAnimations.Controller
             }
         }
 
-        private void CheckCacheModeInput()
+        protected virtual void Update_StateProfile()
+        {
+            ActiveState_Profile = activeState.StateProfile;                //Store the Active State Profile
+            TryAnimParameter(hash_StateProfile, ActiveState_Profile);      //Use trigger in case the Animal is using Triggers
+            OnStateProfile.Invoke(ActiveState_Profile);
+        }
+
+
+        protected virtual void CheckCacheModeInput()
         {
             var HasInputCache = false;
             foreach (var MQ in ModeQueueInput)
@@ -289,7 +297,7 @@ namespace MalbersAnimations.Controller
 
         #region General  
         /// <summary> Layers the Animal considers ground</summary>
-        [SerializeField] public LayerReference groundLayer = new(1);
+        public LayerReference groundLayer = new(1);
 
         /// <summary> Layers the Animal considers ground</summary>
         public LayerMask GroundLayer => groundLayer.Value;
@@ -1086,15 +1094,29 @@ namespace MalbersAnimations.Controller
         public int LastAbilityIndex { get; set; }
 
         /// <summary>Store if the Mode allows using Gravity, Any playing ablity will update this value</summary>
-        public bool IgnoreModeGravity { get; protected set; }
+        public bool Mode_IgnoreGravity { get; protected set; }
 
         /// <summary>If the Ability is Set to Persistent there will be no State Changes. Any playing ablity will update this value</summary>
-        public bool ModePersistentState { get; protected set; }
+        public bool Mode_PersistentState { get; protected set; }
 
         /// <summary>Store if the Mode allows using Grounded Align Logic. Any playing ablity will update this value </summary>
-        public bool IgnoreModeGrounded { get; protected set; }
+        public bool Mode_IgnoreGrounded { get; protected set; }
+
+        /// <summary>Store if the Mode Current Multiplier Position. Default 1 when is not playing a Mode</summary>
+        public float Mode_Multiplier_Pos { get; protected set; } = 1;
+
+        /// <summary>Store if the Mode Current Multiplier Rotation. Default 1 when is not playing a Mode</summary>
+        public float Mode_Multiplier_Rot { get; protected set; } = 1;
+
+        /// <summary>Store if the Mode Current Additive Position. Default 1 when is not playing a Mode</summary>
+        public float Mode_Additive_Pos { get; protected set; }
+
+        /// <summary>Store if the Mode Current Additive Rotation. Default 1 when is not playing a Mode</summary>
+        public float Mode_Additive_Rot { get; protected set; }
 
         public Mode LastMode { get; protected set; }
+
+
 
         /// <summary>Set/Get the Active Mode, Prepare the values for the Animator... Does not mean the Mode is Playing</summary>
         public Mode ActiveMode
@@ -1115,9 +1137,15 @@ namespace MalbersAnimations.Controller
 
                     ActiveState.OnModeStart(activeMode);
 
-                    IgnoreModeGravity = value.ActiveAbility.IgnoreGravity;
-                    IgnoreModeGrounded = value.ActiveAbility.IgnoreGrounded;
-                    ModePersistentState = value.ActiveAbility.Persistent;
+                    Mode_IgnoreGravity = value.ActiveAbility.IgnoreGravity;
+                    Mode_IgnoreGrounded = value.ActiveAbility.IgnoreGrounded;
+                    Mode_PersistentState = value.ActiveAbility.Persistent;
+
+                    Mode_Additive_Pos = value.ActiveAbility.AdditivePosition;
+                    Mode_Additive_Rot = value.ActiveAbility.AdditiveRotation;
+                    Mode_Multiplier_Pos = value.ActiveAbility.MultiplierPosition;
+                    Mode_Multiplier_Rot = value.ActiveAbility.MultiplierRotation;
+
                 }
                 else
                 {
@@ -1125,10 +1153,17 @@ namespace MalbersAnimations.Controller
 
                     //Remember to reset the trigger on the Mode ON. Just in case
                     ResetModeOn();
+
                     //Reset Ignore Values
-                    IgnoreModeGravity = false;
-                    IgnoreModeGrounded = false;
-                    ModePersistentState = false;
+                    Mode_IgnoreGravity = false;
+                    Mode_IgnoreGrounded = false;
+                    Mode_PersistentState = false;
+
+                    Mode_Multiplier_Rot = 1;
+                    Mode_Multiplier_Pos = 1;
+                    Mode_Additive_Pos = 0;
+                    Mode_Additive_Rot = 0;
+
 
                     //if (InZone && Zone.IsMode)
                     //    Zone.RemoveAnimal(this);
@@ -1158,8 +1193,8 @@ namespace MalbersAnimations.Controller
                 ModeAbility = (value.ID < 0 || ability < 0) ? -mode : mode;
 
                 TryAnimParameter(hash_ModeOn); //Activate the Optional Trigger
-                                               //  Debug.Log($"<color=orange><b>SetModeParameters:  MODE ON </b></color>");
 
+                //Debug.Log($"<color=orange><b>SetModeParameters:  MODE ON </b></color>");
                 SetModeStatus(status);
 
                 IsPreparingMode = true;
@@ -1182,10 +1217,8 @@ namespace MalbersAnimations.Controller
                 //if (m_ModeIDAbility != value)
                 {
                     m_ModeIDAbility = value;
-
                     //if (debugModes)
                     //Debug.Log($"◘○◘○******[{name}] → <color=orange><b>Mode: [{m_ModeIDAbility}]</b></color>");
-
                     SetIntParameter?.Invoke(hash_Mode, m_ModeIDAbility);
                 }
             }

@@ -260,11 +260,7 @@ namespace MalbersAnimations
         [ContextMenu("Create/Stamina")]
         private void ConnectStamina()
         {
-            if (stats == null) stats = new List<Stat>();
-
-
             var staminaID = MTools.GetInstance<StatID>("Stamina");
-
 
             if (staminaID != null)
             {
@@ -286,25 +282,27 @@ namespace MalbersAnimations
                     };
                     stats.Add(staminaStat);
                 }
+                MTools.SetDirty(this);
+            }
+        }
 
+        [ContextMenu("Connect/Stamina to Animal Sprint")]
+        void ConnectStaminaToAnimal()
+        {
+
+            var staminaID = MTools.GetInstance<StatID>("Stamina");
+            var staminaStat = Stat_Get(staminaID);
+
+            if (staminaStat != null)
+            {
                 //Connect to the Animal Controller in case it exist
                 var method = this.GetUnityAction<bool>("MAnimal", "UseSprint");
 
                 if (method != null)
                 {
-                    Debug.Log("medho" + method.ToString());
                     UnityEditor.Events.UnityEventTools.AddBoolPersistentListener(staminaStat.OnStatBelow, method, false);
                     UnityEditor.Events.UnityEventTools.AddBoolPersistentListener(staminaStat.OnStatAbove, method, true);
                 }
-
-                MEvent UIStamina = MTools.GetInstance<MEvent>("UI Stamina Stat");
-
-                if (UIStamina)
-                {
-                    UnityEditor.Events.UnityEventTools.AddPersistentListener(staminaStat.OnValueChangeNormalized, UIStamina.Invoke);
-                    UnityEditor.Events.UnityEventTools.AddPersistentListener(staminaStat.OnStatFull, UIStamina.Invoke);
-                }
-
 
                 var onSprintEnable = this.GetFieldClass<BoolEvent>("MAnimal", "OnSprintEnabled");
 
@@ -313,10 +311,30 @@ namespace MalbersAnimations
                     UnityEditor.Events.UnityEventTools.AddObjectPersistentListener<StatID>(onSprintEnable, Stat_Pin, staminaID);
                     UnityEditor.Events.UnityEventTools.AddPersistentListener(onSprintEnable, Stat_Pin_Degenerate);
                 }
+            }
+        }
+
+
+        [ContextMenu("Connect/Stamina to UI Events")]
+        void ConnectStaminatoUI()
+        {
+            var staminaID = MTools.GetInstance<StatID>("Stamina");
+            var staminaStat = Stat_Get(staminaID);
+
+            if (staminaStat != null)
+            {
+                MEvent UIStamina = MTools.GetInstance<MEvent>("UI Stamina Stat");
+
+                if (UIStamina)
+                {
+                    UnityEditor.Events.UnityEventTools.AddPersistentListener(staminaStat.OnValueChangeNormalized, UIStamina.Invoke);
+                    UnityEditor.Events.UnityEventTools.AddPersistentListener(staminaStat.OnStatFull, UIStamina.Invoke);
+                }
 
                 MTools.SetDirty(this);
             }
         }
+
 
         [ContextMenu("Create/Health")]
         void CreateHealth()
@@ -325,7 +343,6 @@ namespace MalbersAnimations
 
             if (health != null)
             {
-
                 var HealthStat = new Stat()
                 {
                     ID = health,
@@ -334,15 +351,19 @@ namespace MalbersAnimations
                     ImmuneTime = new FloatReference(0.1f)
                 };
                 stats.Add(HealthStat);
+                MTools.SetDirty(this);
+            }
+        }
 
+        [ContextMenu("Connect/Health to UI Events")]
 
-                var deathID = MTools.GetInstance<StateID>("Death");
+        void ConnectHealthUI()
+        {
+            var health = MTools.GetInstance<StatID>("Health");
+            var HealthStat = stats.Find(x => x.ID == health);
 
-                var method = this.GetUnityAction<StateID>("MAnimal", "State_Activate");
-
-                if (method != null) UnityEditor.Events.UnityEventTools.AddObjectPersistentListener<StateID>(HealthStat.OnStatEmpty, method, deathID);
-
-
+            if (HealthStat != null)
+            {
                 MEvent UIHealth = MTools.GetInstance<MEvent>("UI Health Stat");
 
                 if (UIHealth)
@@ -355,7 +376,7 @@ namespace MalbersAnimations
             }
         }
 
-        [ContextMenu("Connect Death")]
+        [ContextMenu("Connect/Health Empty to Death State")]
         void ConnectHealthDeath()
         {
             var health = MTools.GetInstance<StatID>("Health");
@@ -366,7 +387,7 @@ namespace MalbersAnimations
             {
                 var method = this.GetUnityAction<StateID>("MAnimal", "State_Activate");
                 if (method != null)
-                    UnityEditor.Events.UnityEventTools.AddObjectPersistentListener<StateID>(HealthStat.OnStatEmpty, method, deathID);
+                    UnityEditor.Events.UnityEventTools.AddObjectPersistentListener(HealthStat.OnStatEmpty, method, deathID);
             }
         }
 
@@ -391,28 +412,38 @@ namespace MalbersAnimations
                     DegenRate = new FloatReference(10)
                 };
                 stats.Add(HealthStat);
+                MTools.SetDirty(this);
+            }
+        }
 
+        [ContextMenu("Connect/Mana to UI Events")]
+        void ConnectManaUI()
+        {
+            var Mana = MTools.GetInstance<StatID>("Mana");
+            var ManaStat = stats.Find(x => x.ID == Mana);
 
-                MEvent UIHealth = MTools.GetInstance<MEvent>("UI Mana Stat");
+            if (ManaStat != null)
+            {
 
-                if (UIHealth)
+                MEvent ManaUIStat = MTools.GetInstance<MEvent>("UI Mana Stat");
+
+                if (ManaUIStat)
                 {
-                    UnityEditor.Events.UnityEventTools.AddPersistentListener(HealthStat.OnValueChangeNormalized, UIHealth.Invoke);
-                    UnityEditor.Events.UnityEventTools.AddPersistentListener(HealthStat.OnStatFull, UIHealth.Invoke);
+                    UnityEditor.Events.UnityEventTools.AddPersistentListener(ManaStat.OnValueChangeNormalized, ManaUIStat.Invoke);
+                    UnityEditor.Events.UnityEventTools.AddPersistentListener(ManaStat.OnStatFull, ManaUIStat.Invoke);
                 }
 
                 MTools.SetDirty(this);
             }
         }
 
-        private void Reset()
+        void Reset()
         {
-            if (stats == null) stats = new List<Stat>();
+            stats = new List<Stat>();
 
             CreateHealth();
-            MTools.SetDirty(this);
+            ConnectHealthDeath();
         }
-
 
 #endif
     }

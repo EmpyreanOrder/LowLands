@@ -639,7 +639,6 @@ namespace MalbersAnimations.Weapons
             base.ResetCharge();
             Predict?.Invoke(false);
             Velocity = Vector3.zero; //Reset Velocity
-                                     // Debug.Log("RESET CHARGE!!!");
         }
 
         public override void Charge(float time)

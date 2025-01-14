@@ -47,6 +47,9 @@ namespace MalbersAnimations.Controller
         [SerializeField] private float m_IKDistance = 0.2f;
         [RequiredField] public BoxCollider m_LadderCollider;
 
+        public AnimalEvent OnEnterLadder = new();
+        public AnimalEvent OnExitLadder = new();
+
         public float DebugSize = 0.05f;
         public Color DebugColor = Color.green;
 
@@ -193,12 +196,20 @@ namespace MalbersAnimations.Controller
         }
 
 
+        internal Vector3 GetStepPosition(int currentStep)
+        {
+            if (currentStep < 0) currentStep = 0;
+            if (currentStep >= Steps) currentStep = Steps - 1;
+
+            return transform.position + transform.up * (currentStep * StepDistance);
+        }
+
+
 #if UNITY_EDITOR
         private void OnValidate()
         {
             UpdateLadderStepPosition();
         }
-
 
         private void OnDrawGizmos()
         {
@@ -242,14 +253,6 @@ namespace MalbersAnimations.Controller
                 Gizmos.color = DebugColor;
                 Gizmos.DrawSphere(RightIK, DebugSize);
             }
-        }
-
-        internal Vector3 GetStepPosition(int currentStep)
-        {
-            if (currentStep < 0) currentStep = 0;
-            if (currentStep >= Steps) currentStep = Steps - 1;
-
-            return transform.position + transform.up * (currentStep * StepDistance);
         }
 #endif
     }
