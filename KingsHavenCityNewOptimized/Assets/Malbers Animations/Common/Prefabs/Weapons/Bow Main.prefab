@@ -50,6 +50,10 @@ MonoBehaviour:
   DebugColor: {r: 0.034482718, g: 1, b: 0, a: 1}
   DrawAxis: 0
   AxisSize: 0.3
+  _collider: {fileID: 0}
+  DrawLineTo: 0
+  ConnectTo: {fileID: 0}
+  Rect: {x: 1, y: 1, z: 1}
 --- !u!1 &1000010393486416
 GameObject:
   m_ObjectHideFlags: 0
@@ -132,6 +136,10 @@ MonoBehaviour:
   DebugColor: {r: 0.034482718, g: 1, b: 0, a: 1}
   DrawAxis: 0
   AxisSize: 0.3
+  _collider: {fileID: 0}
+  DrawLineTo: 0
+  ConnectTo: {fileID: 0}
+  Rect: {x: 1, y: 1, z: 1}
 --- !u!1 &1000010878604134
 GameObject:
   m_ObjectHideFlags: 0
@@ -414,6 +422,7 @@ MonoBehaviour:
       serializedVersion: 2
       m_Bits: 3230664721
     Variable: {fileID: 0}
+  Tags: []
   AttackDirection: 0
   triggerInteraction: 1
   owner: {fileID: 0}
@@ -496,6 +505,10 @@ MonoBehaviour:
       UseConstant: 1
       ConstantValue: 1
       Variable: {fileID: 0}
+  m_MissChance:
+    UseConstant: 1
+    ConstantValue: 0
+    Variable: {fileID: 0}
   m_cChance:
     UseConstant: 1
     ConstantValue: 0.2
@@ -523,6 +536,9 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   OnProfileChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  OnAttackMissed:
     m_PersistentCalls:
       m_Calls: []
   animator: {fileID: 0}
@@ -573,6 +589,10 @@ MonoBehaviour:
       UseConstant: 1
       ConstantValue: 0
       Variable: {fileID: 0}
+    m_MissChance:
+      UseConstant: 1
+      ConstantValue: 0
+      Variable: {fileID: 0}
     cMultiplier:
       UseConstant: 1
       ConstantValue: 0
@@ -593,7 +613,7 @@ MonoBehaviour:
     CustomReaction:
       rid: -2
     element: {fileID: 0}
-  debug: 0
+  debug: 1
   m_audio: {fileID: 0}
   m_UI: {fileID: 0}
   description:
@@ -672,13 +692,21 @@ MonoBehaviour:
     UseConstant: 1
     ConstantValue: 0
     Variable: {fileID: 0}
+  strafeOnUnequip:
+    UseConstant: 1
+    ConstantValue: 0
+    Variable: {fileID: 0}
   AimIKRight: {fileID: 11400000, guid: d9e6144658a1ef14f93572e3e86b5247, type: 2}
   AimIKLeft: {fileID: 11400000, guid: 2fafa6d94671be94da5374cbdce5ac7d, type: 2}
   TwoHandIK:
     UseConstant: 1
     ConstantValue: 0
     Variable: {fileID: 0}
-  IKHandPoint:
+  IKHandLeft:
+    UseConstant: 1
+    ConstantValue: {fileID: 0}
+    Variable: {fileID: 0}
+  IKHandRight:
     UseConstant: 1
     ConstantValue: {fileID: 0}
     Variable: {fileID: 0}
@@ -811,8 +839,8 @@ MonoBehaviour:
   OnReleaseFreeHand:
     m_PersistentCalls:
       m_Calls: []
-  Editor_Tabs1: 1
-  Editor_Tabs2: 4
+  Editor_Tabs1: 4
+  Editor_Tabs2: 1
   releaseProjectile: 2
   equipProjectile: 19
   aimAction: 0
@@ -829,6 +857,22 @@ MonoBehaviour:
     ConstantValue: {fileID: 1000013609580904, guid: 07664bb973f838341915f33795774cfb,
       type: 3}
     Variable: {fileID: 11400000, guid: f8e8eb8226b8a834abb0e21a9e610dc9, type: 2}
+  spreadAngle:
+    UseConstant: 1
+    ConstantValue: 0
+    Variable: {fileID: 0}
+  spreadMult:
+    UseConstant: 1
+    ConstantValue: {x: 1, y: 1, z: 1}
+    Variable: {fileID: 0}
+  m_ProjectileInitialPoolSize:
+    UseConstant: 1
+    ConstantValue: 10
+    Variable: {fileID: 0}
+  m_ProjectileMaxPoolSize:
+    UseConstant: 1
+    ConstantValue: 1000
+    Variable: {fileID: 0}
   m_ProjectileParent: {fileID: 4000011658240002}
   gravity:
     UseConstant: 1
@@ -899,10 +943,17 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  OnReloadStart:
+    m_PersistentCalls:
+      m_Calls: []
   OnReload:
     m_PersistentCalls:
       m_Calls: []
   m_UnequipOnAim:
+    UseConstant: 1
+    ConstantValue: 0
+    Variable: {fileID: 0}
+  m_AfterDistance:
     UseConstant: 1
     ConstantValue: 0
     Variable: {fileID: 0}
@@ -1065,7 +1116,7 @@ LineRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1000013636540286}
-  m_Enabled: 0
+  m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 0
   m_DynamicOccludee: 1

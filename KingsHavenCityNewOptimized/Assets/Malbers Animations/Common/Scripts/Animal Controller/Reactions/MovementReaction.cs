@@ -1,4 +1,5 @@
 ﻿using MalbersAnimations.Controller;
+using MalbersAnimations.Scriptables;
 using UnityEngine;
 
 namespace MalbersAnimations.Reactions
@@ -8,7 +9,11 @@ namespace MalbersAnimations.Reactions
     public class MovementReaction : MReaction
     {
         public Move_Reaction type = Move_Reaction.Sleep;
-        public bool Value;
+        [Hide("type", true, (int)Move_Reaction.TurnMultiplier, (int)Move_Reaction.AnimatorSpeed, (int)Move_Reaction.TimeMultiplier)]
+        public BoolReference Value = new();
+
+        [Hide("type", (int)Move_Reaction.TurnMultiplier, (int)Move_Reaction.AnimatorSpeed, (int)Move_Reaction.TimeMultiplier)]
+        public FloatReference value = new();
 
         protected override bool _TryReact(Component component)
         {
@@ -42,6 +47,18 @@ namespace MalbersAnimations.Reactions
                 case Move_Reaction.LockUpDown:
                     animal.LockUpDownMovement = Value;
                     break;
+                case Move_Reaction.TurnMultiplier:
+                    animal.TurnMultiplier = value.Value;
+                    break;
+                case Move_Reaction.AnimatorSpeed:
+                    animal.AnimatorSpeed = value.Value;
+                    break;
+                case Move_Reaction.TimeMultiplier:
+                    animal.TimeMultiplier = value.Value;
+                    break;
+                case Move_Reaction.GlobalRootMotion:
+                    animal.GlobalRootMotion.Value = Value;
+                    break;
                 default:
                     break;
             }
@@ -59,6 +76,11 @@ namespace MalbersAnimations.Reactions
             LockForward,
             LockHorizontal,
             LockUpDown,
+            TurnMultiplier,
+            AnimatorSpeed,
+            TimeMultiplier,
+            GlobalRootMotion,
+
         }
     }
 }

@@ -187,7 +187,6 @@ namespace MalbersAnimations.Controller
         /// <summary>The State can play only in stances </summary>
         public bool HasStances => stances != null && stances.Count > 0;
 
-
         ///// <summary>The Modes that will be disabled during this state</summary>
         //public bool HasModes => DisableModes != null && DisableModes.Count > 0;
 
@@ -362,10 +361,6 @@ namespace MalbersAnimations.Controller
         //private bool canExit;
 
         //public bool AllowingExit => !IgnoreLowerStates && !IsPersistent;
-
-
-
-
 
         /// <summary>Input Value for a State (Some states can by activated by inputs</summary>
         public virtual bool InputValue //{ get; set; }
@@ -948,8 +943,6 @@ namespace MalbersAnimations.Controller
             }
         }
 
-
-
         /// <summary>When a Tag Changes apply this modifications</summary>
         public void AnimationTagEnter(int animTagHash)
         {
@@ -1401,6 +1394,8 @@ namespace MalbersAnimations.Controller
         State M;
 
 
+
+
         ReorderableList Reo_List_Speeds;
 
         string[] Tabs = new string[] { "General", "Tags", "Limits", "Speeds", "" };
@@ -1409,6 +1404,8 @@ namespace MalbersAnimations.Controller
 
         private void OnEnable()
         {
+            if (target is not State) return;
+
             M = (State)target;
             Tabs[4] = M.ID ? M.ID.name : "Missing ID***";
 

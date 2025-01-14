@@ -6,7 +6,6 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
-using UnityEngine.Serialization;
 
 
 namespace MalbersAnimations.IK
@@ -30,8 +29,8 @@ namespace MalbersAnimations.IK
             }
         }
 
-        [FormerlySerializedAs("name")]
-        public string m_name;
+        //[FormerlySerializedAs("name")]
+        //public string m_name;
 
         public StringReference name = new();
 
@@ -292,9 +291,11 @@ namespace MalbersAnimations.IK
 
             C_EnableSmooth = value ? EnableSmooth() : DisableSmooth(); //Set Enable or Disable Smooth Coroutine
 
-
-            Owner.StartCoroutine(C_EnableSmooth);
+            if (Owner.gameObject.activeInHierarchy && Owner.enabled)
+                Owner.StartCoroutine(C_EnableSmooth);
         }
+
+
 
         public virtual void SetWeight(bool value)
         {

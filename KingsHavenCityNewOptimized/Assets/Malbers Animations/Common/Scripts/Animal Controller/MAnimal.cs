@@ -19,7 +19,7 @@ namespace MalbersAnimations.Controller
     [HelpURL("https://malbersanimations.gitbook.io/animal-controller/main-components/manimal-controller")]
     [DefaultExecutionOrder(-10)]
     [SelectionBase]
-    [AddComponentMenu("Malbers/Animal Controller/Animal Controller [1.4.8]")]
+    [AddComponentMenu("Malbers/Animal Controller/Animal Controller [1.4.8a]")]
     public partial class MAnimal : MonoBehaviour,
         IAnimatorListener, ICharacterMove, IGravity, IObjectCore,
         IRandomizer, IMAnimator, ISleepController, IMDamagerSet, ILockCharacter,
@@ -99,8 +99,6 @@ namespace MalbersAnimations.Controller
             }
 
             Anim.updateMode = AnimatorUpdateMode.Fixed; //Set the Animator to Animate Physics
-
-
 
             speedSets = new List<MSpeedSet>(1)
             {
@@ -454,8 +452,6 @@ namespace MalbersAnimations.Controller
             Gizmos.color = Color.red;
             Gizmos.DrawSphere(Center, 0.02f * sc);
             Gizmos.DrawWireSphere(Center, 0.02f * sc);
-
-
 
             //Draw Capsule Collider on Editor
             if (!Application.isPlaying && MainCollider && SelectedStance <= 0)

@@ -38,7 +38,7 @@ public class RamSplineEditor : Editor
     int splitPoint = 1;
 
     Mesh meshTerrain;
-    public string[] shadowcastingOptions = new string[] {"Off", "On", "TwoSided", "ShadowsOnly"};
+    public string[] shadowcastingOptions = new string[] { "Off", "On", "TwoSided", "ShadowsOnly" };
 
     public string[] toolbarStrings = new string[]
     {
@@ -77,7 +77,7 @@ public class RamSplineEditor : Editor
 
     void OnEnable()
     {
-        splines = FindObjectsOfType<RamSpline>();
+        splines = FindObjectsByType<RamSpline>(FindObjectsSortMode.None);
 #if VEGETATION_STUDIO
         spline = (RamSpline)target;
         spline.vegetationMaskArea = spline.gameObject.GetComponent<VegetationMaskArea>();
@@ -147,12 +147,12 @@ public class RamSplineEditor : Editor
     public override void OnInspectorGUI()
     {
         EditorGUILayout.Space();
-        logo = (Texture2D) Resources.Load("logoRAM");
+        logo = (Texture2D)Resources.Load("logoRAM");
 
 
         Color baseCol = GUI.color;
 
-        spline = (RamSpline) target;
+        spline = (RamSpline)target;
 
         CheckRotations();
 
@@ -169,7 +169,7 @@ public class RamSplineEditor : Editor
             for (int i = 0; i < spline.controlPoints.Count - spline.controlPointsMeshCurves.Count; i++)
             {
                 spline.controlPointsMeshCurves.Add(new AnimationCurve(new Keyframe[]
-                    {new Keyframe(0, 0), new Keyframe(1, 0)}));
+                    { new Keyframe(0, 0), new Keyframe(1, 0) }));
             }
         }
 
@@ -283,7 +283,7 @@ public class RamSplineEditor : Editor
 
 
             spline.shadowCastingMode =
-                (ShadowCastingMode) EditorGUILayout.EnumPopup("Shadow Casting Mode", spline.shadowCastingMode);
+                (ShadowCastingMode)EditorGUILayout.EnumPopup("Shadow Casting Mode", spline.shadowCastingMode);
 
 
             EditorGUILayout.Space();
@@ -301,7 +301,7 @@ public class RamSplineEditor : Editor
             if (spline.generateMeshParts)
             {
                 spline.meshPartsCount = EditorGUILayout.IntSlider("Parts", spline.meshPartsCount, 2,
-                    (int) ((1 / (float) spline.traingleDensity) * (spline.controlPoints.Count - 1) * 0.5));
+                    (int)((1 / (float)spline.traingleDensity) * (spline.controlPoints.Count - 1) * 0.5));
             }
 
 
@@ -755,8 +755,8 @@ public class RamSplineEditor : Editor
         EditorGUI.indentLevel++;
 
         spline.terrainCarve = EditorGUILayout.CurveField("Terrain carve", spline.terrainCarve);
-        spline.terrainMeshSmoothX = EditorGUILayout.IntSlider("Shape smooth X", (int) spline.terrainMeshSmoothX, 1, 20);
-        spline.terrainMeshSmoothZ = EditorGUILayout.IntSlider("Shape smooth Z", (int) spline.terrainMeshSmoothZ, 1, 100);
+        spline.terrainMeshSmoothX = EditorGUILayout.IntSlider("Shape smooth X", (int)spline.terrainMeshSmoothX, 1, 20);
+        spline.terrainMeshSmoothZ = EditorGUILayout.IntSlider("Shape smooth Z", (int)spline.terrainMeshSmoothZ, 1, 100);
         spline.terrainSmoothMultiplier = EditorGUILayout.Slider("Smooth", spline.terrainSmoothMultiplier, 0, 20);
         spline.distSmooth = EditorGUILayout.FloatField("Smooth distance", spline.distSmooth);
         spline.maskCarve = LayerMaskField("Layers", spline.maskCarve, true);
@@ -980,11 +980,11 @@ public class RamSplineEditor : Editor
         Vector3 lhs = vector2;
         if (magnitude > 1E-06f)
         {
-            lhs = (Vector3) (lhs / magnitude);
+            lhs = (Vector3)(lhs / magnitude);
         }
 
         float num2 = Mathf.Clamp(Vector3.Dot(lhs, rhs), 0f, magnitude);
-        return (lineStart + ((Vector3) (lhs * num2)));
+        return (lineStart + ((Vector3)(lhs * num2)));
     }
 
 
@@ -1014,7 +1014,7 @@ public class RamSplineEditor : Editor
             {
                 position = spline.controlPoints[i];
                 Vector4 positionSecond = spline.controlPoints[i + 1];
-                if (Vector3.Distance((Vector3) positionSecond, (Vector3) position) > 0)
+                if (Vector3.Distance((Vector3)positionSecond, (Vector3)position) > 0)
                     position = (position + positionSecond) * 0.5f;
                 else
                     position.x += 1;
@@ -1023,7 +1023,7 @@ public class RamSplineEditor : Editor
             {
                 position = spline.controlPoints[i];
                 Vector4 positionSecond = spline.controlPoints[i - 1];
-                if (Vector3.Distance((Vector3) positionSecond, (Vector3) position) > 0)
+                if (Vector3.Distance((Vector3)positionSecond, (Vector3)position) > 0)
                     position = position + (position - positionSecond);
                 else
                     position.x += 1;
@@ -1227,7 +1227,7 @@ public class RamSplineEditor : Editor
         EditorGUI.indentLevel++;
 
         spline.currentProfile =
-            (SplineProfile) EditorGUILayout.ObjectField("Spline profile", spline.currentProfile, typeof(SplineProfile),
+            (SplineProfile)EditorGUILayout.ObjectField("Spline profile", spline.currentProfile, typeof(SplineProfile),
                 false);
 
         if (GUILayout.Button("Create profile from settings"))
@@ -1443,7 +1443,7 @@ public class RamSplineEditor : Editor
         EditorGUILayout.LabelField(meshResolution);
         EditorGUI.indentLevel++;
         spline.traingleDensity =
-            1 / (float) EditorGUILayout.IntSlider("U", (int) (1 / (float) spline.traingleDensity), 1, 100);
+            1 / (float)EditorGUILayout.IntSlider("U", (int)(1 / (float)spline.traingleDensity), 1, 100);
 
         if (spline.beginningSpline == null && spline.endingSpline == null)
         {
@@ -1454,11 +1454,11 @@ public class RamSplineEditor : Editor
             GUI.enabled = false;
             if (spline.beginningSpline != null)
             {
-                spline.vertsInShape = (int) Mathf.Round((spline.beginningSpline.vertsInShape - 1) *
+                spline.vertsInShape = (int)Mathf.Round((spline.beginningSpline.vertsInShape - 1) *
                     (spline.beginningMaxWidth - spline.beginningMinWidth) + 1);
             }
             else if (spline.endingSpline != null)
-                spline.vertsInShape = (int) Mathf.Round((spline.endingSpline.vertsInShape - 1) *
+                spline.vertsInShape = (int)Mathf.Round((spline.endingSpline.vertsInShape - 1) *
                     (spline.endingMaxWidth - spline.endingMinWidth) + 1);
 
             EditorGUILayout.IntSlider("V", spline.vertsInShape - 1, 1, 20);
@@ -1532,8 +1532,8 @@ public class RamSplineEditor : Editor
 
         //Debug.Log (spline.minVal + " " + spline.maxVal);
 
-        spline.minVal = (int) (spline.minVal * 100) * 0.01f;
-        spline.maxVal = (int) (spline.maxVal * 100) * 0.01f;
+        spline.minVal = (int)(spline.minVal * 100) * 0.01f;
+        spline.maxVal = (int)(spline.maxVal * 100) * 0.01f;
 
 
         if (spline.minVal > 0.5f)
@@ -1704,7 +1704,7 @@ public class RamSplineEditor : Editor
     public void ResetToProfile()
     {
         if (spline == null)
-            spline = (RamSpline) target;
+            spline = (RamSpline)target;
 
         //spline.meshCurve = spline.currentProfile.meshCurve;
         spline.meshCurve = new AnimationCurve(spline.currentProfile.meshCurve.keys);
@@ -1805,7 +1805,7 @@ public class RamSplineEditor : Editor
         {
             EditorGUILayout.HelpBox("R - Slow Water G - Small Cascade B - Big Cascade A - Opacity", MessageType.Info);
             EditorGUILayout.Space();
-            spline.drawColor = EditorGUILayout.ColorField("Draw color", spline.drawColor);
+            spline.drawColor = EditorGUILayout.ColorField(new GUIContent("Draw color"), spline.drawColor, false, true, false);
 
             spline.opacity = EditorGUILayout.FloatField("Opacity", spline.opacity);
             spline.drawSize = EditorGUILayout.FloatField("Size", spline.drawSize);
@@ -2011,14 +2011,14 @@ public class RamSplineEditor : Editor
 
 
         spline.beginningSpline =
-            (RamSpline) EditorGUILayout.ObjectField("Beginning spline", spline.beginningSpline, typeof(RamSpline),
+            (RamSpline)EditorGUILayout.ObjectField("Beginning spline", spline.beginningSpline, typeof(RamSpline),
                 true);
 
         if (spline.beginningSpline == spline)
             spline.beginningSpline = null;
 
         spline.endingSpline =
-            (RamSpline) EditorGUILayout.ObjectField("Ending spline", spline.endingSpline, typeof(RamSpline), true);
+            (RamSpline)EditorGUILayout.ObjectField("Ending spline", spline.endingSpline, typeof(RamSpline), true);
         if (spline.endingSpline == spline)
             spline.endingSpline = null;
 
@@ -2031,8 +2031,8 @@ public class RamSplineEditor : Editor
                 spline.beginningMaxWidth = spline.beginningMaxWidth * (spline.beginningSpline.vertsInShape - 1);
                 EditorGUILayout.MinMaxSlider("Part parent", ref spline.beginningMinWidth, ref spline.beginningMaxWidth,
                     0, spline.beginningSpline.vertsInShape - 1);
-                spline.beginningMinWidth = (int) spline.beginningMinWidth;
-                spline.beginningMaxWidth = (int) spline.beginningMaxWidth;
+                spline.beginningMinWidth = (int)spline.beginningMinWidth;
+                spline.beginningMaxWidth = (int)spline.beginningMaxWidth;
                 spline.beginningMinWidth =
                     Mathf.Clamp(spline.beginningMinWidth, 0, spline.beginningSpline.vertsInShape - 1);
                 spline.beginningMaxWidth =
@@ -2045,9 +2045,9 @@ public class RamSplineEditor : Editor
                         spline.beginningMaxWidth++;
                 }
 
-                spline.vertsInShape = (int) (spline.beginningMaxWidth - spline.beginningMinWidth) + 1;
-                spline.beginningMinWidth = spline.beginningMinWidth / (float) (spline.beginningSpline.vertsInShape - 1);
-                spline.beginningMaxWidth = spline.beginningMaxWidth / (float) (spline.beginningSpline.vertsInShape - 1);
+                spline.vertsInShape = (int)(spline.beginningMaxWidth - spline.beginningMinWidth) + 1;
+                spline.beginningMinWidth = spline.beginningMinWidth / (float)(spline.beginningSpline.vertsInShape - 1);
+                spline.beginningMaxWidth = spline.beginningMaxWidth / (float)(spline.beginningSpline.vertsInShape - 1);
 
                 spline.GenerateBeginningParentBased();
             }
@@ -2069,8 +2069,8 @@ public class RamSplineEditor : Editor
                 EditorGUILayout.MinMaxSlider("Part parent", ref spline.endingMinWidth, ref spline.endingMaxWidth, 0,
                     spline.endingSpline.vertsInShape - 1);
 
-                spline.endingMinWidth = (int) spline.endingMinWidth;
-                spline.endingMaxWidth = (int) spline.endingMaxWidth;
+                spline.endingMinWidth = (int)spline.endingMinWidth;
+                spline.endingMaxWidth = (int)spline.endingMaxWidth;
                 spline.endingMinWidth = Mathf.Clamp(spline.endingMinWidth, 0, spline.endingSpline.vertsInShape - 1);
                 spline.endingMaxWidth = Mathf.Clamp(spline.endingMaxWidth, 0, spline.endingSpline.vertsInShape - 1);
                 if (spline.endingMinWidth == spline.endingMaxWidth)
@@ -2081,9 +2081,9 @@ public class RamSplineEditor : Editor
                         spline.endingMaxWidth++;
                 }
 
-                spline.vertsInShape = (int) (spline.endingMaxWidth - spline.endingMinWidth) + 1;
-                spline.endingMinWidth = spline.endingMinWidth / (float) (spline.endingSpline.vertsInShape - 1);
-                spline.endingMaxWidth = spline.endingMaxWidth / (float) (spline.endingSpline.vertsInShape - 1);
+                spline.vertsInShape = (int)(spline.endingMaxWidth - spline.endingMinWidth) + 1;
+                spline.endingMinWidth = spline.endingMinWidth / (float)(spline.endingSpline.vertsInShape - 1);
+                spline.endingMaxWidth = spline.endingMaxWidth / (float)(spline.endingSpline.vertsInShape - 1);
 
                 spline.GenerateEndingParentBased();
             }
@@ -2186,7 +2186,7 @@ public class RamSplineEditor : Editor
                     string materialName = "RAM_River_Material_Gamma";
                     if (PlayerSettings.colorSpace == ColorSpace.Linear)
                         materialName = "RAM_River_Material_Linear";
-                    Material riverMat = (Material) Resources.Load(materialName);
+                    Material riverMat = (Material)Resources.Load(materialName);
                     if (riverMat != null)
                     {
                         spline.GetComponent<MeshRenderer>().sharedMaterial = riverMat;
@@ -2204,7 +2204,7 @@ public class RamSplineEditor : Editor
                     string materialName = "RAM_River_Material_Gamma_Vertex_Color";
                     if (PlayerSettings.colorSpace == ColorSpace.Linear)
                         materialName = "RAM_River_Material_Linear_Vertex_Color";
-                    Material riverMat = (Material) Resources.Load(materialName);
+                    Material riverMat = (Material)Resources.Load(materialName);
                     if (riverMat != null)
                     {
                         spline.GetComponent<MeshRenderer>().sharedMaterial = riverMat;
@@ -2226,7 +2226,7 @@ public class RamSplineEditor : Editor
                     string materialName = "RAM_River_Material_Gamma_Tess";
                     if (PlayerSettings.colorSpace == ColorSpace.Linear)
                         materialName = "RAM_River_Material_Linear_Tess";
-                    Material riverMat = (Material) Resources.Load(materialName);
+                    Material riverMat = (Material)Resources.Load(materialName);
                     if (riverMat != null)
                     {
                         spline.GetComponent<MeshRenderer>().sharedMaterial = riverMat;
@@ -2244,7 +2244,7 @@ public class RamSplineEditor : Editor
                     string materialName = "RAM_River_Material_Gamma_Tess_Vertex_Color";
                     if (PlayerSettings.colorSpace == ColorSpace.Linear)
                         materialName = "RAM_River_Material_Linear_Tess_Vertex_Color";
-                    Material riverMat = (Material) Resources.Load(materialName);
+                    Material riverMat = (Material)Resources.Load(materialName);
                     if (riverMat != null)
                     {
                         spline.GetComponent<MeshRenderer>().sharedMaterial = riverMat;
@@ -2281,7 +2281,7 @@ public class RamSplineEditor : Editor
     protected virtual void OnSceneGUIInvoke(SceneView sceneView)
     {
         if (spline == null)
-            spline = (RamSpline) target;
+            spline = (RamSpline)target;
 
         Color baseColor = Handles.color;
         int controlId = GUIUtility.GetControlID(FocusType.Passive);
@@ -2331,7 +2331,7 @@ public class RamSplineEditor : Editor
             if (selectedPosition >= 0 && selectedPosition < spline.controlPoints.Count)
             {
                 Handles.color = Color.red;
-                Handles.SphereHandleCap(0, (Vector3) spline.controlPoints[selectedPosition] + spline.transform.position,
+                Handles.SphereHandleCap(0, (Vector3)spline.controlPoints[selectedPosition] + spline.transform.position,
                     Quaternion.identity, 1, EventType.Repaint);
             }
 
@@ -2348,7 +2348,7 @@ public class RamSplineEditor : Editor
                 EditorGUI.BeginChangeCheck();
 
 
-                Vector3 handlePos = (Vector3) spline.controlPoints[j] + spline.transform.position;
+                Vector3 handlePos = (Vector3)spline.controlPoints[j] + spline.transform.position;
 
 
                 GUIStyle style = new GUIStyle();
@@ -2381,12 +2381,12 @@ public class RamSplineEditor : Editor
                     size = HandleUtility.GetHandleSize(handlePos) * size;
                     if (Event.current.type == EventType.Repaint)
                     {
-                        Handles.SphereHandleCap(id, (Vector3) spline.controlPoints[j] + spline.transform.position,
+                        Handles.SphereHandleCap(id, (Vector3)spline.controlPoints[j] + spline.transform.position,
                             Quaternion.identity, size, EventType.Repaint);
                     }
                     else if (Event.current.type == EventType.Layout)
                     {
-                        Handles.SphereHandleCap(id, (Vector3) spline.controlPoints[j] + spline.transform.position,
+                        Handles.SphereHandleCap(id, (Vector3)spline.controlPoints[j] + spline.transform.position,
                             Quaternion.identity, size, EventType.Layout);
                     }
                 }
@@ -2396,28 +2396,28 @@ public class RamSplineEditor : Editor
                     size = HandleUtility.GetHandleSize(handlePos) * size;
 
                     Handles.color = Handles.xAxisColor;
-                    Vector4 pos = Handles.Slider((Vector3) spline.controlPoints[j] + spline.transform.position,
+                    Vector4 pos = Handles.Slider((Vector3)spline.controlPoints[j] + spline.transform.position,
                         Vector3.right, size, Handles.ArrowHandleCap, 0.01f) - spline.transform.position;
                     Handles.color = Handles.yAxisColor;
-                    pos = Handles.Slider((Vector3) pos + spline.transform.position, Vector3.up, size,
+                    pos = Handles.Slider((Vector3)pos + spline.transform.position, Vector3.up, size,
                         Handles.ArrowHandleCap, 0.01f) - spline.transform.position;
                     Handles.color = Handles.zAxisColor;
-                    pos = Handles.Slider((Vector3) pos + spline.transform.position, Vector3.forward, size,
+                    pos = Handles.Slider((Vector3)pos + spline.transform.position, Vector3.forward, size,
                         Handles.ArrowHandleCap, 0.01f) - spline.transform.position;
 
                     Vector3 halfPos = (Vector3.right + Vector3.forward) * size * 0.3f;
                     Handles.color = Handles.yAxisColor;
-                    pos = Handles.Slider2D((Vector3) pos + spline.transform.position + halfPos, Vector3.up,
+                    pos = Handles.Slider2D((Vector3)pos + spline.transform.position + halfPos, Vector3.up,
                               Vector3.right, Vector3.forward, size * 0.3f, Handles.RectangleHandleCap, 0.01f) -
                           spline.transform.position - halfPos;
                     halfPos = (Vector3.right + Vector3.up) * size * 0.3f;
                     Handles.color = Handles.zAxisColor;
-                    pos = Handles.Slider2D((Vector3) pos + spline.transform.position + halfPos, Vector3.forward,
+                    pos = Handles.Slider2D((Vector3)pos + spline.transform.position + halfPos, Vector3.forward,
                               Vector3.right, Vector3.up, size * 0.3f, Handles.RectangleHandleCap, 0.01f) -
                           spline.transform.position - halfPos;
                     halfPos = (Vector3.up + Vector3.forward) * size * 0.3f;
                     Handles.color = Handles.xAxisColor;
-                    pos = Handles.Slider2D((Vector3) pos + spline.transform.position + halfPos, Vector3.right,
+                    pos = Handles.Slider2D((Vector3)pos + spline.transform.position + halfPos, Vector3.right,
                               Vector3.up, Vector3.forward, size * 0.3f, Handles.RectangleHandleCap, 0.01f) -
                           spline.transform.position - halfPos;
 
@@ -2479,7 +2479,7 @@ public class RamSplineEditor : Editor
                     //Vector3 handlePos = (Vector3)spline.controlPoints [j] + spline.transform.position;
 
                     width = Handles.ScaleSlider(spline.controlPoints[j].w,
-                        (Vector3) spline.controlPoints[j] + spline.transform.position, new Vector3(0, 0.5f, 0),
+                        (Vector3)spline.controlPoints[j] + spline.transform.position, new Vector3(0, 0.5f, 0),
                         Quaternion.Euler(-90, 0, 0), HandleUtility.GetHandleSize(handlePos), 0.01f);
 
                     Vector4 pos = spline.controlPoints[j];
@@ -2557,7 +2557,7 @@ public class RamSplineEditor : Editor
 
                     for (int j = 0; j < spline.controlPoints.Count; j++)
                     {
-                        Vector3 handlePos = (Vector3) spline.controlPoints[j] + spline.transform.position;
+                        Vector3 handlePos = (Vector3)spline.controlPoints[j] + spline.transform.position;
 
                         float pointDist = Vector3.Distance(hit.point, handlePos);
                         if (pointDist < distanceMin)
@@ -2567,25 +2567,25 @@ public class RamSplineEditor : Editor
                         }
                     }
 
-                    Vector3 posOne = (Vector3) spline.controlPoints[idMin] + spline.transform.position;
+                    Vector3 posOne = (Vector3)spline.controlPoints[idMin] + spline.transform.position;
                     Vector3 posTwo;
 
 
                     if (idMin == 0)
                     {
-                        posTwo = (Vector3) spline.controlPoints[1] + spline.transform.position;
+                        posTwo = (Vector3)spline.controlPoints[1] + spline.transform.position;
                     }
                     else if (idMin == spline.controlPoints.Count - 1)
                     {
-                        posTwo = (Vector3) spline.controlPoints[spline.controlPoints.Count - 2] +
+                        posTwo = (Vector3)spline.controlPoints[spline.controlPoints.Count - 2] +
                                  spline.transform.position;
 
                         idMin = idMin - 1;
                     }
                     else
                     {
-                        Vector3 posPrev = (Vector3) spline.controlPoints[idMin - 1] + spline.transform.position;
-                        Vector3 posNext = (Vector3) spline.controlPoints[idMin + 1] + spline.transform.position;
+                        Vector3 posPrev = (Vector3)spline.controlPoints[idMin - 1] + spline.transform.position;
+                        Vector3 posNext = (Vector3)spline.controlPoints[idMin + 1] + spline.transform.position;
 
                         if (Vector3.Distance(hit.point, posPrev) > Vector3.Distance(hit.point, posNext))
                             posTwo = posNext;
@@ -2640,7 +2640,7 @@ public class RamSplineEditor : Editor
 
         for (int i = 0; i < spline.controlPoints.Count; i++)
         {
-            points[i] = (Vector3) spline.controlPoints[i] + spline.transform.position;
+            points[i] = (Vector3)spline.controlPoints[i] + spline.transform.position;
         }
 
 
@@ -2651,8 +2651,8 @@ public class RamSplineEditor : Editor
 
         for (int i = 0; i < spline.pointsDown.Count; i++)
         {
-            Vector3 handlePos = (Vector3) spline.pointsDown[i] + spline.transform.position;
-            Vector3 handlePos2 = (Vector3) spline.pointsUp[i] + spline.transform.position;
+            Vector3 handlePos = (Vector3)spline.pointsDown[i] + spline.transform.position;
+            Vector3 handlePos2 = (Vector3)spline.pointsUp[i] + spline.transform.position;
             if (spline.debugPointsConnect)
                 Handles.DrawLine(handlePos, handlePos2);
         }
@@ -2669,7 +2669,7 @@ public class RamSplineEditor : Editor
             if (spline.debugPoints)
                 Handles.SphereHandleCap(0, spline.pointsDown[i] + spline.transform.position, Quaternion.identity, 0.1f,
                     EventType.Repaint);
-            points[i] = (Vector3) spline.pointsDown[i] + spline.transform.position;
+            points[i] = (Vector3)spline.pointsDown[i] + spline.transform.position;
         }
 
         Handles.DrawPolyLine(points);
@@ -2682,7 +2682,7 @@ public class RamSplineEditor : Editor
             if (spline.debugPoints)
                 Handles.SphereHandleCap(0, spline.pointsUp[i] + spline.transform.position, Quaternion.identity, 0.1f,
                     EventType.Repaint);
-            points[i] = (Vector3) spline.pointsUp[i] + spline.transform.position;
+            points[i] = (Vector3)spline.pointsUp[i] + spline.transform.position;
         }
 
         Handles.DrawPolyLine(points);
@@ -2747,7 +2747,7 @@ public class RamSplineEditor : Editor
 
                 Handles.color = Color.red;
                 if (spline.debugTangents)
-                    Handles.DrawLine(vertices[i] - (Vector3) tangents[i], vertices[i] + (Vector3) tangents[i]);
+                    Handles.DrawLine(vertices[i] - (Vector3)tangents[i], vertices[i] + (Vector3)tangents[i]);
 
                 Handles.color = Color.magenta;
 
@@ -3003,7 +3003,7 @@ public class RamSplineEditor : Editor
                     dist = Vector3.Distance(hitPosition, vertices[i]);
                     if (dist < spline.drawSize)
                     {
-                        distValue = (spline.drawSize - dist) / (float) spline.drawSize;
+                        distValue = (spline.drawSize - dist) / (float)spline.drawSize;
                         if (Event.current.shift)
                         {
                             colorsFlowMap[i] = Vector2.Lerp(colorsFlowMap[i], new Vector2(0, 0), spline.opacity);
@@ -3176,13 +3176,13 @@ public class RamSplineEditor : Editor
 
         string fileData = File.ReadAllText(path);
 
-        string[] lines = fileData.Split(new char[] {'\n'}, System.StringSplitOptions.RemoveEmptyEntries);
+        string[] lines = fileData.Split(new char[] { '\n' }, System.StringSplitOptions.RemoveEmptyEntries);
 
         Vector4[] vectors = new Vector4[lines.Length];
 
         for (int i = 0; i < vectors.Length; i++)
         {
-            string[] values = lines[i].Split(new char[] {';'}, System.StringSplitOptions.RemoveEmptyEntries);
+            string[] values = lines[i].Split(new char[] { ';' }, System.StringSplitOptions.RemoveEmptyEntries);
 
             if (values.Length != 4)
                 Debug.LogError("Wrong file data");

@@ -15,8 +15,8 @@ public class MeshColoringRamEditor : Editor
 
     void OnEnable()
     {
-        ramSplines = FindObjectsOfType<RamSpline>();
-        lakePolygons = FindObjectsOfType<LakePolygon>();
+        ramSplines = FindObjectsByType<RamSpline>(FindObjectsSortMode.None);
+        lakePolygons = FindObjectsByType<LakePolygon>(FindObjectsSortMode.None);
         meshFilterInScene = Resources.FindObjectsOfTypeAll<MeshFilter>();
     }
 

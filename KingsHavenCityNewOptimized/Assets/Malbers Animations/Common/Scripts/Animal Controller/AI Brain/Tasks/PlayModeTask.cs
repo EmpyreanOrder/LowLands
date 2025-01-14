@@ -49,6 +49,9 @@ namespace MalbersAnimations.Controller.AI
         [Tooltip("Align time to rotate towards the Target")]
         public float alignTime = 0.3f;
 
+        [Tooltip("If the Task is set to Play Forever, it will wait for the previous task to finish before playing the mode again")]
+        public bool SetInputTrue = false;
+
         public override void StartTask(MAnimalBrain brain, int index)
         {
             if (CoolDown <= 0)
@@ -102,11 +105,10 @@ namespace MalbersAnimations.Controller.AI
                             if (MTools.ElapsedTime(brain.TasksStartTime[index], CoolDown) && PlayMode(brain))
                             {
                                 brain.TasksVars[index].boolValue = true; //Set that te mode was Played Once!!
-                                return; //Skip the code
                             }
                             return;
                         }
-                        else
+                        else //Check the Mode has finish playing
                         {
                             switch (affect)
                             {
@@ -178,6 +180,7 @@ namespace MalbersAnimations.Controller.AI
                                 brain.StartCoroutine(MTools.AlignLookAtTransform(brain.Animal.transform, brain.AIControl.GetTargetPosition(), alignTime));
 
                             brain.Animal.Mode_SetPower(ModePower);
+
                             return true;
                         }
                     }

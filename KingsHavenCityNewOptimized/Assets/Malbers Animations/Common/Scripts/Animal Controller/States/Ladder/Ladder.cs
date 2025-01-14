@@ -178,7 +178,6 @@ namespace MalbersAnimations
 
         public override void Activate()
         {
-
             //If we have not found a Ladder then search it on a zone
             if (MLadder == null && animal.InZone)
             {
@@ -213,6 +212,8 @@ namespace MalbersAnimations
                 EnableHitTransform(false);
 
                 Exiting = false;
+
+                MLadder.OnEnterLadder.Invoke(animal);//Invoked when the Animal Enters the Ladder
             }
             else
             {
@@ -259,7 +260,6 @@ namespace MalbersAnimations
                     }
                 }
 
-
                 animal.SlopeNormal = MLadder.transform.up; //Set the Slope Normal to the Ladder Normal
 
                 //remove the RootMotion and add it back
@@ -285,7 +285,6 @@ namespace MalbersAnimations
         }
 
         private bool Exiting;
-
         public override void TryExitState(float DeltaTime)
         {
             if (Exiting) return;
@@ -297,32 +296,36 @@ namespace MalbersAnimations
                 //Moving Down
                 if (MovementRaw.z < 0 && CurrentStep <= BottomExitStep) //Means the animal is going down
                 {
-                    SetExitStatus(BottomExit);
-                    MLadder = null;
+                    ExitLadder(BottomExit);
                     Debugging("[Allow Exit] Exit Bottom Ladder");
-                    Exiting = true;
                 }
                 //Moving Up
                 else if (MovementRaw.z > 0 && CurrentStep >= MLadder.Steps - TopExitStep) //Means the animal is going up
                 {
-                    SetExitStatus(TopExit);
-                    MLadder = null;
+                    ExitLadder(TopExit);
                     Debugging("[Allow Exit] Exit Top Ladder");
-                    Exiting = true;
                 }
-                else if (!MLadder.gameObject.activeInHierarchy)
+                else if (!MLadder.gameObject.activeInHierarchy)  //If there's no Ladder then Exit
                 {
-                    Debugging("[Allow Exit] Ladder is Disabled ");
-                    AllowExit(StateEnum.Fall, 0); //If there's no Ladder then Exit
+                    AllowExit(StateEnum.Fall, 0);
                     Exiting = true;
+                    Debugging("[Allow Exit] Ladder is Disabled ");
                 }
             }
-            else
+            else  //If the ladder is missing then Exit
             {
                 Debugging("[Allow Exit] Ladder is Missing ");
-                AllowExit(StateEnum.Fall, 0); //If there's no Ladder then Exit
+                AllowExit(StateEnum.Fall, 0);
                 Exiting = true;
             }
+        }
+
+        private void ExitLadder(int ExitStatus)
+        {
+            SetExitStatus(ExitStatus);
+            MLadder.OnExitLadder.Invoke(animal); //Invoke the Exit Ladder Event
+            MLadder = null;
+            Exiting = true;
         }
 
         private void RepositionCharacterOnIdle(float deltatime)
@@ -382,17 +385,15 @@ namespace MalbersAnimations
             if (MLadder == null) return;
             m_HitTransform.position = MTools.ClosestPointOnLine((animal.Center + transform.up * Height), MLadder.TopPos, MLadder.BottomPos);
 
-            bool CorrectPos = !MLadder.NearBottomEntry(transform) && animal.Grounded || Vector3.Angle(MLadder.transform.forward, animal.Forward) < 90;
+            bool CanEnterState = !MLadder.NearBottomEntry(transform) && animal.Grounded || Vector3.Angle(MLadder.transform.forward, animal.Forward) < 90;
 
-            EnableHitTransform(CorrectPos);
+            EnableHitTransform(CanEnterState);
 
             //If the Ladder is Auto then Activate the Ladder
             if (MLadder != null && MLadder.Interactable != null && MLadder.Interactable.Auto)
             {
-                if (Vector3.Angle(MLadder.transform.forward, animal.Forward) < 90) //Check if the Ladder is in front of the Animal
-                {
-                    Activate();
-                }
+                //Check if the Ladder is in front of the Animal on Auto
+                if (CanEnterState) Activate();
             }
         }
 
@@ -434,11 +435,12 @@ namespace MalbersAnimations
 #if UNITY_EDITOR
         internal override void Reset()
         {
-            this.Reset();
+            base.Reset();
 
             General = new AnimalModifier()
             {
                 RootMotion = true,
+                RootMotionRotation = false,
                 Grounded = false,
                 Sprint = false,
                 OrientToGround = false,
@@ -467,6 +469,6 @@ namespace MalbersAnimations
                 }
             };
         }
-    }
 #endif
+    }
 }

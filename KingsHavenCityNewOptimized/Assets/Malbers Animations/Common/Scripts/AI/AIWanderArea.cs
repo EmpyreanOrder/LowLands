@@ -89,7 +89,7 @@ namespace MalbersAnimations
             return areaBounds;
         }
 
-        private void FindWanderAreas()
+        public virtual void FindWanderAreas()
         {
             MainArea = transform.parent != null ? (transform.parent.GetComponentInParent<AIWanderArea>()) : this;
             if (MainArea == null) MainArea = this; //Re-check in case this wander area is child of something else
@@ -107,7 +107,7 @@ namespace MalbersAnimations
             }
         }
 
-        public Vector3 GetNextDestination()
+        public virtual Vector3 GetNextDestination()
         {
             if (!IsChild && ChildWanderAreas != null && ChildWanderAreas.Length > 1) //Means this area has multiple areas inside
             {
@@ -119,7 +119,7 @@ namespace MalbersAnimations
             }
         }
 
-        private Vector3 GetNextDestinationArea()
+        public virtual Vector3 GetNextDestinationArea()
         {
             switch (m_AreaType)
             {

@@ -427,6 +427,23 @@ MonoBehaviour:
     UseConstant: 1
     ConstantValue: 3
     Variable: {fileID: 0}
+--- !u!1109 &-9029315638078331279
+AnimatorTransition:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: TEST
+  m_Conditions:
+  - m_ConditionMode: 1
+    m_ConditionEvent: Strafe
+    m_EventTreshold: 0
+  m_DstStateMachine: {fileID: 0}
+  m_DstState: {fileID: 6216440064556689948}
+  m_Solo: 0
+  m_Mute: 0
+  m_IsExit: 0
+  serializedVersion: 1
 --- !u!1101 &-9025151380087026680
 AnimatorStateTransition:
   m_ObjectHideFlags: 1
@@ -25875,9 +25892,9 @@ AnimatorStateMachine:
   - first: {fileID: 0}
     second:
     - {fileID: 1109395460470985678}
-  - first: {fileID: 1107502102949257218}
-    second: []
   - first: {fileID: 1107983092355862436}
+    second: []
+  - first: {fileID: 1107502102949257218}
     second: []
   - first: {fileID: 1107179802896869280}
     second: []
@@ -26254,12 +26271,16 @@ AnimatorStateMachine:
   - serializedVersion: 1
     m_State: {fileID: -4319978315924002550}
     m_Position: {x: 380, y: 370, z: 0}
+  - serializedVersion: 1
+    m_State: {fileID: 6216440064556689948}
+    m_Position: {x: 130, y: 30, z: 0}
   m_ChildStateMachines:
   - serializedVersion: 1
     m_StateMachine: {fileID: 1960228737101518961}
     m_Position: {x: 380, y: 40, z: 0}
   m_AnyStateTransitions: []
   m_EntryTransitions:
+  - {fileID: -9029315638078331279}
   - {fileID: 9151095590486400437}
   - {fileID: 6994263624297491434}
   - {fileID: 1109498373029475890}
@@ -26369,27 +26390,27 @@ AnimatorStateMachine:
   - {fileID: 1984343300686452045}
   m_EntryTransitions: []
   m_StateMachineTransitions:
-  - first: {fileID: 1107587008717819978}
-    second: []
   - first: {fileID: 1107575968228998442}
     second:
     - {fileID: -6053009789393963069}
-  - first: {fileID: 1107095588754503736}
-    second: []
-  - first: {fileID: 1107741146500525128}
-    second: []
-  - first: {fileID: 1107110482266308828}
+  - first: {fileID: 1107587008717819978}
     second: []
   - first: {fileID: 5206566767825159218}
     second: []
-  - first: {fileID: 6247139873531861129}
+  - first: {fileID: 1107741146500525128}
     second: []
-  - first: {fileID: 6853967293220475753}
+  - first: {fileID: 1107095588754503736}
     second: []
   - first: {fileID: -6907941246758545998}
     second:
     - {fileID: -1216924909974893370}
     - {fileID: -2693277086139875550}
+  - first: {fileID: 1107110482266308828}
+    second: []
+  - first: {fileID: 6247139873531861129}
+    second: []
+  - first: {fileID: 6853967293220475753}
+    second: []
   m_StateMachineBehaviours: []
   m_AnyStatePosition: {x: -290, y: -150, z: 0}
   m_EntryPosition: {x: -50, y: 150, z: 0}
@@ -27009,7 +27030,7 @@ AnimatorTransition:
   m_DstStateMachine: {fileID: 0}
   m_DstState: {fileID: 1102926410884153932}
   m_Solo: 0
-  m_Mute: 0
+  m_Mute: 1
   m_IsExit: 0
   serializedVersion: 1
 --- !u!1109 &1109576335973365890
@@ -36496,6 +36517,33 @@ MonoBehaviour:
     aim: 0
     sendInterrupted: 0
   debug: 0
+--- !u!1102 &6216440064556689948
+AnimatorState:
+  serializedVersion: 6
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Idle Strafe 0
+  m_Speed: 1
+  m_CycleOffset: 0
+  m_Transitions: []
+  m_StateMachineBehaviours: []
+  m_Position: {x: 50, y: 50, z: 0}
+  m_IKOnFeet: 1
+  m_WriteDefaultValues: 1
+  m_Mirror: 0
+  m_SpeedParameterActive: 0
+  m_MirrorParameterActive: 0
+  m_CycleOffsetParameterActive: 0
+  m_TimeParameterActive: 0
+  m_Motion: {fileID: 1827226128182048838, guid: 403dc55e09158824694017f9a6622be5,
+    type: 3}
+  m_Tag: Idle
+  m_SpeedParameter: 
+  m_MirrorParameter: 
+  m_CycleOffsetParameter: 
+  m_TimeParameter: 
 --- !u!1101 &6217094932560406911
 AnimatorStateTransition:
   m_ObjectHideFlags: 1

@@ -31,9 +31,9 @@ public class RamBuoyancy : MonoBehaviour
     {
         rigidbody = GetComponent<Rigidbody>();
         if (ramSplines == null)
-            ramSplines = FindObjectsOfType<RamSpline>();
+            ramSplines = FindObjectsByType<RamSpline>(FindObjectsSortMode.None);
         if (lakePolygons == null)
-            lakePolygons = FindObjectsOfType<LakePolygon>();
+            lakePolygons = FindObjectsByType<LakePolygon>(FindObjectsSortMode.None);
 
         if (collider == null)
             collider = GetComponent<Collider>();
@@ -135,6 +135,7 @@ public class RamBuoyancy : MonoBehaviour
             int verticesCount = 0;
 
             Vector3 velocity = rigidbody.linearVelocity;
+            
 
             Vector3 velocityDirection = velocity.normalized;
 

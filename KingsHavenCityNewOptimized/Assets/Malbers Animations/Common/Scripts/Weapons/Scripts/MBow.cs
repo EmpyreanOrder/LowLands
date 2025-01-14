@@ -136,10 +136,9 @@ namespace MalbersAnimations.Weapons
             Debugging($"Bow Knot To Hand {enabled}", this);
             FreeHand = !enabled;
             KnotToHand = enabled;
-            if (!KnotToHand)
-            {
-                RestoreKnot();
-            }
+
+            if (!KnotToHand) RestoreKnot();
+
         }
 
         /// <summary>Updates the BowKnot position in the center of the hand if is active</summary>

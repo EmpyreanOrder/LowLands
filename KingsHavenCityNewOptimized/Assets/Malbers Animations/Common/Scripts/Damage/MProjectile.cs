@@ -5,8 +5,6 @@ using UnityEngine.Events;
 using MalbersAnimations.Controller;
 using UnityEngine.Pool;
 
-
-
 #if UNITY_EDITOR
 using UnityEditor;
 #endif

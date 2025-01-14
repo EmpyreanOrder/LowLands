@@ -9,6 +9,8 @@ Material:
   m_PrefabAsset: {fileID: 0}
   m_Name: M_photoscanned_rocks_01_Leaves_Top
   m_Shader: {fileID: 4800000, guid: 0c3250378db487848854884ac1f2ec9b, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
   - _ALPHATEST_ON
   - _USEDYNAMICCOVERTSTATICMASKF_ON
@@ -29,10 +31,10 @@ Material:
     RenderType: TransparentCutout
   disabledShaderPasses:
   - DistortionVectors
-  - MOTIONVECTORS
+  - TransparentBackface
   - TransparentDepthPrepass
   - TransparentDepthPostpass
-  - TransparentBackface
+  m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
@@ -262,6 +264,7 @@ Material:
     - _AlphaCutoffShadow: 0.5
     - _AlphaDstBlend: 0
     - _AlphaSrcBlend: 1
+    - _AlphaToMask: 1
     - _AmbientOcclusionPower: 1
     - _Anisotropy: 0
     - _BaseAORemapMax: 1
@@ -273,6 +276,7 @@ Material:
     - _BaseUsePlanarUV: 0
     - _Blend: 0
     - _BlendMode: 0
+    - _BlendModePreserveSpecular: 0
     - _BumpScale: 1
     - _CastShadows: 1
     - _CoatMask: 0
@@ -489,3 +493,4 @@ Material:
     - _UVMappingMaskEmissive: {r: 1, g: 0, b: 0, a: 0}
     - _WetColor: {r: 0.7735849, g: 0.7735849, b: 0.7735849, a: 0}
   m_BuildTextureStacks: []
+  m_AllowLocking: 1

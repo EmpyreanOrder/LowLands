@@ -419,7 +419,7 @@ namespace MalbersAnimations.Controller
                         IsPersistent = false; //Let other High Priority States to play
 
                     //Apply Fake Gravity
-                    if (!animal.IgnoreModeGravity)
+                    if (!animal.Mode_IgnoreGravity)
                     {
 
                         animal.AdditivePosition += activeJump.GravityPower.Value * deltaTime * animal.StoredGravityVelocity();

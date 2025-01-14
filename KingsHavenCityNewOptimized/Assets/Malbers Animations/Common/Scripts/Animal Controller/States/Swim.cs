@@ -158,6 +158,8 @@ namespace MalbersAnimations.Controller
         /// <summary>Check if the Animal in a water surface </summary>
         public bool FindWaterLevel2()
         {
+            if (WaterPivot == null) return false;
+
             var UpPoint = WaterPivotPoint + (Vector3.up * (UpSearch * ScaleFactor));
             var RayLength = (UpSearch + WaterPivot.position.y) * ScaleFactor;
             var rad = m_Radius * ScaleFactor;

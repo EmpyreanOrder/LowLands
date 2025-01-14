@@ -30,11 +30,11 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _BaseMap:
-        m_Texture: {fileID: 2800000, guid: c57c53c644085b34b857e1624a880955, type: 3}
-        m_Scale: {x: 1, y: 1}
+        m_Texture: {fileID: 2800000, guid: abc00000000016953211058014016274, type: 3}
+        m_Scale: {x: 2.72, y: 1}
         m_Offset: {x: 0, y: 0}
     - _BumpMap:
-        m_Texture: {fileID: 2800000, guid: 6af59dac82657e44bb83eebf9609590b, type: 3}
+        m_Texture: {fileID: 2800000, guid: abc00000000001404308818511444548, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DetailAlbedoMap:
@@ -54,8 +54,8 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 2800000, guid: c57c53c644085b34b857e1624a880955, type: 3}
-        m_Scale: {x: 1, y: 1}
+        m_Texture: {fileID: 2800000, guid: abc00000000016953211058014016274, type: 3}
+        m_Scale: {x: 2.72, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MetallicGlossMap:
         m_Texture: {fileID: 2800000, guid: 208ae0fe0fd84d149b1ba6f54734e7aa, type: 3}
@@ -87,11 +87,12 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - _AddPrecomputedVelocity: 0
     - _AlphaClip: 0
     - _AlphaToMask: 0
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
-    - _BumpScale: 0.04
+    - _BumpScale: 0.4
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
     - _Cull: 2
@@ -114,7 +115,7 @@ Material:
     - _Parallax: 0.02
     - _QueueOffset: 0
     - _ReceiveShadows: 1
-    - _Smoothness: 0.564
+    - _Smoothness: 0
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
@@ -125,8 +126,8 @@ Material:
     - _WorkflowMode: 1
     - _ZWrite: 1
     m_Colors:
-    - _BaseColor: {r: 0.625, g: 0.625, b: 0.625, a: 1}
-    - _Color: {r: 0.625, g: 0.625, b: 0.625, a: 1}
+    - _BaseColor: {r: 0.7830189, g: 0.7830189, b: 0.7830189, a: 1}
+    - _Color: {r: 0.7830188, g: 0.7830188, b: 0.7830188, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []
