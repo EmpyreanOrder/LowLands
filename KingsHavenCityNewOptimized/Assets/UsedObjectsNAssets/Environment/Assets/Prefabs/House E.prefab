@@ -1235,6 +1235,7 @@ GameObject:
   - component: {fileID: 7783235441303321107}
   - component: {fileID: 2261046574302748877}
   - component: {fileID: 5279780233550080767}
+  - component: {fileID: 3195966429928051312}
   m_Layer: 0
   m_Name: SM_pavement_B_01_01
   m_TagString: Untagged
@@ -1311,6 +1312,27 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4862695050739780033}
   m_Mesh: {fileID: 4300000, guid: abc00000000007246274501431908758, type: 3}
+--- !u!65 &3195966429928051312
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4862695050739780033}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 5.700002, y: 0.25000006, z: 5.7000012}
+  m_Center: {x: -0.8499995, y: 0.12499811, z: -0.849878}
 --- !u!1 &5882520509650614569
 GameObject:
   m_ObjectHideFlags: 0
