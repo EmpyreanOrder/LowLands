@@ -6,12 +6,12 @@
 //
 //   Unity Version: 6000.0.32f1
 //   MicroSplat Version: 3.9
-//   Render Pipeline: URP2022
+//   Render Pipeline: URP2023
 //   Platform: WindowsEditor
 ////////////////////////////////////////
 
 
-Shader "Hidden/Terrain_Base2101494652"
+Shader "Hidden/Terrain_Base-1723926887"
 {
    Properties
    {
@@ -20,6 +20,7 @@ Shader "Hidden/Terrain_Base2101494652"
       [HideInInspector][NoScaleOffset]unity_ShadowMasks("unity_ShadowMasks", 2DArray) = "" {}
             [HideInInspector] _Control0 ("Control0", 2D) = "red" {}
       [HideInInspector] _Control1 ("Control1", 2D) = "black" {}
+      [HideInInspector] _Control2 ("Control2", 2D) = "black" {}
       
 
       // Splats
@@ -62,7 +63,7 @@ Shader "Hidden/Terrain_Base2101494652"
    }
    SubShader
    {
-            Tags {"RenderPipeline" = "UniversalPipeline"  "RenderType" = "UniversalLitShader" "Queue" = "Geometry+100" "IgnoreProjector" = "False"  "TerrainCompatible" = "true" "SplatCount" = "8"}
+            Tags {"RenderPipeline" = "UniversalPipeline"  "RenderType" = "UniversalLitShader" "Queue" = "Geometry+100" "IgnoreProjector" = "False"  "TerrainCompatible" = "true" "SplatCount" = "12"}
       
 
       
@@ -108,14 +109,18 @@ Shader "Hidden/Terrain_Base2101494652"
             #pragma multi_compile _ _REFLECTION_PROBE_BLENDING
             #pragma multi_compile _ _REFLECTION_PROBE_BOX_PROJECTION
             #pragma multi_compile _ _SHADOWS_SOFT
+            #pragma multi_compile_fragment _ _SHADOWS_SOFT_LOW
+            #pragma multi_compile_fragment _ _SHADOWS_SOFT_MEDIUM
+            #pragma multi_compile_fragment _ _SHADOWS_SOFT_HIGH
             #pragma multi_compile _ LIGHTMAP_SHADOW_MIXING
             #pragma multi_compile _ SHADOWS_SHADOWMASK
             #pragma multi_compile _ _DBUFFER_MRT1 _DBUFFER_MRT2 _DBUFFER_MRT3
             #pragma multi_compile _ _LIGHT_LAYERS
             #pragma multi_compile _ DEBUG_DISPLAY
             #pragma multi_compile _ _LIGHT_COOKIES
-            #pragma multi_compile_fragment _ _WRITE_RENDERING_LAYERS
             #pragma multi_compile _ _FORWARD_PLUS
+            #pragma multi_compile _ EVALUATE_SH_VERTEX
+            #pragma multi_compile _ EVALUATE_SH_MIXED
             
             // GraphKeywords: <None>
 
@@ -133,7 +138,7 @@ Shader "Hidden/Terrain_Base2101494652"
       #define _MICROSPLAT 1
       #define _MICROTERRAIN 1
       #define _USEGRADMIP 1
-      #define _MAX8TEXTURES 1
+      #define _MAX12TEXTURES 1
       #define _PERTEXUVSCALEOFFSET 1
       #define _PERTEXHEIGHTOFFSET 1
       #define _PERTEXHEIGHTCONTRAST 1
@@ -151,7 +156,7 @@ Shader "Hidden/Terrain_Base2101494652"
       #define _PERTEXCLUSTERCONTRAST 1
       #define _TRIPLANAR 1
       #define _TRIPLANARHEIGHTBLEND 1
-      #define _MSRENDERLOOP_UNITYURP2022 1
+      #define _MSRENDERLOOP_UNITYURP6 1
       #define _MICROSPLATBASEMAP 1
       #define _MSRENDERLOOP_UNITYLD 1
       #define _MSRENDERLOOP_UNITYURP2020 1
@@ -172,11 +177,16 @@ Shader "Hidden/Terrain_Base2101494652"
 
 
             // Includes
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/RenderingLayers.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ProbeVolumeVariants.hlsl"
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Texture.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Input.hlsl"
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/TextureStack.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRenderingKeywords.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ShaderGraphFunctions.hlsl"
             #if VERSION_GREATER_EQUAL(12, 0)
@@ -249,6 +259,7 @@ Shader "Hidden/Terrain_Base2101494652"
             float2 dynamicLightmapUV : TEXCOORD9;
          #endif
          #if !defined(LIGHTMAP_ON)
+            float4 probeOcclusion : TEXCOORD8;
             float3 sh : TEXCOORD10;
          #endif
 
@@ -266,6 +277,11 @@ Shader "Hidden/Terrain_Base2101494652"
          #endif
          #if defined(SHADER_STAGE_FRAGMENT) && defined(VARYINGS_NEED_CULLFACE)
          FRONT_FACE_TYPE cullFace : FRONT_FACE_SEMANTIC;
+         #endif
+
+         #if _PASSMOTIONVECTOR || ((_PASSFORWARD || _PASSUNLIT) && defined(_WRITE_TRANSPARENT_MOTION_VECTOR))
+            float4 previousPositionCS : TEXCOORD21; // Contain previous transform position (in case of skinning for example)
+            float4 positionCS : TEXCOORD22;
          #endif
       };
 
@@ -6040,6 +6056,29 @@ float3 GetTessFactors ()
             float3 _LightPosition;
          #endif
 
+         #if (_PASSMOTIONVECTOR || ((_PASSFORWARD || _PASSUNLIT) && defined(_WRITE_TRANSPARENT_MOTION_VECTOR)))
+
+            #define GetWorldToViewMatrix()     _ViewMatrix
+            #define UNITY_MATRIX_I_V   _InvViewMatrix
+            #define GetViewToHClipMatrix()     OptimizeProjectionMatrix(_ProjMatrix)
+            #define UNITY_MATRIX_I_P   _InvProjMatrix
+            #define GetWorldToHClipMatrix()    _ViewProjMatrix
+            #define UNITY_MATRIX_I_VP  _InvViewProjMatrix
+            #define UNITY_MATRIX_UNJITTERED_VP _NonJitteredViewProjMatrix
+            #define UNITY_MATRIX_PREV_VP _PrevViewProjMatrix
+            #define UNITY_MATRIX_PREV_I_VP _PrevInvViewProjMatrix
+
+            void MotionVectorPositionZBias(VertexToPixel input)
+            {
+                #if UNITY_REVERSED_Z
+                input.pos.z -= unity_MotionVectorsParams.z * input.pos.w;
+                #else
+                input.pos.z += unity_MotionVectorsParams.z * input.pos.w;
+                #endif
+            }
+
+        #endif
+
          // vertex shader
          VertexToPixel Vert (VertexData v)
          {
@@ -6051,9 +6090,12 @@ float3 GetTessFactors ()
            UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
 
-#if !_TESSELLATION_ON
-           ChainModifyVertex(v, o);
-#endif
+           #if _URP && (_PASSMOTIONVECTOR || ((_PASSFORWARD || _PASSUNLIT) && defined(_WRITE_TRANSPARENT_MOTION_VECTOR)))
+             VertexData previousMesh = v;
+           #endif
+           #if !_TESSELLATION_ON
+             ChainModifyVertex(v, o);
+           #endif
 
             o.texcoord0 = v.texcoord0;
 
@@ -6065,15 +6107,19 @@ float3 GetTessFactors ()
            // o.texcoord3 = v.texcoord3;
            // o.vertexColor = v.vertexColor;
            
+           // This return the camera relative position (if enable)
+           float3 positionWS = TransformObjectToWorld(v.vertex.xyz);
+           float3 normalWS = TransformObjectToWorldNormal(v.normal);
+           
            VertexPositionInputs vertexInput = GetVertexPositionInputs(v.vertex.xyz);
-           o.worldPos = TransformObjectToWorld(v.vertex.xyz);
-           o.worldNormal = TransformObjectToWorldNormal(v.normal);
-
+           o.worldPos = positionWS;
+           o.worldNormal = normalWS;
            
            #if !_MICROTERRAIN || _TERRAINBLENDABLESHADER
                float2 uv1 = v.texcoord1.xy;
                float2 uv2 = v.texcoord2.xy;
-               o.worldTangent = float4(TransformObjectToWorldDir(v.tangent.xyz), v.tangent.w);
+               float4 tangentWS = float4(TransformObjectToWorldDir(v.tangent.xyz), v.tangent.w);
+               o.worldTangent = tangentWS;
            #else
                float2 uv1 = v.texcoord0.xy;
                float2 uv2 = uv1;
@@ -6110,6 +6156,8 @@ float3 GetTessFactors ()
 
           // o.screenPos = ComputeScreenPos(o.pos, _ProjectionParams.x);
           
+          // UNITY_VERSION
+          // 6000.0.9f1 = 6000 0 009
 
           #if _PASSFORWARD || _PASSGBUFFER
               #if _MICROTERRAIN
@@ -6117,9 +6165,17 @@ float3 GetTessFactors ()
               #else
                  OUTPUT_LIGHTMAP_UV(uv1, unity_LightmapST, o.lightmapUV);
               #endif
-              OUTPUT_SH(o.worldNormal, o.sh);
+              #if UNITY_VERSION < 60000009
+                OUTPUT_SH(o.worldNormal, o.sh);
+              #endif
+              
               #if defined(DYNAMICLIGHTMAP_ON)
                    o.dynamicLightmapUV.xy = uv2 * unity_DynamicLightmapST.xy + unity_DynamicLightmapST.zw;
+                   #if UNITY_VERSION >= 60000009
+                     OUTPUT_SH(o.worldNormal, o.sh);
+                   #endif
+              #elif (defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2)) && UNITY_VERSION >= 60000009
+                   OUTPUT_SH4(vertexInput.positionWS, o.worldNormal.xyz, GetWorldSpaceNormalizeViewDir(vertexInput.positionWS), o.sh, o.probeOcclusion);
               #endif
           #endif
 
@@ -6138,6 +6194,78 @@ float3 GetTessFactors ()
 
           #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
              o.shadowCoord = GetShadowCoord(vertexInput);
+          #endif
+
+          #if _URP && !_MICROTERRAIN && (_PASSMOTIONVECTOR || ((_PASSFORWARD || _PASSUNLIT) && defined(_WRITE_TRANSPARENT_MOTION_VECTOR)))
+            #if !defined(TESSELLATION_ON)
+              MotionVectorPositionZBias(o);
+            #endif
+
+            o.previousPositionCS = float4(0.0, 0.0, 0.0, 1.0);
+            // Note: unity_MotionVectorsParams.y is 0 is forceNoMotion is enabled
+            bool forceNoMotion = unity_MotionVectorsParams.y == 0.0;
+
+            if (!forceNoMotion)
+            {
+              #if defined(HAVE_VFX_MODIFICATION)
+                float3 previousPositionOS = currentFrameMvData.vfxParticlePositionOS;
+                #if defined(VFX_FEATURE_MOTION_VECTORS_VERTS)
+                  const bool applyDeformation = false;
+                #else
+                  const bool applyDeformation = true;
+                #endif
+              #else
+                const bool hasDeformation = unity_MotionVectorsParams.x == 1; // Mesh has skinned deformation
+                float3 previousPositionOS = hasDeformation ? previousMesh.previousPositionOS : previousMesh.vertex.xyz;
+
+                #if defined(AUTOMATIC_TIME_BASED_MOTION_VECTORS) && defined(GRAPH_VERTEX_USES_TIME_PARAMETERS_INPUT)
+                  const bool applyDeformation = true;
+                #else
+                  const bool applyDeformation = hasDeformation;
+                #endif
+              #endif
+              // TODO
+              #if defined(FEATURES_GRAPH_VERTEX)
+                if (applyDeformation)
+                  previousPositionOS = GetLastFrameDeformedPosition(previousMesh, currentFrameMvData, previousPositionOS);
+                else
+                  previousPositionOS = previousMesh.positionOS;
+
+                #if defined(FEATURES_GRAPH_VERTEX_MOTION_VECTOR_OUTPUT)
+                  previousPositionOS -= previousMesh.precomputedVelocity;
+                #endif
+              #endif
+
+              #if defined(UNITY_DOTS_INSTANCING_ENABLED) && defined(DOTS_DEFORMED)
+                // Deformed vertices in DOTS are not cumulative with built-in Unity skinning/blend shapes
+                // Needs to be called after vertex modification has been applied otherwise it will be
+                // overwritten by Compute Deform node
+                ApplyPreviousFrameDeformedVertexPosition(previousMesh.vertexID, previousPositionOS);
+              #endif
+              #if defined (_ADD_PRECOMPUTED_VELOCITY)
+                previousPositionOS -= previousMesh.precomputedVelocity;
+              #endif
+              o.positionCS = mul(UNITY_MATRIX_UNJITTERED_VP, float4(positionWS, 1.0f));
+
+              #if defined(HAVE_VFX_MODIFICATION)
+                #if defined(VFX_FEATURE_MOTION_VECTORS_VERTS)
+                  #if defined(FEATURES_GRAPH_VERTEX_MOTION_VECTOR_OUTPUT) || defined(_ADD_PRECOMPUTED_VELOCITY)
+                    #error Unexpected fast path rendering VFX motion vector while there are vertex modification afterwards.
+                  #endif
+                  o.previousPositionCS = VFXGetPreviousClipPosition(previousMesh, currentFrameMvData.vfxElementAttributes, o.positionCS);
+                #else
+                  #if VFX_WORLD_SPACE
+                    //previousPositionOS is already in world space
+                    const float3 previousPositionWS = previousPositionOS;
+                  #else
+                    const float3 previousPositionWS = mul(UNITY_PREV_MATRIX_M, float4(previousPositionOS, 1.0f)).xyz;
+                  #endif
+                  o.previousPositionCS = mul(UNITY_MATRIX_PREV_VP, float4(previousPositionWS, 1.0f));
+                #endif
+              #else
+                o.previousPositionCS = mul(UNITY_MATRIX_PREV_VP, mul(UNITY_PREV_MATRIX_M, float4(previousPositionOS, 1)));
+              #endif
+            }
           #endif
 
            return o;
@@ -6226,9 +6354,15 @@ float3 GetTessFactors ()
             inputData.vertexLighting = IN.fogFactorAndVertexLight.yzw;
 
             #if defined(DYNAMICLIGHTMAP_ON)
-                inputData.bakedGI = SAMPLE_GI(IN.lightmapUV, IN.dynamicLightmapUV.xy, IN.sh, inputData.normalWS);
+               inputData.bakedGI = SAMPLE_GI(IN.lightmapUV, IN.dynamicLightmapUV.xy, IN.sh, inputData.normalWS);
+            #elif !defined(LIGHTMAP_ON) && (defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2))
+               #if UNITY_VERSION >= 60000009
+                  inputData.bakedGI = SAMPLE_GI(IN.sh, IN.worldPos, inputData.normalWS, inputData.viewDirectionWS, IN.pos, IN.probeOcclusion, inputData.shadowMask);
+               #else
+                  inputData.bakedGI = SAMPLE_GI(IN.sh, IN.worldPos, inputData.normalWS, inputData.viewDirectionWS, IN.pos);
+               #endif
             #else
-                inputData.bakedGI = SAMPLE_GI(IN.lightmapUV, IN.sh, inputData.normalWS);
+               inputData.bakedGI = SAMPLE_GI(IN.lightmapUV, IN.sh, inputData.normalWS);
             #endif
 
             inputData.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(IN.pos);
@@ -6326,8 +6460,8 @@ float3 GetTessFactors ()
             #pragma prefer_hlslcc gles
             #pragma exclude_renderers d3d11_9x
             #pragma multi_compile_instancing
-            #pragma multi_compile_fog
             #pragma multi_compile _ DOTS_INSTANCING_ON
+            #pragma multi_compile_fog
             #pragma multi_compile_local _ _ALPHATEST_ON
             #pragma instancing_options norenderinglayer assumeuniformscaling nomatrices nolightprobe nolightmap
             
@@ -6339,14 +6473,19 @@ float3 GetTessFactors ()
             #pragma multi_compile _ _REFLECTION_PROBE_BLENDING
             #pragma multi_compile _ _REFLECTION_PROBE_BOX_PROJECTION
             #pragma multi_compile _ _SHADOWS_SOFT
+            #pragma multi_compile_fragment _ _SHADOWS_SOFT_LOW
+            #pragma multi_compile_fragment _ _SHADOWS_SOFT_MEDIUM
+            #pragma multi_compile_fragment _ _SHADOWS_SOFT_HIGH
             #pragma multi_compile _ LIGHTMAP_SHADOW_MIXING
+            #pragma multi_compile _ SHADOWS_SHADOWMASK
+            #pragma multi_compile _ SHADOWS_SHADOWMASK
             #pragma multi_compile _ _MIXED_LIGHTING_SUBTRACTIVE
             #pragma multi_compile _ _DBUFFER_MRT1 _DBUFFER_MRT2 _DBUFFER_MRT3
             #pragma multi_compile _ _GBUFFER_NORMALS_OCT
             #pragma multi_compile _ _LIGHT_LAYERS
             #pragma multi_compile _ _RENDER_PASS_ENABLED
             #pragma multi_compile _ DEBUG_DISPLAY
-            #pragma multi_compile _ SHADOWS_SHADOWMASK
+            
             #pragma multi_compile_fragment _ _WRITE_RENDERING_LAYERS
             #define _FOG_FRAGMENT 1
 
@@ -6354,7 +6493,7 @@ float3 GetTessFactors ()
       #define _MICROSPLAT 1
       #define _MICROTERRAIN 1
       #define _USEGRADMIP 1
-      #define _MAX8TEXTURES 1
+      #define _MAX12TEXTURES 1
       #define _PERTEXUVSCALEOFFSET 1
       #define _PERTEXHEIGHTOFFSET 1
       #define _PERTEXHEIGHTCONTRAST 1
@@ -6372,7 +6511,7 @@ float3 GetTessFactors ()
       #define _PERTEXCLUSTERCONTRAST 1
       #define _TRIPLANAR 1
       #define _TRIPLANARHEIGHTBLEND 1
-      #define _MSRENDERLOOP_UNITYURP2022 1
+      #define _MSRENDERLOOP_UNITYURP6 1
       #define _MICROSPLATBASEMAP 1
       #define _MSRENDERLOOP_UNITYLD 1
       #define _MSRENDERLOOP_UNITYURP2020 1
@@ -6391,11 +6530,16 @@ float3 GetTessFactors ()
             #define _PASSGBUFFER 1
 
             // Includes
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/RenderingLayers.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ProbeVolumeVariants.hlsl"
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Texture.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Input.hlsl"
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/TextureStack.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRenderingKeywords.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ShaderGraphFunctions.hlsl"
             #if VERSION_GREATER_EQUAL(12, 0)
@@ -6468,6 +6612,7 @@ float3 GetTessFactors ()
             float2 dynamicLightmapUV : TEXCOORD9;
          #endif
          #if !defined(LIGHTMAP_ON)
+            float4 probeOcclusion : TEXCOORD8;
             float3 sh : TEXCOORD10;
          #endif
 
@@ -6485,6 +6630,11 @@ float3 GetTessFactors ()
          #endif
          #if defined(SHADER_STAGE_FRAGMENT) && defined(VARYINGS_NEED_CULLFACE)
          FRONT_FACE_TYPE cullFace : FRONT_FACE_SEMANTIC;
+         #endif
+
+         #if _PASSMOTIONVECTOR || ((_PASSFORWARD || _PASSUNLIT) && defined(_WRITE_TRANSPARENT_MOTION_VECTOR))
+            float4 previousPositionCS : TEXCOORD21; // Contain previous transform position (in case of skinning for example)
+            float4 positionCS : TEXCOORD22;
          #endif
       };
 
@@ -12260,6 +12410,29 @@ float3 GetTessFactors ()
             float3 _LightPosition;
          #endif
 
+         #if (_PASSMOTIONVECTOR || ((_PASSFORWARD || _PASSUNLIT) && defined(_WRITE_TRANSPARENT_MOTION_VECTOR)))
+
+            #define GetWorldToViewMatrix()     _ViewMatrix
+            #define UNITY_MATRIX_I_V   _InvViewMatrix
+            #define GetViewToHClipMatrix()     OptimizeProjectionMatrix(_ProjMatrix)
+            #define UNITY_MATRIX_I_P   _InvProjMatrix
+            #define GetWorldToHClipMatrix()    _ViewProjMatrix
+            #define UNITY_MATRIX_I_VP  _InvViewProjMatrix
+            #define UNITY_MATRIX_UNJITTERED_VP _NonJitteredViewProjMatrix
+            #define UNITY_MATRIX_PREV_VP _PrevViewProjMatrix
+            #define UNITY_MATRIX_PREV_I_VP _PrevInvViewProjMatrix
+
+            void MotionVectorPositionZBias(VertexToPixel input)
+            {
+                #if UNITY_REVERSED_Z
+                input.pos.z -= unity_MotionVectorsParams.z * input.pos.w;
+                #else
+                input.pos.z += unity_MotionVectorsParams.z * input.pos.w;
+                #endif
+            }
+
+        #endif
+
          // vertex shader
          VertexToPixel Vert (VertexData v)
          {
@@ -12271,9 +12444,12 @@ float3 GetTessFactors ()
            UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
 
-#if !_TESSELLATION_ON
-           ChainModifyVertex(v, o);
-#endif
+           #if _URP && (_PASSMOTIONVECTOR || ((_PASSFORWARD || _PASSUNLIT) && defined(_WRITE_TRANSPARENT_MOTION_VECTOR)))
+             VertexData previousMesh = v;
+           #endif
+           #if !_TESSELLATION_ON
+             ChainModifyVertex(v, o);
+           #endif
 
             o.texcoord0 = v.texcoord0;
 
@@ -12285,15 +12461,19 @@ float3 GetTessFactors ()
            // o.texcoord3 = v.texcoord3;
            // o.vertexColor = v.vertexColor;
            
+           // This return the camera relative position (if enable)
+           float3 positionWS = TransformObjectToWorld(v.vertex.xyz);
+           float3 normalWS = TransformObjectToWorldNormal(v.normal);
+           
            VertexPositionInputs vertexInput = GetVertexPositionInputs(v.vertex.xyz);
-           o.worldPos = TransformObjectToWorld(v.vertex.xyz);
-           o.worldNormal = TransformObjectToWorldNormal(v.normal);
-
+           o.worldPos = positionWS;
+           o.worldNormal = normalWS;
            
            #if !_MICROTERRAIN || _TERRAINBLENDABLESHADER
                float2 uv1 = v.texcoord1.xy;
                float2 uv2 = v.texcoord2.xy;
-               o.worldTangent = float4(TransformObjectToWorldDir(v.tangent.xyz), v.tangent.w);
+               float4 tangentWS = float4(TransformObjectToWorldDir(v.tangent.xyz), v.tangent.w);
+               o.worldTangent = tangentWS;
            #else
                float2 uv1 = v.texcoord0.xy;
                float2 uv2 = uv1;
@@ -12330,6 +12510,8 @@ float3 GetTessFactors ()
 
           // o.screenPos = ComputeScreenPos(o.pos, _ProjectionParams.x);
           
+          // UNITY_VERSION
+          // 6000.0.9f1 = 6000 0 009
 
           #if _PASSFORWARD || _PASSGBUFFER
               #if _MICROTERRAIN
@@ -12337,9 +12519,17 @@ float3 GetTessFactors ()
               #else
                  OUTPUT_LIGHTMAP_UV(uv1, unity_LightmapST, o.lightmapUV);
               #endif
-              OUTPUT_SH(o.worldNormal, o.sh);
+              #if UNITY_VERSION < 60000009
+                OUTPUT_SH(o.worldNormal, o.sh);
+              #endif
+              
               #if defined(DYNAMICLIGHTMAP_ON)
                    o.dynamicLightmapUV.xy = uv2 * unity_DynamicLightmapST.xy + unity_DynamicLightmapST.zw;
+                   #if UNITY_VERSION >= 60000009
+                     OUTPUT_SH(o.worldNormal, o.sh);
+                   #endif
+              #elif (defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2)) && UNITY_VERSION >= 60000009
+                   OUTPUT_SH4(vertexInput.positionWS, o.worldNormal.xyz, GetWorldSpaceNormalizeViewDir(vertexInput.positionWS), o.sh, o.probeOcclusion);
               #endif
           #endif
 
@@ -12358,6 +12548,78 @@ float3 GetTessFactors ()
 
           #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
              o.shadowCoord = GetShadowCoord(vertexInput);
+          #endif
+
+          #if _URP && !_MICROTERRAIN && (_PASSMOTIONVECTOR || ((_PASSFORWARD || _PASSUNLIT) && defined(_WRITE_TRANSPARENT_MOTION_VECTOR)))
+            #if !defined(TESSELLATION_ON)
+              MotionVectorPositionZBias(o);
+            #endif
+
+            o.previousPositionCS = float4(0.0, 0.0, 0.0, 1.0);
+            // Note: unity_MotionVectorsParams.y is 0 is forceNoMotion is enabled
+            bool forceNoMotion = unity_MotionVectorsParams.y == 0.0;
+
+            if (!forceNoMotion)
+            {
+              #if defined(HAVE_VFX_MODIFICATION)
+                float3 previousPositionOS = currentFrameMvData.vfxParticlePositionOS;
+                #if defined(VFX_FEATURE_MOTION_VECTORS_VERTS)
+                  const bool applyDeformation = false;
+                #else
+                  const bool applyDeformation = true;
+                #endif
+              #else
+                const bool hasDeformation = unity_MotionVectorsParams.x == 1; // Mesh has skinned deformation
+                float3 previousPositionOS = hasDeformation ? previousMesh.previousPositionOS : previousMesh.vertex.xyz;
+
+                #if defined(AUTOMATIC_TIME_BASED_MOTION_VECTORS) && defined(GRAPH_VERTEX_USES_TIME_PARAMETERS_INPUT)
+                  const bool applyDeformation = true;
+                #else
+                  const bool applyDeformation = hasDeformation;
+                #endif
+              #endif
+              // TODO
+              #if defined(FEATURES_GRAPH_VERTEX)
+                if (applyDeformation)
+                  previousPositionOS = GetLastFrameDeformedPosition(previousMesh, currentFrameMvData, previousPositionOS);
+                else
+                  previousPositionOS = previousMesh.positionOS;
+
+                #if defined(FEATURES_GRAPH_VERTEX_MOTION_VECTOR_OUTPUT)
+                  previousPositionOS -= previousMesh.precomputedVelocity;
+                #endif
+              #endif
+
+              #if defined(UNITY_DOTS_INSTANCING_ENABLED) && defined(DOTS_DEFORMED)
+                // Deformed vertices in DOTS are not cumulative with built-in Unity skinning/blend shapes
+                // Needs to be called after vertex modification has been applied otherwise it will be
+                // overwritten by Compute Deform node
+                ApplyPreviousFrameDeformedVertexPosition(previousMesh.vertexID, previousPositionOS);
+              #endif
+              #if defined (_ADD_PRECOMPUTED_VELOCITY)
+                previousPositionOS -= previousMesh.precomputedVelocity;
+              #endif
+              o.positionCS = mul(UNITY_MATRIX_UNJITTERED_VP, float4(positionWS, 1.0f));
+
+              #if defined(HAVE_VFX_MODIFICATION)
+                #if defined(VFX_FEATURE_MOTION_VECTORS_VERTS)
+                  #if defined(FEATURES_GRAPH_VERTEX_MOTION_VECTOR_OUTPUT) || defined(_ADD_PRECOMPUTED_VELOCITY)
+                    #error Unexpected fast path rendering VFX motion vector while there are vertex modification afterwards.
+                  #endif
+                  o.previousPositionCS = VFXGetPreviousClipPosition(previousMesh, currentFrameMvData.vfxElementAttributes, o.positionCS);
+                #else
+                  #if VFX_WORLD_SPACE
+                    //previousPositionOS is already in world space
+                    const float3 previousPositionWS = previousPositionOS;
+                  #else
+                    const float3 previousPositionWS = mul(UNITY_PREV_MATRIX_M, float4(previousPositionOS, 1.0f)).xyz;
+                  #endif
+                  o.previousPositionCS = mul(UNITY_MATRIX_PREV_VP, float4(previousPositionWS, 1.0f));
+                #endif
+              #else
+                o.previousPositionCS = mul(UNITY_MATRIX_PREV_VP, mul(UNITY_PREV_MATRIX_M, float4(previousPositionOS, 1)));
+              #endif
+            }
           #endif
 
            return o;
@@ -12410,6 +12672,7 @@ float3 GetTessFactors ()
            
                InputData inputData = (InputData)0;
 
+               inputData.positionCS = IN.pos;
                inputData.positionWS = IN.worldPos;
                inputData.normalWS = mul(l.Normal, d.TBNMatrix);
                inputData.viewDirectionWS = SafeNormalize(d.worldSpaceViewDir);
@@ -12425,16 +12688,27 @@ float3 GetTessFactors ()
                InitializeInputDataFog(float4(IN.worldPos, 1.0), IN.fogFactorAndVertexLight.x);
                inputData.vertexLighting = IN.fogFactorAndVertexLight.yzw;
 
-               #if defined(DYNAMICLIGHTMAP_ON)
-                  inputData.bakedGI = SAMPLE_GI(IN.lightmapUV, IN.dynamicLightmapUV.xy, IN.sh, inputData.normalWS);
+               #if defined(_OVERRIDE_BAKEDGI)
+                  inputData.bakedGI = l.DiffuseGI;
+                  l.Emission += l.SpecularGI;
                #else
-                  inputData.bakedGI = SAMPLE_GI(IN.lightmapUV, IN.sh, inputData.normalWS);
+                  #if defined(DYNAMICLIGHTMAP_ON)
+                    inputData.bakedGI = SAMPLE_GI(IN.lightmapUV, IN.dynamicLightmapUV.xy, IN.sh, inputData.normalWS);
+                    inputData.shadowMask = SAMPLE_SHADOWMASK(IN.lightmapUV);
+		            #elif !defined(LIGHTMAP_ON) && (defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2))
+                     #if UNITY_VERSION >= 60000009
+                        inputData.bakedGI = SAMPLE_GI(IN.sh, IN.worldPos, inputData.normalWS, inputData.viewDirectionWS, IN.pos.xy, IN.probeOcclusion, inputData.shadowMask);
+                     #else
+                        inputData.bakedGI = SAMPLE_GI(IN.sh, IN.worldPos, inputData.normalWS, inputData.viewDirectionWS, IN.pos);
+                     #endif
+                  #else
+                    inputData.bakedGI = SAMPLE_GI(IN.lightmapUV, IN.sh, inputData.normalWS);
+                    inputData.shadowMask = SAMPLE_SHADOWMASK(IN.lightmapUV);
+                  #endif
                #endif
 
                inputData.normalizedScreenSpaceUV = GetNormalizedScreenSpaceUV(IN.pos);
-               #if defined(LIGHTMAP_ON)
-                  inputData.shadowMask = SAMPLE_SHADOWMASK(IN.lightmapUV);
-               #endif
+               inputData.shadowMask = SAMPLE_SHADOWMASK(IN.lightmapUV);
 
                #if defined(DEBUG_DISPLAY)
                    #if defined(DYNAMICLIGHTMAP_ON)
@@ -12502,7 +12776,6 @@ float3 GetTessFactors ()
             #pragma multi_compile_local _ _ALPHATEST_ON
             #pragma multi_compile_vertex _ _CASTING_PUNCTUAL_LIGHT_SHADOW
             
-        
             #define _NORMAL_DROPOFF_TS 1
             #define ATTRIBUTES_NEED_NORMAL
             #define ATTRIBUTES_NEED_TANGENT
@@ -12514,7 +12787,7 @@ float3 GetTessFactors ()
       #define _MICROSPLAT 1
       #define _MICROTERRAIN 1
       #define _USEGRADMIP 1
-      #define _MAX8TEXTURES 1
+      #define _MAX12TEXTURES 1
       #define _PERTEXUVSCALEOFFSET 1
       #define _PERTEXHEIGHTOFFSET 1
       #define _PERTEXHEIGHTCONTRAST 1
@@ -12532,7 +12805,7 @@ float3 GetTessFactors ()
       #define _PERTEXCLUSTERCONTRAST 1
       #define _TRIPLANAR 1
       #define _TRIPLANARHEIGHTBLEND 1
-      #define _MSRENDERLOOP_UNITYURP2022 1
+      #define _MSRENDERLOOP_UNITYURP6 1
       #define _MICROSPLATBASEMAP 1
       #define _MSRENDERLOOP_UNITYLD 1
       #define _MSRENDERLOOP_UNITYURP2020 1
@@ -12546,9 +12819,12 @@ float3 GetTessFactors ()
 
 
                  
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Input.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRenderingKeywords.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ShaderGraphFunctions.hlsl"
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/TextureStack.hlsl"
             #include "Packages/com.unity.shadergraph/ShaderGraphLibrary/ShaderVariablesFunctions.hlsl"
@@ -12615,6 +12891,7 @@ float3 GetTessFactors ()
             float2 dynamicLightmapUV : TEXCOORD9;
          #endif
          #if !defined(LIGHTMAP_ON)
+            float4 probeOcclusion : TEXCOORD8;
             float3 sh : TEXCOORD10;
          #endif
 
@@ -12632,6 +12909,11 @@ float3 GetTessFactors ()
          #endif
          #if defined(SHADER_STAGE_FRAGMENT) && defined(VARYINGS_NEED_CULLFACE)
          FRONT_FACE_TYPE cullFace : FRONT_FACE_SEMANTIC;
+         #endif
+
+         #if _PASSMOTIONVECTOR || ((_PASSFORWARD || _PASSUNLIT) && defined(_WRITE_TRANSPARENT_MOTION_VECTOR))
+            float4 previousPositionCS : TEXCOORD21; // Contain previous transform position (in case of skinning for example)
+            float4 positionCS : TEXCOORD22;
          #endif
       };
 
@@ -18406,6 +18688,29 @@ float3 GetTessFactors ()
             float3 _LightPosition;
          #endif
 
+         #if (_PASSMOTIONVECTOR || ((_PASSFORWARD || _PASSUNLIT) && defined(_WRITE_TRANSPARENT_MOTION_VECTOR)))
+
+            #define GetWorldToViewMatrix()     _ViewMatrix
+            #define UNITY_MATRIX_I_V   _InvViewMatrix
+            #define GetViewToHClipMatrix()     OptimizeProjectionMatrix(_ProjMatrix)
+            #define UNITY_MATRIX_I_P   _InvProjMatrix
+            #define GetWorldToHClipMatrix()    _ViewProjMatrix
+            #define UNITY_MATRIX_I_VP  _InvViewProjMatrix
+            #define UNITY_MATRIX_UNJITTERED_VP _NonJitteredViewProjMatrix
+            #define UNITY_MATRIX_PREV_VP _PrevViewProjMatrix
+            #define UNITY_MATRIX_PREV_I_VP _PrevInvViewProjMatrix
+
+            void MotionVectorPositionZBias(VertexToPixel input)
+            {
+                #if UNITY_REVERSED_Z
+                input.pos.z -= unity_MotionVectorsParams.z * input.pos.w;
+                #else
+                input.pos.z += unity_MotionVectorsParams.z * input.pos.w;
+                #endif
+            }
+
+        #endif
+
          // vertex shader
          VertexToPixel Vert (VertexData v)
          {
@@ -18417,9 +18722,12 @@ float3 GetTessFactors ()
            UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
 
-#if !_TESSELLATION_ON
-           ChainModifyVertex(v, o);
-#endif
+           #if _URP && (_PASSMOTIONVECTOR || ((_PASSFORWARD || _PASSUNLIT) && defined(_WRITE_TRANSPARENT_MOTION_VECTOR)))
+             VertexData previousMesh = v;
+           #endif
+           #if !_TESSELLATION_ON
+             ChainModifyVertex(v, o);
+           #endif
 
             o.texcoord0 = v.texcoord0;
 
@@ -18431,15 +18739,19 @@ float3 GetTessFactors ()
            // o.texcoord3 = v.texcoord3;
            // o.vertexColor = v.vertexColor;
            
+           // This return the camera relative position (if enable)
+           float3 positionWS = TransformObjectToWorld(v.vertex.xyz);
+           float3 normalWS = TransformObjectToWorldNormal(v.normal);
+           
            VertexPositionInputs vertexInput = GetVertexPositionInputs(v.vertex.xyz);
-           o.worldPos = TransformObjectToWorld(v.vertex.xyz);
-           o.worldNormal = TransformObjectToWorldNormal(v.normal);
-
+           o.worldPos = positionWS;
+           o.worldNormal = normalWS;
            
            #if !_MICROTERRAIN || _TERRAINBLENDABLESHADER
                float2 uv1 = v.texcoord1.xy;
                float2 uv2 = v.texcoord2.xy;
-               o.worldTangent = float4(TransformObjectToWorldDir(v.tangent.xyz), v.tangent.w);
+               float4 tangentWS = float4(TransformObjectToWorldDir(v.tangent.xyz), v.tangent.w);
+               o.worldTangent = tangentWS;
            #else
                float2 uv1 = v.texcoord0.xy;
                float2 uv2 = uv1;
@@ -18476,6 +18788,8 @@ float3 GetTessFactors ()
 
           // o.screenPos = ComputeScreenPos(o.pos, _ProjectionParams.x);
           
+          // UNITY_VERSION
+          // 6000.0.9f1 = 6000 0 009
 
           #if _PASSFORWARD || _PASSGBUFFER
               #if _MICROTERRAIN
@@ -18483,9 +18797,17 @@ float3 GetTessFactors ()
               #else
                  OUTPUT_LIGHTMAP_UV(uv1, unity_LightmapST, o.lightmapUV);
               #endif
-              OUTPUT_SH(o.worldNormal, o.sh);
+              #if UNITY_VERSION < 60000009
+                OUTPUT_SH(o.worldNormal, o.sh);
+              #endif
+              
               #if defined(DYNAMICLIGHTMAP_ON)
                    o.dynamicLightmapUV.xy = uv2 * unity_DynamicLightmapST.xy + unity_DynamicLightmapST.zw;
+                   #if UNITY_VERSION >= 60000009
+                     OUTPUT_SH(o.worldNormal, o.sh);
+                   #endif
+              #elif (defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2)) && UNITY_VERSION >= 60000009
+                   OUTPUT_SH4(vertexInput.positionWS, o.worldNormal.xyz, GetWorldSpaceNormalizeViewDir(vertexInput.positionWS), o.sh, o.probeOcclusion);
               #endif
           #endif
 
@@ -18504,6 +18826,78 @@ float3 GetTessFactors ()
 
           #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
              o.shadowCoord = GetShadowCoord(vertexInput);
+          #endif
+
+          #if _URP && !_MICROTERRAIN && (_PASSMOTIONVECTOR || ((_PASSFORWARD || _PASSUNLIT) && defined(_WRITE_TRANSPARENT_MOTION_VECTOR)))
+            #if !defined(TESSELLATION_ON)
+              MotionVectorPositionZBias(o);
+            #endif
+
+            o.previousPositionCS = float4(0.0, 0.0, 0.0, 1.0);
+            // Note: unity_MotionVectorsParams.y is 0 is forceNoMotion is enabled
+            bool forceNoMotion = unity_MotionVectorsParams.y == 0.0;
+
+            if (!forceNoMotion)
+            {
+              #if defined(HAVE_VFX_MODIFICATION)
+                float3 previousPositionOS = currentFrameMvData.vfxParticlePositionOS;
+                #if defined(VFX_FEATURE_MOTION_VECTORS_VERTS)
+                  const bool applyDeformation = false;
+                #else
+                  const bool applyDeformation = true;
+                #endif
+              #else
+                const bool hasDeformation = unity_MotionVectorsParams.x == 1; // Mesh has skinned deformation
+                float3 previousPositionOS = hasDeformation ? previousMesh.previousPositionOS : previousMesh.vertex.xyz;
+
+                #if defined(AUTOMATIC_TIME_BASED_MOTION_VECTORS) && defined(GRAPH_VERTEX_USES_TIME_PARAMETERS_INPUT)
+                  const bool applyDeformation = true;
+                #else
+                  const bool applyDeformation = hasDeformation;
+                #endif
+              #endif
+              // TODO
+              #if defined(FEATURES_GRAPH_VERTEX)
+                if (applyDeformation)
+                  previousPositionOS = GetLastFrameDeformedPosition(previousMesh, currentFrameMvData, previousPositionOS);
+                else
+                  previousPositionOS = previousMesh.positionOS;
+
+                #if defined(FEATURES_GRAPH_VERTEX_MOTION_VECTOR_OUTPUT)
+                  previousPositionOS -= previousMesh.precomputedVelocity;
+                #endif
+              #endif
+
+              #if defined(UNITY_DOTS_INSTANCING_ENABLED) && defined(DOTS_DEFORMED)
+                // Deformed vertices in DOTS are not cumulative with built-in Unity skinning/blend shapes
+                // Needs to be called after vertex modification has been applied otherwise it will be
+                // overwritten by Compute Deform node
+                ApplyPreviousFrameDeformedVertexPosition(previousMesh.vertexID, previousPositionOS);
+              #endif
+              #if defined (_ADD_PRECOMPUTED_VELOCITY)
+                previousPositionOS -= previousMesh.precomputedVelocity;
+              #endif
+              o.positionCS = mul(UNITY_MATRIX_UNJITTERED_VP, float4(positionWS, 1.0f));
+
+              #if defined(HAVE_VFX_MODIFICATION)
+                #if defined(VFX_FEATURE_MOTION_VECTORS_VERTS)
+                  #if defined(FEATURES_GRAPH_VERTEX_MOTION_VECTOR_OUTPUT) || defined(_ADD_PRECOMPUTED_VELOCITY)
+                    #error Unexpected fast path rendering VFX motion vector while there are vertex modification afterwards.
+                  #endif
+                  o.previousPositionCS = VFXGetPreviousClipPosition(previousMesh, currentFrameMvData.vfxElementAttributes, o.positionCS);
+                #else
+                  #if VFX_WORLD_SPACE
+                    //previousPositionOS is already in world space
+                    const float3 previousPositionWS = previousPositionOS;
+                  #else
+                    const float3 previousPositionWS = mul(UNITY_PREV_MATRIX_M, float4(previousPositionOS, 1.0f)).xyz;
+                  #endif
+                  o.previousPositionCS = mul(UNITY_MATRIX_PREV_VP, float4(previousPositionWS, 1.0f));
+                #endif
+              #else
+                o.previousPositionCS = mul(UNITY_MATRIX_PREV_VP, mul(UNITY_PREV_MATRIX_M, float4(previousPositionOS, 1)));
+              #endif
+            }
           #endif
 
            return o;
@@ -18587,7 +18981,7 @@ float3 GetTessFactors ()
       #define _MICROSPLAT 1
       #define _MICROTERRAIN 1
       #define _USEGRADMIP 1
-      #define _MAX8TEXTURES 1
+      #define _MAX12TEXTURES 1
       #define _PERTEXUVSCALEOFFSET 1
       #define _PERTEXHEIGHTOFFSET 1
       #define _PERTEXHEIGHTCONTRAST 1
@@ -18605,7 +18999,7 @@ float3 GetTessFactors ()
       #define _PERTEXCLUSTERCONTRAST 1
       #define _TRIPLANAR 1
       #define _TRIPLANARHEIGHTBLEND 1
-      #define _MSRENDERLOOP_UNITYURP2022 1
+      #define _MSRENDERLOOP_UNITYURP6 1
       #define _MICROSPLATBASEMAP 1
       #define _MSRENDERLOOP_UNITYLD 1
       #define _MSRENDERLOOP_UNITYURP2020 1
@@ -18619,13 +19013,17 @@ float3 GetTessFactors ()
 
 
             // Includes
-            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Version.hlsl"
+            //#include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Texture.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+            //#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Input.hlsl"
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/TextureStack.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRenderingKeywords.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ShaderGraphFunctions.hlsl"
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/TextureStack.hlsl"
-            #include "Packages/com.unity.shadergraph/ShaderGraphLibrary/ShaderVariablesFunctions.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/Editor/ShaderGraph/Includes/ShaderPass.hlsl"
 
 
                   #undef WorldNormalVector
@@ -18690,6 +19088,7 @@ float3 GetTessFactors ()
             float2 dynamicLightmapUV : TEXCOORD9;
          #endif
          #if !defined(LIGHTMAP_ON)
+            float4 probeOcclusion : TEXCOORD8;
             float3 sh : TEXCOORD10;
          #endif
 
@@ -18707,6 +19106,11 @@ float3 GetTessFactors ()
          #endif
          #if defined(SHADER_STAGE_FRAGMENT) && defined(VARYINGS_NEED_CULLFACE)
          FRONT_FACE_TYPE cullFace : FRONT_FACE_SEMANTIC;
+         #endif
+
+         #if _PASSMOTIONVECTOR || ((_PASSFORWARD || _PASSUNLIT) && defined(_WRITE_TRANSPARENT_MOTION_VECTOR))
+            float4 previousPositionCS : TEXCOORD21; // Contain previous transform position (in case of skinning for example)
+            float4 positionCS : TEXCOORD22;
          #endif
       };
 
@@ -24481,6 +24885,29 @@ float3 GetTessFactors ()
             float3 _LightPosition;
          #endif
 
+         #if (_PASSMOTIONVECTOR || ((_PASSFORWARD || _PASSUNLIT) && defined(_WRITE_TRANSPARENT_MOTION_VECTOR)))
+
+            #define GetWorldToViewMatrix()     _ViewMatrix
+            #define UNITY_MATRIX_I_V   _InvViewMatrix
+            #define GetViewToHClipMatrix()     OptimizeProjectionMatrix(_ProjMatrix)
+            #define UNITY_MATRIX_I_P   _InvProjMatrix
+            #define GetWorldToHClipMatrix()    _ViewProjMatrix
+            #define UNITY_MATRIX_I_VP  _InvViewProjMatrix
+            #define UNITY_MATRIX_UNJITTERED_VP _NonJitteredViewProjMatrix
+            #define UNITY_MATRIX_PREV_VP _PrevViewProjMatrix
+            #define UNITY_MATRIX_PREV_I_VP _PrevInvViewProjMatrix
+
+            void MotionVectorPositionZBias(VertexToPixel input)
+            {
+                #if UNITY_REVERSED_Z
+                input.pos.z -= unity_MotionVectorsParams.z * input.pos.w;
+                #else
+                input.pos.z += unity_MotionVectorsParams.z * input.pos.w;
+                #endif
+            }
+
+        #endif
+
          // vertex shader
          VertexToPixel Vert (VertexData v)
          {
@@ -24492,9 +24919,12 @@ float3 GetTessFactors ()
            UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
 
-#if !_TESSELLATION_ON
-           ChainModifyVertex(v, o);
-#endif
+           #if _URP && (_PASSMOTIONVECTOR || ((_PASSFORWARD || _PASSUNLIT) && defined(_WRITE_TRANSPARENT_MOTION_VECTOR)))
+             VertexData previousMesh = v;
+           #endif
+           #if !_TESSELLATION_ON
+             ChainModifyVertex(v, o);
+           #endif
 
             o.texcoord0 = v.texcoord0;
 
@@ -24506,15 +24936,19 @@ float3 GetTessFactors ()
            // o.texcoord3 = v.texcoord3;
            // o.vertexColor = v.vertexColor;
            
+           // This return the camera relative position (if enable)
+           float3 positionWS = TransformObjectToWorld(v.vertex.xyz);
+           float3 normalWS = TransformObjectToWorldNormal(v.normal);
+           
            VertexPositionInputs vertexInput = GetVertexPositionInputs(v.vertex.xyz);
-           o.worldPos = TransformObjectToWorld(v.vertex.xyz);
-           o.worldNormal = TransformObjectToWorldNormal(v.normal);
-
+           o.worldPos = positionWS;
+           o.worldNormal = normalWS;
            
            #if !_MICROTERRAIN || _TERRAINBLENDABLESHADER
                float2 uv1 = v.texcoord1.xy;
                float2 uv2 = v.texcoord2.xy;
-               o.worldTangent = float4(TransformObjectToWorldDir(v.tangent.xyz), v.tangent.w);
+               float4 tangentWS = float4(TransformObjectToWorldDir(v.tangent.xyz), v.tangent.w);
+               o.worldTangent = tangentWS;
            #else
                float2 uv1 = v.texcoord0.xy;
                float2 uv2 = uv1;
@@ -24551,6 +24985,8 @@ float3 GetTessFactors ()
 
           // o.screenPos = ComputeScreenPos(o.pos, _ProjectionParams.x);
           
+          // UNITY_VERSION
+          // 6000.0.9f1 = 6000 0 009
 
           #if _PASSFORWARD || _PASSGBUFFER
               #if _MICROTERRAIN
@@ -24558,9 +24994,17 @@ float3 GetTessFactors ()
               #else
                  OUTPUT_LIGHTMAP_UV(uv1, unity_LightmapST, o.lightmapUV);
               #endif
-              OUTPUT_SH(o.worldNormal, o.sh);
+              #if UNITY_VERSION < 60000009
+                OUTPUT_SH(o.worldNormal, o.sh);
+              #endif
+              
               #if defined(DYNAMICLIGHTMAP_ON)
                    o.dynamicLightmapUV.xy = uv2 * unity_DynamicLightmapST.xy + unity_DynamicLightmapST.zw;
+                   #if UNITY_VERSION >= 60000009
+                     OUTPUT_SH(o.worldNormal, o.sh);
+                   #endif
+              #elif (defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2)) && UNITY_VERSION >= 60000009
+                   OUTPUT_SH4(vertexInput.positionWS, o.worldNormal.xyz, GetWorldSpaceNormalizeViewDir(vertexInput.positionWS), o.sh, o.probeOcclusion);
               #endif
           #endif
 
@@ -24579,6 +25023,78 @@ float3 GetTessFactors ()
 
           #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
              o.shadowCoord = GetShadowCoord(vertexInput);
+          #endif
+
+          #if _URP && !_MICROTERRAIN && (_PASSMOTIONVECTOR || ((_PASSFORWARD || _PASSUNLIT) && defined(_WRITE_TRANSPARENT_MOTION_VECTOR)))
+            #if !defined(TESSELLATION_ON)
+              MotionVectorPositionZBias(o);
+            #endif
+
+            o.previousPositionCS = float4(0.0, 0.0, 0.0, 1.0);
+            // Note: unity_MotionVectorsParams.y is 0 is forceNoMotion is enabled
+            bool forceNoMotion = unity_MotionVectorsParams.y == 0.0;
+
+            if (!forceNoMotion)
+            {
+              #if defined(HAVE_VFX_MODIFICATION)
+                float3 previousPositionOS = currentFrameMvData.vfxParticlePositionOS;
+                #if defined(VFX_FEATURE_MOTION_VECTORS_VERTS)
+                  const bool applyDeformation = false;
+                #else
+                  const bool applyDeformation = true;
+                #endif
+              #else
+                const bool hasDeformation = unity_MotionVectorsParams.x == 1; // Mesh has skinned deformation
+                float3 previousPositionOS = hasDeformation ? previousMesh.previousPositionOS : previousMesh.vertex.xyz;
+
+                #if defined(AUTOMATIC_TIME_BASED_MOTION_VECTORS) && defined(GRAPH_VERTEX_USES_TIME_PARAMETERS_INPUT)
+                  const bool applyDeformation = true;
+                #else
+                  const bool applyDeformation = hasDeformation;
+                #endif
+              #endif
+              // TODO
+              #if defined(FEATURES_GRAPH_VERTEX)
+                if (applyDeformation)
+                  previousPositionOS = GetLastFrameDeformedPosition(previousMesh, currentFrameMvData, previousPositionOS);
+                else
+                  previousPositionOS = previousMesh.positionOS;
+
+                #if defined(FEATURES_GRAPH_VERTEX_MOTION_VECTOR_OUTPUT)
+                  previousPositionOS -= previousMesh.precomputedVelocity;
+                #endif
+              #endif
+
+              #if defined(UNITY_DOTS_INSTANCING_ENABLED) && defined(DOTS_DEFORMED)
+                // Deformed vertices in DOTS are not cumulative with built-in Unity skinning/blend shapes
+                // Needs to be called after vertex modification has been applied otherwise it will be
+                // overwritten by Compute Deform node
+                ApplyPreviousFrameDeformedVertexPosition(previousMesh.vertexID, previousPositionOS);
+              #endif
+              #if defined (_ADD_PRECOMPUTED_VELOCITY)
+                previousPositionOS -= previousMesh.precomputedVelocity;
+              #endif
+              o.positionCS = mul(UNITY_MATRIX_UNJITTERED_VP, float4(positionWS, 1.0f));
+
+              #if defined(HAVE_VFX_MODIFICATION)
+                #if defined(VFX_FEATURE_MOTION_VECTORS_VERTS)
+                  #if defined(FEATURES_GRAPH_VERTEX_MOTION_VECTOR_OUTPUT) || defined(_ADD_PRECOMPUTED_VELOCITY)
+                    #error Unexpected fast path rendering VFX motion vector while there are vertex modification afterwards.
+                  #endif
+                  o.previousPositionCS = VFXGetPreviousClipPosition(previousMesh, currentFrameMvData.vfxElementAttributes, o.positionCS);
+                #else
+                  #if VFX_WORLD_SPACE
+                    //previousPositionOS is already in world space
+                    const float3 previousPositionWS = previousPositionOS;
+                  #else
+                    const float3 previousPositionWS = mul(UNITY_PREV_MATRIX_M, float4(previousPositionOS, 1.0f)).xyz;
+                  #endif
+                  o.previousPositionCS = mul(UNITY_MATRIX_PREV_VP, float4(previousPositionWS, 1.0f));
+                #endif
+              #else
+                o.previousPositionCS = mul(UNITY_MATRIX_PREV_VP, mul(UNITY_PREV_MATRIX_M, float4(previousPositionOS, 1)));
+              #endif
+            }
           #endif
 
            return o;
@@ -24656,7 +25172,7 @@ float3 GetTessFactors ()
       #define _MICROSPLAT 1
       #define _MICROTERRAIN 1
       #define _USEGRADMIP 1
-      #define _MAX8TEXTURES 1
+      #define _MAX12TEXTURES 1
       #define _PERTEXUVSCALEOFFSET 1
       #define _PERTEXHEIGHTOFFSET 1
       #define _PERTEXHEIGHTCONTRAST 1
@@ -24674,7 +25190,7 @@ float3 GetTessFactors ()
       #define _PERTEXCLUSTERCONTRAST 1
       #define _TRIPLANAR 1
       #define _TRIPLANARHEIGHTBLEND 1
-      #define _MSRENDERLOOP_UNITYURP2022 1
+      #define _MSRENDERLOOP_UNITYURP6 1
       #define _MICROSPLATBASEMAP 1
       #define _MSRENDERLOOP_UNITYLD 1
       #define _MSRENDERLOOP_UNITYURP2020 1
@@ -24690,14 +25206,15 @@ float3 GetTessFactors ()
 
 
             // Includes
-            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Version.hlsl"
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Texture.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Input.hlsl"
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/TextureStack.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRenderingKeywords.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ShaderGraphFunctions.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/MetaInput.hlsl"
-            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/TextureStack.hlsl"
-            #include "Packages/com.unity.shadergraph/ShaderGraphLibrary/ShaderVariablesFunctions.hlsl"
         
 
                   #undef WorldNormalVector
@@ -24762,6 +25279,7 @@ float3 GetTessFactors ()
             float2 dynamicLightmapUV : TEXCOORD9;
          #endif
          #if !defined(LIGHTMAP_ON)
+            float4 probeOcclusion : TEXCOORD8;
             float3 sh : TEXCOORD10;
          #endif
 
@@ -24779,6 +25297,11 @@ float3 GetTessFactors ()
          #endif
          #if defined(SHADER_STAGE_FRAGMENT) && defined(VARYINGS_NEED_CULLFACE)
          FRONT_FACE_TYPE cullFace : FRONT_FACE_SEMANTIC;
+         #endif
+
+         #if _PASSMOTIONVECTOR || ((_PASSFORWARD || _PASSUNLIT) && defined(_WRITE_TRANSPARENT_MOTION_VECTOR))
+            float4 previousPositionCS : TEXCOORD21; // Contain previous transform position (in case of skinning for example)
+            float4 positionCS : TEXCOORD22;
          #endif
       };
 
@@ -30553,6 +31076,29 @@ float3 GetTessFactors ()
             float3 _LightPosition;
          #endif
 
+         #if (_PASSMOTIONVECTOR || ((_PASSFORWARD || _PASSUNLIT) && defined(_WRITE_TRANSPARENT_MOTION_VECTOR)))
+
+            #define GetWorldToViewMatrix()     _ViewMatrix
+            #define UNITY_MATRIX_I_V   _InvViewMatrix
+            #define GetViewToHClipMatrix()     OptimizeProjectionMatrix(_ProjMatrix)
+            #define UNITY_MATRIX_I_P   _InvProjMatrix
+            #define GetWorldToHClipMatrix()    _ViewProjMatrix
+            #define UNITY_MATRIX_I_VP  _InvViewProjMatrix
+            #define UNITY_MATRIX_UNJITTERED_VP _NonJitteredViewProjMatrix
+            #define UNITY_MATRIX_PREV_VP _PrevViewProjMatrix
+            #define UNITY_MATRIX_PREV_I_VP _PrevInvViewProjMatrix
+
+            void MotionVectorPositionZBias(VertexToPixel input)
+            {
+                #if UNITY_REVERSED_Z
+                input.pos.z -= unity_MotionVectorsParams.z * input.pos.w;
+                #else
+                input.pos.z += unity_MotionVectorsParams.z * input.pos.w;
+                #endif
+            }
+
+        #endif
+
          // vertex shader
          VertexToPixel Vert (VertexData v)
          {
@@ -30564,9 +31110,12 @@ float3 GetTessFactors ()
            UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
 
-#if !_TESSELLATION_ON
-           ChainModifyVertex(v, o);
-#endif
+           #if _URP && (_PASSMOTIONVECTOR || ((_PASSFORWARD || _PASSUNLIT) && defined(_WRITE_TRANSPARENT_MOTION_VECTOR)))
+             VertexData previousMesh = v;
+           #endif
+           #if !_TESSELLATION_ON
+             ChainModifyVertex(v, o);
+           #endif
 
             o.texcoord0 = v.texcoord0;
 
@@ -30578,15 +31127,19 @@ float3 GetTessFactors ()
            // o.texcoord3 = v.texcoord3;
            // o.vertexColor = v.vertexColor;
            
+           // This return the camera relative position (if enable)
+           float3 positionWS = TransformObjectToWorld(v.vertex.xyz);
+           float3 normalWS = TransformObjectToWorldNormal(v.normal);
+           
            VertexPositionInputs vertexInput = GetVertexPositionInputs(v.vertex.xyz);
-           o.worldPos = TransformObjectToWorld(v.vertex.xyz);
-           o.worldNormal = TransformObjectToWorldNormal(v.normal);
-
+           o.worldPos = positionWS;
+           o.worldNormal = normalWS;
            
            #if !_MICROTERRAIN || _TERRAINBLENDABLESHADER
                float2 uv1 = v.texcoord1.xy;
                float2 uv2 = v.texcoord2.xy;
-               o.worldTangent = float4(TransformObjectToWorldDir(v.tangent.xyz), v.tangent.w);
+               float4 tangentWS = float4(TransformObjectToWorldDir(v.tangent.xyz), v.tangent.w);
+               o.worldTangent = tangentWS;
            #else
                float2 uv1 = v.texcoord0.xy;
                float2 uv2 = uv1;
@@ -30623,6 +31176,8 @@ float3 GetTessFactors ()
 
           // o.screenPos = ComputeScreenPos(o.pos, _ProjectionParams.x);
           
+          // UNITY_VERSION
+          // 6000.0.9f1 = 6000 0 009
 
           #if _PASSFORWARD || _PASSGBUFFER
               #if _MICROTERRAIN
@@ -30630,9 +31185,17 @@ float3 GetTessFactors ()
               #else
                  OUTPUT_LIGHTMAP_UV(uv1, unity_LightmapST, o.lightmapUV);
               #endif
-              OUTPUT_SH(o.worldNormal, o.sh);
+              #if UNITY_VERSION < 60000009
+                OUTPUT_SH(o.worldNormal, o.sh);
+              #endif
+              
               #if defined(DYNAMICLIGHTMAP_ON)
                    o.dynamicLightmapUV.xy = uv2 * unity_DynamicLightmapST.xy + unity_DynamicLightmapST.zw;
+                   #if UNITY_VERSION >= 60000009
+                     OUTPUT_SH(o.worldNormal, o.sh);
+                   #endif
+              #elif (defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2)) && UNITY_VERSION >= 60000009
+                   OUTPUT_SH4(vertexInput.positionWS, o.worldNormal.xyz, GetWorldSpaceNormalizeViewDir(vertexInput.positionWS), o.sh, o.probeOcclusion);
               #endif
           #endif
 
@@ -30651,6 +31214,78 @@ float3 GetTessFactors ()
 
           #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
              o.shadowCoord = GetShadowCoord(vertexInput);
+          #endif
+
+          #if _URP && !_MICROTERRAIN && (_PASSMOTIONVECTOR || ((_PASSFORWARD || _PASSUNLIT) && defined(_WRITE_TRANSPARENT_MOTION_VECTOR)))
+            #if !defined(TESSELLATION_ON)
+              MotionVectorPositionZBias(o);
+            #endif
+
+            o.previousPositionCS = float4(0.0, 0.0, 0.0, 1.0);
+            // Note: unity_MotionVectorsParams.y is 0 is forceNoMotion is enabled
+            bool forceNoMotion = unity_MotionVectorsParams.y == 0.0;
+
+            if (!forceNoMotion)
+            {
+              #if defined(HAVE_VFX_MODIFICATION)
+                float3 previousPositionOS = currentFrameMvData.vfxParticlePositionOS;
+                #if defined(VFX_FEATURE_MOTION_VECTORS_VERTS)
+                  const bool applyDeformation = false;
+                #else
+                  const bool applyDeformation = true;
+                #endif
+              #else
+                const bool hasDeformation = unity_MotionVectorsParams.x == 1; // Mesh has skinned deformation
+                float3 previousPositionOS = hasDeformation ? previousMesh.previousPositionOS : previousMesh.vertex.xyz;
+
+                #if defined(AUTOMATIC_TIME_BASED_MOTION_VECTORS) && defined(GRAPH_VERTEX_USES_TIME_PARAMETERS_INPUT)
+                  const bool applyDeformation = true;
+                #else
+                  const bool applyDeformation = hasDeformation;
+                #endif
+              #endif
+              // TODO
+              #if defined(FEATURES_GRAPH_VERTEX)
+                if (applyDeformation)
+                  previousPositionOS = GetLastFrameDeformedPosition(previousMesh, currentFrameMvData, previousPositionOS);
+                else
+                  previousPositionOS = previousMesh.positionOS;
+
+                #if defined(FEATURES_GRAPH_VERTEX_MOTION_VECTOR_OUTPUT)
+                  previousPositionOS -= previousMesh.precomputedVelocity;
+                #endif
+              #endif
+
+              #if defined(UNITY_DOTS_INSTANCING_ENABLED) && defined(DOTS_DEFORMED)
+                // Deformed vertices in DOTS are not cumulative with built-in Unity skinning/blend shapes
+                // Needs to be called after vertex modification has been applied otherwise it will be
+                // overwritten by Compute Deform node
+                ApplyPreviousFrameDeformedVertexPosition(previousMesh.vertexID, previousPositionOS);
+              #endif
+              #if defined (_ADD_PRECOMPUTED_VELOCITY)
+                previousPositionOS -= previousMesh.precomputedVelocity;
+              #endif
+              o.positionCS = mul(UNITY_MATRIX_UNJITTERED_VP, float4(positionWS, 1.0f));
+
+              #if defined(HAVE_VFX_MODIFICATION)
+                #if defined(VFX_FEATURE_MOTION_VECTORS_VERTS)
+                  #if defined(FEATURES_GRAPH_VERTEX_MOTION_VECTOR_OUTPUT) || defined(_ADD_PRECOMPUTED_VELOCITY)
+                    #error Unexpected fast path rendering VFX motion vector while there are vertex modification afterwards.
+                  #endif
+                  o.previousPositionCS = VFXGetPreviousClipPosition(previousMesh, currentFrameMvData.vfxElementAttributes, o.positionCS);
+                #else
+                  #if VFX_WORLD_SPACE
+                    //previousPositionOS is already in world space
+                    const float3 previousPositionWS = previousPositionOS;
+                  #else
+                    const float3 previousPositionWS = mul(UNITY_PREV_MATRIX_M, float4(previousPositionOS, 1.0f)).xyz;
+                  #endif
+                  o.previousPositionCS = mul(UNITY_MATRIX_PREV_VP, float4(previousPositionWS, 1.0f));
+                #endif
+              #else
+                o.previousPositionCS = mul(UNITY_MATRIX_PREV_VP, mul(UNITY_PREV_MATRIX_M, float4(previousPositionOS, 1)));
+              #endif
+            }
           #endif
 
            return o;
@@ -30716,7 +31351,6 @@ float3 GetTessFactors ()
             #pragma exclude_renderers d3d11_9x
             #pragma multi_compile_fog
             #pragma multi_compile_instancing
-            #pragma multi_compile _ DOTS_INSTANCING_ON
             #pragma multi_compile_local _ _ALPHATEST_ON
             #pragma multi_compile_fragment _ _WRITE_RENDERING_LAYERS
         
@@ -30729,7 +31363,7 @@ float3 GetTessFactors ()
       #define _MICROSPLAT 1
       #define _MICROTERRAIN 1
       #define _USEGRADMIP 1
-      #define _MAX8TEXTURES 1
+      #define _MAX12TEXTURES 1
       #define _PERTEXUVSCALEOFFSET 1
       #define _PERTEXHEIGHTOFFSET 1
       #define _PERTEXHEIGHTCONTRAST 1
@@ -30747,7 +31381,7 @@ float3 GetTessFactors ()
       #define _PERTEXCLUSTERCONTRAST 1
       #define _TRIPLANAR 1
       #define _TRIPLANARHEIGHTBLEND 1
-      #define _MSRENDERLOOP_UNITYURP2022 1
+      #define _MSRENDERLOOP_UNITYURP6 1
       #define _MICROSPLATBASEMAP 1
       #define _MSRENDERLOOP_UNITYLD 1
       #define _MSRENDERLOOP_UNITYURP2020 1
@@ -30768,14 +31402,17 @@ float3 GetTessFactors ()
 
 
             // Includes
-            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Version.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/RenderingLayers.hlsl"
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
+            #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Texture.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Input.hlsl"
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/TextureStack.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRenderingKeywords.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ShaderGraphFunctions.hlsl"
-            #include "Packages/com.unity.shadergraph/ShaderGraphLibrary/ShaderVariablesFunctions.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/Editor/ShaderGraph/Includes/ShaderPass.hlsl"
 
 
         
@@ -30842,6 +31479,7 @@ float3 GetTessFactors ()
             float2 dynamicLightmapUV : TEXCOORD9;
          #endif
          #if !defined(LIGHTMAP_ON)
+            float4 probeOcclusion : TEXCOORD8;
             float3 sh : TEXCOORD10;
          #endif
 
@@ -30859,6 +31497,11 @@ float3 GetTessFactors ()
          #endif
          #if defined(SHADER_STAGE_FRAGMENT) && defined(VARYINGS_NEED_CULLFACE)
          FRONT_FACE_TYPE cullFace : FRONT_FACE_SEMANTIC;
+         #endif
+
+         #if _PASSMOTIONVECTOR || ((_PASSFORWARD || _PASSUNLIT) && defined(_WRITE_TRANSPARENT_MOTION_VECTOR))
+            float4 previousPositionCS : TEXCOORD21; // Contain previous transform position (in case of skinning for example)
+            float4 positionCS : TEXCOORD22;
          #endif
       };
 
@@ -36633,6 +37276,29 @@ float3 GetTessFactors ()
             float3 _LightPosition;
          #endif
 
+         #if (_PASSMOTIONVECTOR || ((_PASSFORWARD || _PASSUNLIT) && defined(_WRITE_TRANSPARENT_MOTION_VECTOR)))
+
+            #define GetWorldToViewMatrix()     _ViewMatrix
+            #define UNITY_MATRIX_I_V   _InvViewMatrix
+            #define GetViewToHClipMatrix()     OptimizeProjectionMatrix(_ProjMatrix)
+            #define UNITY_MATRIX_I_P   _InvProjMatrix
+            #define GetWorldToHClipMatrix()    _ViewProjMatrix
+            #define UNITY_MATRIX_I_VP  _InvViewProjMatrix
+            #define UNITY_MATRIX_UNJITTERED_VP _NonJitteredViewProjMatrix
+            #define UNITY_MATRIX_PREV_VP _PrevViewProjMatrix
+            #define UNITY_MATRIX_PREV_I_VP _PrevInvViewProjMatrix
+
+            void MotionVectorPositionZBias(VertexToPixel input)
+            {
+                #if UNITY_REVERSED_Z
+                input.pos.z -= unity_MotionVectorsParams.z * input.pos.w;
+                #else
+                input.pos.z += unity_MotionVectorsParams.z * input.pos.w;
+                #endif
+            }
+
+        #endif
+
          // vertex shader
          VertexToPixel Vert (VertexData v)
          {
@@ -36644,9 +37310,12 @@ float3 GetTessFactors ()
            UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
 
-#if !_TESSELLATION_ON
-           ChainModifyVertex(v, o);
-#endif
+           #if _URP && (_PASSMOTIONVECTOR || ((_PASSFORWARD || _PASSUNLIT) && defined(_WRITE_TRANSPARENT_MOTION_VECTOR)))
+             VertexData previousMesh = v;
+           #endif
+           #if !_TESSELLATION_ON
+             ChainModifyVertex(v, o);
+           #endif
 
             o.texcoord0 = v.texcoord0;
 
@@ -36658,15 +37327,19 @@ float3 GetTessFactors ()
            // o.texcoord3 = v.texcoord3;
            // o.vertexColor = v.vertexColor;
            
+           // This return the camera relative position (if enable)
+           float3 positionWS = TransformObjectToWorld(v.vertex.xyz);
+           float3 normalWS = TransformObjectToWorldNormal(v.normal);
+           
            VertexPositionInputs vertexInput = GetVertexPositionInputs(v.vertex.xyz);
-           o.worldPos = TransformObjectToWorld(v.vertex.xyz);
-           o.worldNormal = TransformObjectToWorldNormal(v.normal);
-
+           o.worldPos = positionWS;
+           o.worldNormal = normalWS;
            
            #if !_MICROTERRAIN || _TERRAINBLENDABLESHADER
                float2 uv1 = v.texcoord1.xy;
                float2 uv2 = v.texcoord2.xy;
-               o.worldTangent = float4(TransformObjectToWorldDir(v.tangent.xyz), v.tangent.w);
+               float4 tangentWS = float4(TransformObjectToWorldDir(v.tangent.xyz), v.tangent.w);
+               o.worldTangent = tangentWS;
            #else
                float2 uv1 = v.texcoord0.xy;
                float2 uv2 = uv1;
@@ -36703,6 +37376,8 @@ float3 GetTessFactors ()
 
           // o.screenPos = ComputeScreenPos(o.pos, _ProjectionParams.x);
           
+          // UNITY_VERSION
+          // 6000.0.9f1 = 6000 0 009
 
           #if _PASSFORWARD || _PASSGBUFFER
               #if _MICROTERRAIN
@@ -36710,9 +37385,17 @@ float3 GetTessFactors ()
               #else
                  OUTPUT_LIGHTMAP_UV(uv1, unity_LightmapST, o.lightmapUV);
               #endif
-              OUTPUT_SH(o.worldNormal, o.sh);
+              #if UNITY_VERSION < 60000009
+                OUTPUT_SH(o.worldNormal, o.sh);
+              #endif
+              
               #if defined(DYNAMICLIGHTMAP_ON)
                    o.dynamicLightmapUV.xy = uv2 * unity_DynamicLightmapST.xy + unity_DynamicLightmapST.zw;
+                   #if UNITY_VERSION >= 60000009
+                     OUTPUT_SH(o.worldNormal, o.sh);
+                   #endif
+              #elif (defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2)) && UNITY_VERSION >= 60000009
+                   OUTPUT_SH4(vertexInput.positionWS, o.worldNormal.xyz, GetWorldSpaceNormalizeViewDir(vertexInput.positionWS), o.sh, o.probeOcclusion);
               #endif
           #endif
 
@@ -36731,6 +37414,78 @@ float3 GetTessFactors ()
 
           #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)
              o.shadowCoord = GetShadowCoord(vertexInput);
+          #endif
+
+          #if _URP && !_MICROTERRAIN && (_PASSMOTIONVECTOR || ((_PASSFORWARD || _PASSUNLIT) && defined(_WRITE_TRANSPARENT_MOTION_VECTOR)))
+            #if !defined(TESSELLATION_ON)
+              MotionVectorPositionZBias(o);
+            #endif
+
+            o.previousPositionCS = float4(0.0, 0.0, 0.0, 1.0);
+            // Note: unity_MotionVectorsParams.y is 0 is forceNoMotion is enabled
+            bool forceNoMotion = unity_MotionVectorsParams.y == 0.0;
+
+            if (!forceNoMotion)
+            {
+              #if defined(HAVE_VFX_MODIFICATION)
+                float3 previousPositionOS = currentFrameMvData.vfxParticlePositionOS;
+                #if defined(VFX_FEATURE_MOTION_VECTORS_VERTS)
+                  const bool applyDeformation = false;
+                #else
+                  const bool applyDeformation = true;
+                #endif
+              #else
+                const bool hasDeformation = unity_MotionVectorsParams.x == 1; // Mesh has skinned deformation
+                float3 previousPositionOS = hasDeformation ? previousMesh.previousPositionOS : previousMesh.vertex.xyz;
+
+                #if defined(AUTOMATIC_TIME_BASED_MOTION_VECTORS) && defined(GRAPH_VERTEX_USES_TIME_PARAMETERS_INPUT)
+                  const bool applyDeformation = true;
+                #else
+                  const bool applyDeformation = hasDeformation;
+                #endif
+              #endif
+              // TODO
+              #if defined(FEATURES_GRAPH_VERTEX)
+                if (applyDeformation)
+                  previousPositionOS = GetLastFrameDeformedPosition(previousMesh, currentFrameMvData, previousPositionOS);
+                else
+                  previousPositionOS = previousMesh.positionOS;
+
+                #if defined(FEATURES_GRAPH_VERTEX_MOTION_VECTOR_OUTPUT)
+                  previousPositionOS -= previousMesh.precomputedVelocity;
+                #endif
+              #endif
+
+              #if defined(UNITY_DOTS_INSTANCING_ENABLED) && defined(DOTS_DEFORMED)
+                // Deformed vertices in DOTS are not cumulative with built-in Unity skinning/blend shapes
+                // Needs to be called after vertex modification has been applied otherwise it will be
+                // overwritten by Compute Deform node
+                ApplyPreviousFrameDeformedVertexPosition(previousMesh.vertexID, previousPositionOS);
+              #endif
+              #if defined (_ADD_PRECOMPUTED_VELOCITY)
+                previousPositionOS -= previousMesh.precomputedVelocity;
+              #endif
+              o.positionCS = mul(UNITY_MATRIX_UNJITTERED_VP, float4(positionWS, 1.0f));
+
+              #if defined(HAVE_VFX_MODIFICATION)
+                #if defined(VFX_FEATURE_MOTION_VECTORS_VERTS)
+                  #if defined(FEATURES_GRAPH_VERTEX_MOTION_VECTOR_OUTPUT) || defined(_ADD_PRECOMPUTED_VELOCITY)
+                    #error Unexpected fast path rendering VFX motion vector while there are vertex modification afterwards.
+                  #endif
+                  o.previousPositionCS = VFXGetPreviousClipPosition(previousMesh, currentFrameMvData.vfxElementAttributes, o.positionCS);
+                #else
+                  #if VFX_WORLD_SPACE
+                    //previousPositionOS is already in world space
+                    const float3 previousPositionWS = previousPositionOS;
+                  #else
+                    const float3 previousPositionWS = mul(UNITY_PREV_MATRIX_M, float4(previousPositionOS, 1.0f)).xyz;
+                  #endif
+                  o.previousPositionCS = mul(UNITY_MATRIX_PREV_VP, float4(previousPositionWS, 1.0f));
+                #endif
+              #else
+                o.previousPositionCS = mul(UNITY_MATRIX_PREV_VP, mul(UNITY_PREV_MATRIX_M, float4(previousPositionOS, 1)));
+              #endif
+            }
           #endif
 
            return o;
@@ -36800,6 +37555,7 @@ float3 GetTessFactors ()
       }
 
 
+      
       
       
               Pass
